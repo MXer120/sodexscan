@@ -131,20 +131,27 @@ export default function MainnetPage() {
     try {
       const { data, error } = await supabase
         .from('leaderboard')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank', { count: 'exact' })
         .order('pnl_rank', { ascending: true, nullsFirst: false })
+        .limit(10000)
 
       if (error) throw error
 
-      const formattedData = (data || []).map(row => ({
-        accountId: row.account_id,
-        walletAddress: row.wallet_address,
-        pnl: parseFloat(row.cumulative_pnl) || 0,
-        volume: parseFloat(row.cumulative_volume) || 0,
-        unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
-        pnlRank: row.pnl_rank,
-        volumeRank: row.volume_rank
-      }))
+      const formattedData = (data || []).map(row => {
+        const pnl = parseFloat(row.cumulative_pnl)
+        const volume = parseFloat(row.cumulative_volume)
+        const unrealizedPnl = parseFloat(row.unrealized_pnl)
+
+        return {
+          accountId: row.account_id,
+          walletAddress: row.wallet_address,
+          pnl: isNaN(pnl) ? 0 : pnl,
+          volume: isNaN(volume) ? 0 : volume,
+          unrealizedPnl: isNaN(unrealizedPnl) ? 0 : unrealizedPnl,
+          pnlRank: parseInt(row.pnl_rank, 10),
+          volumeRank: parseInt(row.volume_rank, 10)
+        }
+      })
 
       setLeaderboardData(formattedData)
     } catch (err) {
