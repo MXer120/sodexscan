@@ -2,7 +2,13 @@ import React, { useState, useEffect, useRef } from 'react'
 import ChartCard from './ChartCard'
 import { motion } from 'framer-motion'
 import DebugPanel from './DebugPanel'
+import { createClient } from '@supabase/supabase-js'
 import '../styles/MainnetPage.css'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 // TabSwitch - separate component for User/Platform tabs
 function TabSwitch({
@@ -110,7 +116,7 @@ export default function MainnetPage() {
   const [platformLoading, setPlatformLoading] = useState(true)
 
   useEffect(() => {
-    loadLeaderboardFromCSV()
+    loadLeaderboardFromSupabase()
     loadPlatformData()
   }, [])
 
@@ -120,27 +126,29 @@ export default function MainnetPage() {
     }
   }, [highlightedWallet])
 
-  const loadLeaderboardFromCSV = async () => {
+  const loadLeaderboardFromSupabase = async () => {
     setLeaderboardLoading(true)
     try {
-      const response = await fetch('/data/mainnet_leaderboard.csv')
-      const csvText = await response.text()
-      const lines = csvText.trim().split('\n')
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
+        .order('pnl_rank', { ascending: true, nullsFirst: false })
 
-      const data = lines.slice(1).map(line => {
-        // Parse CSV: "walletAddress","pnl","volume"
-        const match = line.match(/"([^"]+)","([^"]+)","([^"]+)"/)
-        if (!match) return null
-        return {
-          walletAddress: match[1],
-          pnl: parseFloat(match[2]) || 0,
-          volume: parseFloat(match[3]) || 0
-        }
-      }).filter(Boolean)
+      if (error) throw error
 
-      setLeaderboardData(data)
+      const formattedData = (data || []).map(row => ({
+        accountId: row.account_id,
+        walletAddress: row.wallet_address,
+        pnl: parseFloat(row.cumulative_pnl) || 0,
+        volume: parseFloat(row.cumulative_volume) || 0,
+        unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
+        pnlRank: row.pnl_rank,
+        volumeRank: row.volume_rank
+      }))
+
+      setLeaderboardData(formattedData)
     } catch (err) {
-      console.error('Failed to load leaderboard CSV:', err)
+      console.error('Failed to load leaderboard from Supabase:', err)
     }
     setLeaderboardLoading(false)
   }
@@ -312,11 +320,22 @@ export default function MainnetPage() {
   const topGainers = [...leaderboardData].filter(u => u.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 10)
   const topLosers = [...leaderboardData].filter(u => u.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
 
-  // Sorted leaderboard
+  // Sorted leaderboard - use server-side ranks from Supabase
   const sortedLeaderboard = [...leaderboardData].sort((a, b) => {
-    if (leaderboardType === 'volume') return b.volume - a.volume
-    return b.pnl - a.pnl
-  }).map((user, idx) => ({ ...user, displayRank: idx + 1 }))
+    if (leaderboardType === 'volume') {
+      // Sort by volume_rank (nulls last)
+      if (a.volumeRank == null) return 1
+      if (b.volumeRank == null) return -1
+      return a.volumeRank - b.volumeRank
+    }
+    // Sort by pnl_rank (nulls last)
+    if (a.pnlRank == null) return 1
+    if (b.pnlRank == null) return -1
+    return a.pnlRank - b.pnlRank
+  }).map((user) => ({
+    ...user,
+    displayRank: leaderboardType === 'volume' ? user.volumeRank : user.pnlRank
+  }))
 
   // Search handler
   const handleLeaderboardSearch = (searchVal) => {
@@ -342,6 +361,33 @@ export default function MainnetPage() {
     (leaderboardPage - 1) * leaderboardPageSize,
     leaderboardPage * leaderboardPageSize
   )
+
+  // Export CSV
+  const exportLeaderboardCSV = () => {
+    const headers = ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
+    const rows = sortedLeaderboard.map(user => [
+      user.displayRank || '',
+      user.walletAddress,
+      user.pnl,
+      user.volume,
+      user.unrealizedPnl
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `leaderboard_${leaderboardType}_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   // Chart series helpers
   const getVolumeSeries = () => {
@@ -489,6 +535,26 @@ export default function MainnetPage() {
                       }}
                       className="leaderboard-search"
                     />
+                    <button
+                      onClick={exportLeaderboardCSV}
+                      className="export-csv-btn"
+                      title="Export as CSV"
+                      style={{
+                        padding: '8px 16px',
+                        background: '#667eea',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#5568d3'}
+                      onMouseLeave={(e) => e.target.style.background = '#667eea'}
+                    >
+                      Export CSV
+                    </button>
                     <div className="leaderboard-toggle">
                       <button
                         className={leaderboardType === 'volume' ? 'active' : ''}
