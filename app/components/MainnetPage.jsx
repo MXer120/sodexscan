@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import ChartCard from './ChartCard'
 import { motion } from 'framer-motion'
+import DebugPanel from './DebugPanel'
 import '../styles/MainnetPage.css'
 
 // TabSwitch - separate component for User/Platform tabs
@@ -364,6 +365,7 @@ export default function MainnetPage() {
 
   return (
     <div className="mainnet-page dashboard">
+      <DebugPanel />
       <h1 className="dashboard-title">Mainnet Stats</h1>
 
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
