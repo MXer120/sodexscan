@@ -88,14 +88,25 @@ const CopyableAddress = ({ address }) => {
 export default function MainnetPage() {
   const [activeTab, setActiveTab] = useState('User')
 
-  // Leaderboard data from CSV
+  // Leaderboard data - paginated
   const [leaderboardData, setLeaderboardData] = useState([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [leaderboardType, setLeaderboardType] = useState('volume')
   const [leaderboardSearch, setLeaderboardSearch] = useState('')
   const [highlightedWallet, setHighlightedWallet] = useState(null)
   const [leaderboardPage, setLeaderboardPage] = useState(1)
+  const [totalLeaderboardCount, setTotalLeaderboardCount] = useState(0)
   const highlightedRowRef = useRef(null)
+
+  // Page cache - Map of "page_type" → {data, timestamp}
+  const pageCache = useRef(new Map())
+  const totalCountCache = useRef({ count: 0, timestamp: 0, type: null })
+  const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+  // Top 10 data (lazy loaded)
+  const [topGainersData, setTopGainersData] = useState([])
+  const [topLosersData, setTopLosersData] = useState([])
+  const [top10Loading, setTop10Loading] = useState(false)
 
   // Platform stats
   const [volumeData, setVolumeData] = useState([])
@@ -116,9 +127,16 @@ export default function MainnetPage() {
   const [platformLoading, setPlatformLoading] = useState(true)
 
   useEffect(() => {
-    loadLeaderboardFromSupabase()
+    loadLeaderboardPage(1, leaderboardType)
     loadPlatformData()
   }, [])
+
+  // Load top 10 when switching to User tab
+  useEffect(() => {
+    if (activeTab === 'User' && topGainersData.length === 0) {
+      loadTop10()
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (highlightedWallet && highlightedRowRef.current) {
@@ -126,14 +144,51 @@ export default function MainnetPage() {
     }
   }, [highlightedWallet])
 
-  const loadLeaderboardFromSupabase = async () => {
+  // Load single page of leaderboard (20 users)
+  const loadLeaderboardPage = async (page, type) => {
+    // Check cache first
+    const cacheKey = `${page}_${type}`
+    const cached = pageCache.current.get(cacheKey)
+    const now = Date.now()
+
+    if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+      // Cache hit - use cached data
+      setLeaderboardData(cached.data)
+
+      // Use cached total count if available and fresh
+      const countCache = totalCountCache.current
+      if (countCache.type === type && (now - countCache.timestamp < CACHE_TTL_MS)) {
+        setTotalLeaderboardCount(countCache.count)
+      }
+      return
+    }
+
+    // Cache miss - fetch from Supabase
     setLeaderboardLoading(true)
     try {
+      const pageSize = 20
+      const orderColumn = type === 'volume' ? 'volume_rank' : 'pnl_rank'
+
+      // Get total count (cached separately)
+      let totalCount
+      const countCache = totalCountCache.current
+      if (countCache.type === type && (now - countCache.timestamp < CACHE_TTL_MS)) {
+        totalCount = countCache.count
+      } else {
+        const { count } = await supabase
+          .from('leaderboard')
+          .select('*', { count: 'exact', head: true })
+        totalCount = count || 0
+        totalCountCache.current = { count: totalCount, timestamp: now, type }
+      }
+      setTotalLeaderboardCount(totalCount)
+
+      // Fetch single page
       const { data, error } = await supabase
         .from('leaderboard')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank', { count: 'exact' })
-        .order('pnl_rank', { ascending: true, nullsFirst: false })
-        .limit(10000)
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
+        .order(orderColumn, { ascending: true, nullsFirst: false })
+        .range((page - 1) * pageSize, page * pageSize - 1)
 
       if (error) throw error
 
@@ -148,16 +203,54 @@ export default function MainnetPage() {
           pnl: isNaN(pnl) ? 0 : pnl,
           volume: isNaN(volume) ? 0 : volume,
           unrealizedPnl: isNaN(unrealizedPnl) ? 0 : unrealizedPnl,
-          pnlRank: parseInt(row.pnl_rank, 10),
-          volumeRank: parseInt(row.volume_rank, 10)
+          pnlRank: parseInt(row.pnl_rank, 10) || null,
+          volumeRank: parseInt(row.volume_rank, 10) || null
         }
       })
 
+      // Store in cache
+      pageCache.current.set(cacheKey, { data: formattedData, timestamp: now })
       setLeaderboardData(formattedData)
     } catch (err) {
-      console.error('Failed to load leaderboard from Supabase:', err)
+      console.error('Failed to load leaderboard page:', err)
     }
     setLeaderboardLoading(false)
+  }
+
+  // Load top 10 gainers/losers (PnL only)
+  const loadTop10 = async () => {
+    setTop10Loading(true)
+    try {
+      // Top 10 gainers
+      const { data: gainers, error: gainersError } = await supabase
+        .from('leaderboard')
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume')
+        .order('cumulative_pnl', { ascending: false })
+        .limit(10)
+
+      if (gainersError) throw gainersError
+
+      // Top 10 losers
+      const { data: losers, error: losersError } = await supabase
+        .from('leaderboard')
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume')
+        .order('cumulative_pnl', { ascending: true })
+        .limit(10)
+
+      if (losersError) throw losersError
+
+      const formatUser = (row) => ({
+        walletAddress: row.wallet_address,
+        pnl: parseFloat(row.cumulative_pnl) || 0,
+        volume: parseFloat(row.cumulative_volume) || 0
+      })
+
+      setTopGainersData((gainers || []).map(formatUser).filter(u => u.pnl > 0))
+      setTopLosersData((losers || []).map(formatUser).filter(u => u.pnl < 0))
+    } catch (err) {
+      console.error('Failed to load top 10:', err)
+    }
+    setTop10Loading(false)
   }
 
   const loadPlatformData = async () => {
@@ -305,41 +398,44 @@ export default function MainnetPage() {
     return num.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  // Calculate user stats from leaderboard data
-  const userStats = React.useMemo(() => {
-    if (leaderboardData.length === 0) return { totalUsers: 0, deltaGains: 0, profitPercent: 0, drawdownPercent: 0, tvl: platformStats.tvl }
+  // User stats loaded separately (aggregate query would be better for production)
+  const [userStats, setUserStats] = React.useState({
+    totalUsers: 0,
+    deltaGains: 0,
+    profitPercent: 0,
+    drawdownPercent: 0,
+    tvl: 0
+  })
 
-    const totalPnL = leaderboardData.reduce((sum, u) => sum + u.pnl, 0)
-    const usersInProfit = leaderboardData.filter(u => u.pnl > 0).length
-    const usersInDrawdown = leaderboardData.filter(u => u.pnl < 0).length
-    const totalUsers = leaderboardData.length
-
-    return {
-      totalUsers,
-      deltaGains: totalPnL,
-      profitPercent: totalUsers > 0 ? ((usersInProfit / totalUsers) * 100).toFixed(1) : 0,
-      drawdownPercent: totalUsers > 0 ? ((usersInDrawdown / totalUsers) * 100).toFixed(1) : 0,
-      tvl: platformStats.tvl
+  // Load aggregate stats when User tab is active
+  React.useEffect(() => {
+    if (activeTab === 'User' && userStats.totalUsers === 0) {
+      loadUserStats()
     }
-  }, [leaderboardData, platformStats.tvl])
+  }, [activeTab])
 
-  // Top 10 gainers/losers
-  const topGainers = [...leaderboardData].filter(u => u.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 10)
-  const topLosers = [...leaderboardData].filter(u => u.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
+  const loadUserStats = async () => {
+    try {
+      // Could use Supabase RPC for aggregates, but using count for now
+      const { count } = await supabase
+        .from('leaderboard')
+        .select('*', { count: 'exact', head: true })
 
-  // Sorted leaderboard - use server-side ranks from Supabase
-  const sortedLeaderboard = [...leaderboardData].sort((a, b) => {
-    if (leaderboardType === 'volume') {
-      // Sort by volume_rank (nulls last)
-      if (a.volumeRank == null) return 1
-      if (b.volumeRank == null) return -1
-      return a.volumeRank - b.volumeRank
+      // For now, set basic stats (would need aggregate functions for PnL totals)
+      setUserStats({
+        totalUsers: count || 0,
+        deltaGains: 0, // Would need aggregate query
+        profitPercent: 0, // Would need aggregate query
+        drawdownPercent: 0, // Would need aggregate query
+        tvl: platformStats.tvl
+      })
+    } catch (err) {
+      console.error('Failed to load user stats:', err)
     }
-    // Sort by pnl_rank (nulls last)
-    if (a.pnlRank == null) return 1
-    if (b.pnlRank == null) return -1
-    return a.pnlRank - b.pnlRank
-  }).map((user) => ({
+  }
+
+  // Leaderboard is already sorted by server, just add display rank
+  const sortedLeaderboard = leaderboardData.map((user) => ({
     ...user,
     displayRank: leaderboardType === 'volume' ? user.volumeRank : user.pnlRank
   }))
@@ -363,37 +459,58 @@ export default function MainnetPage() {
   }
 
   const leaderboardPageSize = 20
-  const totalLeaderboardPages = Math.ceil(sortedLeaderboard.length / leaderboardPageSize)
-  const paginatedLeaderboard = sortedLeaderboard.slice(
-    (leaderboardPage - 1) * leaderboardPageSize,
-    leaderboardPage * leaderboardPageSize
-  )
+  const totalLeaderboardPages = Math.ceil(totalLeaderboardCount / leaderboardPageSize)
+  // Data is already paginated from server
+  const paginatedLeaderboard = sortedLeaderboard
 
-  // Export CSV
-  const exportLeaderboardCSV = () => {
-    const headers = ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
-    const rows = sortedLeaderboard.map(user => [
-      user.displayRank || '',
-      user.walletAddress,
-      user.pnl,
-      user.volume,
-      user.unrealizedPnl
-    ])
+  // Export CSV - fetches all data for export
+  const exportLeaderboardCSV = async () => {
+    try {
+      const orderColumn = leaderboardType === 'volume' ? 'volume_rank' : 'pnl_rank'
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n')
+      // Fetch all data for export
+      const pageSize = 1000
+      const allData = []
+      let currentPage = 0
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `leaderboard_${leaderboardType}_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      while (currentPage * pageSize < totalLeaderboardCount) {
+        const { data, error } = await supabase
+          .from('leaderboard')
+          .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
+          .order(orderColumn, { ascending: true, nullsFirst: false })
+          .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1)
+
+        if (error) throw error
+        allData.push(...data)
+        currentPage++
+      }
+
+      const headers = ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
+      const rows = allData.map(row => [
+        leaderboardType === 'volume' ? row.volume_rank : row.pnl_rank,
+        row.wallet_address,
+        row.cumulative_pnl,
+        row.cumulative_volume,
+        row.unrealized_pnl
+      ])
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `leaderboard_${leaderboardType}_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error('Failed to export CSV:', err)
+    }
   }
 
   // Chart series helpers
@@ -460,7 +577,7 @@ export default function MainnetPage() {
             </div>
 
             {/* Top 10 Gainers & Losers */}
-            {!leaderboardLoading && leaderboardData.length > 0 && (
+            {!top10Loading && (topGainersData.length > 0 || topLosersData.length > 0) && (
               <div className="top-10-grid">
                 {/* Top 10 Gainers */}
                 <div className="top-10-card gainers">
@@ -481,7 +598,7 @@ export default function MainnetPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {topGainers.map((user, idx) => (
+                        {topGainersData.map((user, idx) => (
                           <tr key={user.walletAddress}>
                             <td className="rank">{idx + 1}</td>
                             <td><CopyableAddress address={user.walletAddress} /></td>
@@ -512,7 +629,7 @@ export default function MainnetPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {topLosers.map((user, idx) => (
+                        {topLosersData.map((user, idx) => (
                           <tr key={user.walletAddress}>
                             <td className="rank">{idx + 1}</td>
                             <td><CopyableAddress address={user.walletAddress} /></td>
@@ -527,8 +644,8 @@ export default function MainnetPage() {
             )}
 
             {/* Leaderboard */}
-            {!leaderboardLoading && leaderboardData.length > 0 && (
-              <div className="mainnet-leaderboard">
+            {leaderboardData.length > 0 && (
+              <div className="mainnet-leaderboard" style={{ position: 'relative', opacity: leaderboardLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
                 <div className="leaderboard-header">
                   <h2>Leaderboard</h2>
                   <div className="leaderboard-controls">
@@ -542,6 +659,31 @@ export default function MainnetPage() {
                       }}
                       className="leaderboard-search"
                     />
+                    <button
+                      onClick={() => {
+                        pageCache.current.clear()
+                        totalCountCache.current = { count: 0, timestamp: 0, type: null }
+                        loadLeaderboardPage(leaderboardPage, leaderboardType)
+                      }}
+                      className="refresh-btn"
+                      title="Refresh data"
+                      style={{
+                        padding: '8px 16px',
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        transition: 'background 0.2s',
+                        marginRight: '8px'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#059669'}
+                      onMouseLeave={(e) => e.target.style.background = '#10b981'}
+                    >
+                      Refresh
+                    </button>
                     <button
                       onClick={exportLeaderboardCSV}
                       className="export-csv-btn"
@@ -565,13 +707,23 @@ export default function MainnetPage() {
                     <div className="leaderboard-toggle">
                       <button
                         className={leaderboardType === 'volume' ? 'active' : ''}
-                        onClick={() => { setLeaderboardType('volume'); setLeaderboardPage(1); setHighlightedWallet(null) }}
+                        onClick={() => {
+                          setLeaderboardType('volume')
+                          setLeaderboardPage(1)
+                          setHighlightedWallet(null)
+                          loadLeaderboardPage(1, 'volume')
+                        }}
                       >
                         Volume
                       </button>
                       <button
                         className={leaderboardType === 'pnl' ? 'active' : ''}
-                        onClick={() => { setLeaderboardType('pnl'); setLeaderboardPage(1); setHighlightedWallet(null) }}
+                        onClick={() => {
+                          setLeaderboardType('pnl')
+                          setLeaderboardPage(1)
+                          setHighlightedWallet(null)
+                          loadLeaderboardPage(1, 'pnl')
+                        }}
                       >
                         PnL
                       </button>
@@ -613,17 +765,25 @@ export default function MainnetPage() {
 
                 <div className="pagination">
                   <button
-                    onClick={() => setLeaderboardPage(p => Math.max(1, p - 1))}
+                    onClick={() => {
+                      const newPage = Math.max(1, leaderboardPage - 1)
+                      setLeaderboardPage(newPage)
+                      loadLeaderboardPage(newPage, leaderboardType)
+                    }}
                     disabled={leaderboardPage === 1}
                     className="page-btn"
                   >
                     &lt; Prev
                   </button>
                   <span className="page-info">
-                    Page {leaderboardPage} of {totalLeaderboardPages} ({sortedLeaderboard.length} traders)
+                    Page {leaderboardPage} of {totalLeaderboardPages} ({totalLeaderboardCount} traders)
                   </span>
                   <button
-                    onClick={() => setLeaderboardPage(p => Math.min(totalLeaderboardPages, p + 1))}
+                    onClick={() => {
+                      const newPage = Math.min(totalLeaderboardPages, leaderboardPage + 1)
+                      setLeaderboardPage(newPage)
+                      loadLeaderboardPage(newPage, leaderboardType)
+                    }}
                     disabled={leaderboardPage === totalLeaderboardPages}
                     className="page-btn"
                   >
