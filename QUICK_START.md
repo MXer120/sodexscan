@@ -8,15 +8,17 @@
 -- Copy from: supabase/schema.sql
 ```
 
-### 2. Deploy Edge Function
+### 2. Deploy Edge Function (Optional - skip if already done)
 ```bash
-npm install -g supabase
-supabase login
-supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy sync-all
-supabase secrets set SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_KEY
+# Use npx (no install needed)
+npx supabase login
+npx supabase link --project-ref yifkydhsbflzfprteots
+npx supabase functions deploy sync-all
+npx supabase secrets set SUPABASE_URL=https://yifkydhsbflzfprteots.supabase.co
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY=REDACTED_SUPABASE_SERVICE_ROLE_KEY
 ```
+
+**Note:** You mentioned skipping this step - if Edge Function already deployed, skip to Step 3.
 
 ### 3. Schedule Cron (Supabase SQL Editor)
 ```sql
@@ -27,12 +29,40 @@ select cron.schedule(
   '*/15 * * * *',
   $$
   select net.http_post(
-    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/sync-all',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
+    url := 'https://yifkydhsbflzfprteots.supabase.co/functions/v1/sync-all',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer REDACTED_SUPABASE_SERVICE_ROLE_KEY'
+    ),
     body := '{}'::jsonb
-  ) as request_id;
+  );
   $$
 );
+```
+
+### 3.5 Verify Cron & Manually Trigger First Sync
+```sql
+-- Verify cron created
+select * from cron.job;
+
+-- Check if http extension exists
+select * from pg_extension where extname = 'http';
+
+-- If not, enable it (required for net.http_post)
+create extension if not exists http with schema extensions;
+```
+
+Then manually trigger first sync:
+```bash
+curl -X POST https://yifkydhsbflzfprteots.supabase.co/functions/v1/sync-all \
+  -H "Authorization: Bearer REDACTED_SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json"
+```
+
+Wait 2-3 mins, then verify data:
+```sql
+select count(*) from account_mapping;
+select count(*) from leaderboard;
 ```
 
 ### 4. Deploy to Vercel
