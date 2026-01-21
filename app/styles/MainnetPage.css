@@ -1,0 +1,387 @@
+/* MainnetPage.css */
+
+.mainnet-page {
+  padding: 40px;
+  padding-top: 100px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Tab Switch */
+.tab-switch {
+  display: inline-flex;
+  background: rgba(30, 30, 30, 0.6);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-switch-btn {
+  padding: 12px 32px;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-switch-btn:last-child {
+  border-right: none;
+}
+
+.tab-switch-btn.active {
+  background: #4ade80;
+  color: #000;
+}
+
+.tab-switch-btn:hover:not(.active) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Top 10 Grid */
+.top-10-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin: 24px 0;
+}
+
+@media (max-width: 1024px) {
+  .top-10-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Top 10 Card */
+.top-10-card {
+  background: rgba(20, 20, 20, 0.6);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.top-10-card.gainers {
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.top-10-card.gainers:hover {
+  border-color: rgba(74, 222, 128, 0.6);
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
+}
+
+.top-10-card.losers {
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.top-10-card.losers:hover {
+  border-color: rgba(244, 67, 54, 0.6);
+  box-shadow: 0 0 20px rgba(244, 67, 54, 0.2);
+}
+
+.top-10-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.top-10-card.gainers .top-10-header {
+  color: #4ade80;
+}
+
+.top-10-card.losers .top-10-header {
+  color: #f44336;
+}
+
+.top-10-table-wrapper {
+  padding: 0 20px 20px;
+}
+
+.top-10-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.top-10-card.gainers .top-10-table {
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.top-10-card.losers .top-10-table {
+  border-color: rgba(244, 67, 54, 0.2);
+}
+
+.top-10-table thead tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.top-10-card.gainers .top-10-table thead tr {
+  background: rgba(74, 222, 128, 0.15);
+  border-bottom: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.top-10-card.losers .top-10-table thead tr {
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.top-10-table th {
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: #888;
+}
+
+.top-10-card.gainers .top-10-table th:first-child,
+.top-10-card.gainers .top-10-table th:last-child {
+  color: #4ade80;
+}
+
+.top-10-card.losers .top-10-table th:first-child,
+.top-10-card.losers .top-10-table th:last-child {
+  color: #f44336;
+}
+
+.top-10-table th:first-child {
+  width: 50px;
+}
+
+.top-10-table tbody tr {
+  transition: background 0.2s;
+}
+
+.top-10-card.gainers .top-10-table tbody tr {
+  border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.top-10-card.gainers .top-10-table tbody tr:hover {
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.top-10-card.losers .top-10-table tbody tr {
+  border-bottom: 1px solid rgba(244, 67, 54, 0.1);
+}
+
+.top-10-card.losers .top-10-table tbody tr:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.top-10-table td {
+  padding: 8px;
+  font-size: 13px;
+  color: #fff;
+}
+
+.top-10-table td.rank {
+  font-weight: 600;
+}
+
+.top-10-card.gainers .top-10-table td.rank,
+.top-10-card.gainers .top-10-table td.pnl {
+  color: #4ade80;
+}
+
+.top-10-card.losers .top-10-table td.rank,
+.top-10-card.losers .top-10-table td.pnl {
+  color: #f44336;
+}
+
+.top-10-table td.pnl {
+  font-weight: 600;
+}
+
+.top-10-table .text-right {
+  text-align: right;
+}
+
+/* Leaderboard */
+.mainnet-leaderboard {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 32px;
+}
+
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.leaderboard-header h2 {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.leaderboard-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.leaderboard-search {
+  padding: 10px 14px;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.leaderboard-search:focus {
+  border-color: rgba(60, 200, 240, 0.4);
+}
+
+.leaderboard-search::placeholder {
+  color: #666;
+}
+
+.leaderboard-toggle {
+  display: flex;
+  background: rgba(30, 30, 30, 0.6);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-toggle button {
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.leaderboard-toggle button.active {
+  background: #fff;
+  color: #000;
+}
+
+.leaderboard-toggle button:hover:not(.active) {
+  color: #fff;
+}
+
+/* Leaderboard Table */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: #888;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.leaderboard-table th.text-right {
+  text-align: right;
+}
+
+.leaderboard-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.leaderboard-table tbody tr:hover {
+  background: rgba(60, 200, 240, 0.05);
+}
+
+.leaderboard-table tbody tr.highlighted {
+  background: rgba(60, 200, 240, 0.2);
+}
+
+.leaderboard-table td {
+  padding: 14px 12px;
+  font-size: 14px;
+  color: #fff;
+}
+
+.leaderboard-table td.rank-cell {
+  font-weight: 600;
+  color: #fff;
+}
+
+.leaderboard-table td.pnl-cell.positive {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.leaderboard-table td.pnl-cell.negative {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.leaderboard-table td.volume-cell {
+  color: #fff;
+}
+
+.leaderboard-table td.text-right {
+  text-align: right;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.page-btn {
+  padding: 10px 20px;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(60, 200, 240, 0.15);
+  border-color: rgba(60, 200, 240, 0.3);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #888;
+  font-size: 14px;
+}
