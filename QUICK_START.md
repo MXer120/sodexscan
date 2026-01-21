@@ -8,15 +8,17 @@
 -- Copy from: supabase/schema.sql
 ```
 
-### 2. Deploy Edge Function
+### 2. Deploy Edge Function (Optional - skip if already done)
 ```bash
-npm install -g supabase
-supabase login
-supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy sync-all
-supabase secrets set SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_KEY
+# Use npx (no install needed)
+npx supabase login
+npx supabase link --project-ref yifkydhsbflzfprteots
+npx supabase functions deploy sync-all
+npx supabase secrets set SUPABASE_URL=https://yifkydhsbflzfprteots.supabase.co
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpZmt5ZGhzYmZsemZwcnRlb3RzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODk5MjU0NywiZXhwIjoyMDg0NTY4NTQ3fQ.ySGaIpjs5BeV9oKmAC8cbeoK6-KUZLvTey3EHzKnzto
 ```
+
+**Note:** You mentioned skipping this step - if Edge Function already deployed, skip to Step 3.
 
 ### 3. Schedule Cron (Supabase SQL Editor)
 ```sql
@@ -27,12 +29,40 @@ select cron.schedule(
   '*/15 * * * *',
   $$
   select net.http_post(
-    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/sync-all',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
+    url := 'https://yifkydhsbflzfprteots.supabase.co/functions/v1/sync-all',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpZmt5ZGhzYmZsemZwcnRlb3RzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODk5MjU0NywiZXhwIjoyMDg0NTY4NTQ3fQ.ySGaIpjs5BeV9oKmAC8cbeoK6-KUZLvTey3EHzKnzto'
+    ),
     body := '{}'::jsonb
-  ) as request_id;
+  );
   $$
 );
+```
+
+### 3.5 Verify Cron & Manually Trigger First Sync
+```sql
+-- Verify cron created
+select * from cron.job;
+
+-- Check if http extension exists
+select * from pg_extension where extname = 'http';
+
+-- If not, enable it (required for net.http_post)
+create extension if not exists http with schema extensions;
+```
+
+Then manually trigger first sync:
+```bash
+curl -X POST https://yifkydhsbflzfprteots.supabase.co/functions/v1/sync-all \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpZmt5ZGhzYmZsemZwcnRlb3RzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODk5MjU0NywiZXhwIjoyMDg0NTY4NTQ3fQ.ySGaIpjs5BeV9oKmAC8cbeoK6-KUZLvTey3EHzKnzto" \
+  -H "Content-Type: application/json"
+```
+
+Wait 2-3 mins, then verify data:
+```sql
+select count(*) from account_mapping;
+select count(*) from leaderboard;
 ```
 
 ### 4. Deploy to Vercel
