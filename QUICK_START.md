@@ -39,6 +39,253 @@ select cron.schedule(
   $$
 );
 ```
+REDACTED_SUPABASE_SERVICE_ROLE_KEY
+
+
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Only allow POST
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  try {
+    // ── Authentication check ────────────────────────────────────────────────
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or malformed Authorization header')
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - missing/invalid auth header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.split(' ')[1]
+    const expectedServiceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+    if (!expectedServiceRole) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY is not set in environment')
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (token !== expectedServiceRole) {
+      console.error('Invalid service role token provided')
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - invalid token' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ── Supabase client (admin privileges) ─────────────────────────────────
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      expectedServiceRole
+    )
+
+    // ── Find starting point ─────────────────────────────────────────────────
+    const { data: lastAccount, error: lastErr } = await supabase
+      .from('leaderboard')
+      .select('account_id')
+      .order('account_id', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (lastErr) throw lastErr
+
+    const startId = lastAccount?.account_id ? lastAccount.account_id + 1 : 1000
+    let currentId = startId
+    let newAccounts = 0
+    let updated = 0
+    const maxRetries = 80          // increased tolerance for gaps
+    let consecutiveFailures = 0
+
+    console.log(`Leaderboard sync started | from account_id ${startId}`)
+
+    // ── Discover & sync new accounts ───────────────────────────────────────
+    while (consecutiveFailures < maxRetries) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+
+        // 1. Get wallet address
+        const addrRes = await fetch(
+          `https://sodex.dev/mainnet/chain/user/${currentId}/address`,
+          { signal: controller.signal }
+        )
+        clearTimeout(timeoutId)
+
+        if (!addrRes.ok) throw new Error(`Address API ${addrRes.status}`)
+
+        const addrData = await addrRes.json()
+        if (addrData?.code !== 0 || !addrData?.data?.address) {
+          consecutiveFailures++
+          currentId++
+          continue
+        }
+
+        const walletAddress = addrData.data.address
+
+        // 2. Get PnL data
+        const pnlRes = await fetch(
+          `https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${currentId}`,
+          { signal: controller.signal }
+        )
+
+        if (!pnlRes.ok) throw new Error(`PnL API ${pnlRes.status}`)
+
+        const pnlData = await pnlRes.json()
+        if (pnlData?.code !== 0 || !pnlData?.data) {
+          consecutiveFailures++
+          currentId++
+          continue
+        }
+
+        const {
+          cumulative_pnl = '0',
+          cumulative_quote_volume = '0',
+          unrealized_pnl = '0',
+          first_trade_ts_ms = null
+        } = pnlData.data
+
+        // Upsert new account
+        const { error: upsertErr } = await supabase
+          .from('leaderboard')
+          .upsert({
+            account_id: currentId,
+            wallet_address: walletAddress,
+            cumulative_pnl,
+            cumulative_volume: cumulative_quote_volume,
+            unrealized_pnl,
+            first_trade_ts_ms,
+            last_synced_at: new Date().toISOString()
+          }, { onConflict: 'account_id' })
+
+        if (upsertErr) throw upsertErr
+
+        newAccounts++
+        consecutiveFailures = 0
+        console.log(`Synced new account ${currentId} (${walletAddress.slice(0, 8)}...)`)
+
+        currentId++
+      } catch (err) {
+        console.error(`Error processing account ${currentId}:`, err.message)
+        consecutiveFailures++
+        currentId++
+      }
+    }
+
+    // ── Update existing accounts (batched) ─────────────────────────────────
+    const { data: existingAccounts, error: existErr } = await supabase
+      .from('leaderboard')
+      .select('account_id')
+
+    if (existErr) throw existErr
+
+    if (existingAccounts?.length > 0) {
+      console.log(`Updating ${existingAccounts.length} existing accounts`)
+
+      const BATCH_SIZE = 10
+      for (let i = 0; i < existingAccounts.length; i += BATCH_SIZE) {
+        const batch = existingAccounts.slice(i, i + BATCH_SIZE)
+
+        await Promise.allSettled(
+          batch.map(async (acc: { account_id: number }) => {
+            try {
+              const pnlRes = await fetch(
+                `https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${acc.account_id}`,
+                { signal: AbortSignal.timeout(8000) }
+              )
+
+              if (!pnlRes.ok) throw new Error(`PnL ${pnlRes.status}`)
+
+              const pnlData = await pnlRes.json()
+              if (pnlData?.code !== 0 || !pnlData?.data) return
+
+              const {
+                cumulative_pnl = '0',
+                cumulative_quote_volume = '0',
+                unrealized_pnl = '0',
+                first_trade_ts_ms = null
+              } = pnlData.data
+
+              const { error } = await supabase
+                .from('leaderboard')
+                .update({
+                  cumulative_pnl,
+                  cumulative_volume: cumulative_quote_volume,
+                  unrealized_pnl,
+                  first_trade_ts_ms,
+                  last_synced_at: new Date().toISOString()
+                })
+                .eq('account_id', acc.account_id)
+
+              if (error) throw error
+
+              updated++
+            } catch (err) {
+              console.error(`Failed to update account ${acc.account_id}:`, err)
+            }
+          })
+        )
+      }
+    }
+
+    // ── Finalize: update ranks ─────────────────────────────────────────────
+    const { error: rankErr } = await supabase.rpc('update_leaderboard_ranks')
+    if (rankErr) throw rankErr
+
+    const stats = {
+      new_accounts: newAccounts,
+      updated_accounts: updated,
+      scanned_from: startId,
+      scanned_to: currentId - 1,
+      scanned_total: currentId - startId
+    }
+
+    console.log(`Sync completed | ${JSON.stringify(stats)}`)
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        timestamp: new Date().toISOString(),
+        stats
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('Critical sync failure:', error)
+    return new Response(
+      JSON.stringify({
+        error: error.message || 'Internal server error',
+        timestamp: new Date().toISOString()
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
+
+
+
 
 ### 3.5 Verify Cron & Manually Trigger First Sync
 ```sql
