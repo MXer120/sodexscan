@@ -36,9 +36,7 @@ export function TimeSelector({
             width: `${100 / options.length}%`
           }}
           transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 30
+            duration: 0
           }}
         />
 

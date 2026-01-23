@@ -1,3 +1,17 @@
+:root {
+  /* Primary colors */
+  --color-primary: #FF7648;
+  --color-primary-light: #FF7648;
+  --color-primary-dark: #D23714;
+  
+  /* Spot tag colors */
+  --color-spot: #DA6631;
+  --color-spot-bg: rgba(218, 102, 49, 0.25);
+  
+  /* Volume color */
+  --color-volume: #FF7A45;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,7 +19,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Lato', sans-serif;
   background: #0A0A0A;
   background-attachment: fixed;
   color: #ffffff;

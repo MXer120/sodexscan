@@ -6,6 +6,9 @@
 # testing
 /coverage
 
+#ai
+/.claude
+
 # next.js
 /.next/
 /out/

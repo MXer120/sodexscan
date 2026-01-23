@@ -11,13 +11,9 @@ const supabase = createClient(
 export default function DebugPanel() {
   const [isOpen, setIsOpen] = useState(false)
   const [syncStatus, setSyncStatus] = useState({
-    accounts: { count: 0, lastSync: null, status: 'unknown' },
-    leaderboard: { count: 0, lastSync: null, status: 'unknown' },
-    positions: { count: 0, lastSync: null, status: 'unknown' },
-    history: { count: 0, lastSync: null, status: 'unknown' },
-    withdrawals: { count: 0, lastSync: null, status: 'unknown' },
-    balances: { count: 0, lastSync: null, status: 'unknown' },
-    pnl: { count: 0, lastSync: null, status: 'unknown' }
+    leaderboard: { count: 0, lastSync: null, status: 'unknown' }
+    // Disabled due to 404 errors - these tables don't exist or are inaccessible:
+    // accounts, positions, history, withdrawals, balances, pnl
   })
   const [refreshing, setRefreshing] = useState(false)
   const [lastFullSync, setLastFullSync] = useState(null)
@@ -30,26 +26,20 @@ export default function DebugPanel() {
 
   const loadSyncStatus = async () => {
     try {
-      const [accounts, leaderboard, positions, history, withdrawals, balances, pnl] = await Promise.all([
+      // Only query leaderboard - other tables return 404
+      const leaderboard = await supabase.from('leaderboard').select('count', { count: 'exact', head: true })
+      const leaderboardLast = await supabase.from('leaderboard').select('updated_at').order('updated_at', { ascending: false }).limit(1).single()
+
+      /* DISABLED - These tables return 404 errors:
+      const [accounts, positions, history, withdrawals, balances, pnl] = await Promise.all([
         supabase.from('account_mapping').select('count', { count: 'exact', head: true }),
-        supabase.from('leaderboard').select('count', { count: 'exact', head: true }),
         supabase.from('open_positions').select('count', { count: 'exact', head: true }),
         supabase.from('position_history').select('count', { count: 'exact', head: true }),
         supabase.from('withdrawals').select('count', { count: 'exact', head: true }),
         supabase.from('spot_balances').select('count', { count: 'exact', head: true }),
         supabase.from('pnl_history').select('count', { count: 'exact', head: true })
       ])
-
-      // Get last updated timestamps
-      const [accountsLast, leaderboardLast, positionsLast, historyLast, withdrawalsLast, balancesLast, pnlLast] = await Promise.all([
-        supabase.from('account_mapping').select('created_at').order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('leaderboard').select('updated_at').order('updated_at', { ascending: false }).limit(1).single(),
-        supabase.from('open_positions').select('created_at').order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('position_history').select('created_at').order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('withdrawals').select('created_at').order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('spot_balances').select('created_at').order('created_at', { ascending: false }).limit(1).single(),
-        supabase.from('pnl_history').select('created_at').order('created_at', { ascending: false }).limit(1).single()
-      ])
+      */
 
       const now = Date.now()
       const getStatus = (lastSync) => {
@@ -61,56 +51,16 @@ export default function DebugPanel() {
       }
 
       setSyncStatus({
-        accounts: {
-          count: accounts.count || 0,
-          lastSync: accountsLast.data?.created_at || null,
-          status: getStatus(accountsLast.data?.created_at)
-        },
         leaderboard: {
           count: leaderboard.count || 0,
           lastSync: leaderboardLast.data?.updated_at || null,
           status: getStatus(leaderboardLast.data?.updated_at)
-        },
-        positions: {
-          count: positions.count || 0,
-          lastSync: positionsLast.data?.created_at || null,
-          status: getStatus(positionsLast.data?.created_at)
-        },
-        history: {
-          count: history.count || 0,
-          lastSync: historyLast.data?.created_at || null,
-          status: getStatus(historyLast.data?.created_at)
-        },
-        withdrawals: {
-          count: withdrawals.count || 0,
-          lastSync: withdrawalsLast.data?.created_at || null,
-          status: getStatus(withdrawalsLast.data?.created_at)
-        },
-        balances: {
-          count: balances.count || 0,
-          lastSync: balancesLast.data?.created_at || null,
-          status: getStatus(balancesLast.data?.created_at)
-        },
-        pnl: {
-          count: pnl.count || 0,
-          lastSync: pnlLast.data?.created_at || null,
-          status: getStatus(pnlLast.data?.created_at)
         }
       })
 
-      // Estimate last full sync based on oldest recent sync
-      const allLastSyncs = [
-        accountsLast.data?.created_at,
-        leaderboardLast.data?.updated_at,
-        positionsLast.data?.created_at,
-        historyLast.data?.created_at,
-        withdrawalsLast.data?.created_at,
-        balancesLast.data?.created_at,
-        pnlLast.data?.created_at
-      ].filter(Boolean).map(d => new Date(d).getTime())
-
-      if (allLastSyncs.length > 0) {
-        setLastFullSync(new Date(Math.min(...allLastSyncs)))
+      // Set last full sync to leaderboard's last sync
+      if (leaderboardLast.data?.updated_at) {
+        setLastFullSync(new Date(leaderboardLast.data.updated_at))
       }
     } catch (err) {
       console.error('Failed to load sync status:', err)

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import ChartCard from './ChartCard'
 import { TimeSelector } from './ui/TimeSelector'
+import { getSodexIdFromWallet } from '../lib/accountResolver'
+import { globalCache } from '../lib/globalCache'
 
 // Copyable address component
 const CopyableAddress = ({ address, truncated = true }) => {
@@ -58,12 +60,12 @@ const CopyableAddress = ({ address, truncated = true }) => {
 
 export default function MainnetTracker({ walletAddress, accountId: propAccountId }) {
   const [accountId, setAccountId] = useState(propAccountId || null)
-  const [accountMapping, setAccountMapping] = useState({})
-  const [reverseMapping, setReverseMapping] = useState({})
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Overview')
   const [manualIdInput, setManualIdInput] = useState('')
   const [notFound, setNotFound] = useState(false)
+
+  // Using global cache that persists across component mounts (navigation)
 
   // Data states
   const [accountDetails, setAccountDetails] = useState(null)
@@ -91,23 +93,25 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     setWithdrawSortField(field)
   }
 
-  // Load account mapping CSV on mount
+  // When wallet address changes, lookup account ID from Supabase
   useEffect(() => {
-    loadAccountMapping()
-  }, [])
+    if (walletAddress && !propAccountId) {
+      setLoading(true)
+      setNotFound(false)
+      setAccountId(null)
 
-  // When wallet address changes, lookup account ID
-  useEffect(() => {
-    if (walletAddress && Object.keys(accountMapping).length > 0) {
-      const addr = walletAddress.toLowerCase()
-      const mapping = Object.entries(accountMapping).find(([id, address]) =>
-        address.toLowerCase() === addr
-      )
-      if (mapping) {
-        setAccountId(mapping[0])
-      }
+      getSodexIdFromWallet(walletAddress).then(id => {
+        if (id) {
+          setAccountId(id)
+          setNotFound(false)
+        } else {
+          setAccountId(null)
+          setNotFound(true)
+          setLoading(false)
+        }
+      })
     }
-  }, [walletAddress, accountMapping])
+  }, [walletAddress, propAccountId])
 
   // Fetch all data when accountId is set
   useEffect(() => {
@@ -116,28 +120,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [accountId])
 
-  const loadAccountMapping = async () => {
-    try {
-      const response = await fetch('/data/mainnet_accounts.csv')
-      const csvText = await response.text()
-      const lines = csvText.trim().split('\n').slice(1) // Skip header
-
-      const mapping = {}
-      const reverse = {}
-      lines.forEach(line => {
-        const [id, address] = line.split(',')
-        if (id && address) {
-          mapping[id.trim()] = address.trim()
-          reverse[address.trim().toLowerCase()] = id.trim()
-        }
-      })
-
-      setAccountMapping(mapping)
-      setReverseMapping(reverse)
-    } catch (error) {
-      console.error('Failed to load account mapping:', error)
-    }
-  }
 
   const handleManualIdSearch = () => {
     const id = manualIdInput.trim()
@@ -149,6 +131,22 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
   const fetchAllData = async () => {
     if (!accountId) return
+
+    // Check global cache first
+    const cached = globalCache.getAccountData(accountId)
+    if (cached) {
+      // Use cached data
+      setAccountDetails(cached.accountDetails)
+      setSpotBalances(cached.spotBalances)
+      setWithdrawals(cached.withdrawals)
+      setPnlHistory(cached.pnlHistory)
+      setPositionHistory(cached.positionHistory)
+      setPositions(cached.positions)
+      setTotalAssets(cached.totalAssets)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -160,7 +158,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            account: walletAddress || accountMapping[accountId] || '',
+            account: walletAddress || '',
             start: 0,
             limit: 100
           })
@@ -177,14 +175,21 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       const posHistoryData = await posHistoryRes.json()
 
       // Process account details
+      let processedAccountDetails = null
+      let processedPositions = []
       if (detailsData.code === 0 && detailsData.data) {
-        setAccountDetails(detailsData.data)
-        setPositions(detailsData.data.positions || [])
+        processedAccountDetails = detailsData.data
+        processedPositions = detailsData.data.positions || []
+        setAccountDetails(processedAccountDetails)
+        setPositions(processedPositions)
       }
 
       // Process spot balances & calculate total assets
+      let processedBalances = []
+      let processedTotalAssets = 0
       if (balanceData.code === '0' || balanceData.code === 0) {
         const balances = balanceData.data?.spotBalance || []
+        processedBalances = balances
         setSpotBalances(balances)
 
         // Calculate total assets from balance * mark price
@@ -243,24 +248,31 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             }
           })
 
+          processedTotalAssets = totalUSDC
           setTotalAssets(totalUSDC)
         } catch (err) {
           console.error('Failed to calculate total assets:', err)
+          processedTotalAssets = 0
           setTotalAssets(0)
         }
       }
 
       // Process withdrawals
+      let processedWithdrawals = []
       if (withdrawalsData.code === '0' && withdrawalsData.data?.accountFlows) {
-        setWithdrawals(withdrawalsData.data.accountFlows)
+        processedWithdrawals = withdrawalsData.data.accountFlows
+        setWithdrawals(processedWithdrawals)
       }
 
       // Process position history
+      let processedPosHistory = []
       if (posHistoryData.code === 0 && posHistoryData.data) {
-        setPositionHistory(posHistoryData.data)
+        processedPosHistory = posHistoryData.data
+        setPositionHistory(processedPosHistory)
       }
 
       // Process PnL history - API returns cumulative PnL per day
+      let processedPnlHistory = []
       if (pnlData.code === 0 && pnlData.data?.items) {
         const rawItems = pnlData.data.items.map(item => ({
           date: new Date(item.ts_ms).toISOString().split('T')[0],
@@ -277,8 +289,20 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           }
         })
 
+        processedPnlHistory = formattedPnl
         setPnlHistory(formattedPnl)
       }
+
+      // Store in global cache after all processing is complete
+      globalCache.setAccountData(accountId, {
+        accountDetails: processedAccountDetails,
+        spotBalances: processedBalances,
+        withdrawals: processedWithdrawals,
+        pnlHistory: processedPnlHistory,
+        positionHistory: processedPosHistory,
+        positions: processedPositions,
+        totalAssets: processedTotalAssets
+      })
 
     } catch (error) {
       console.error('Failed to fetch mainnet data:', error)
@@ -378,9 +402,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-        <h3 style={{ color: '#fff', marginBottom: '8px' }}>Wallet Not Found in Mapping</h3>
+        <h3 style={{ color: '#fff', marginBottom: '8px' }}>Wallet Not Found</h3>
         <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '24px' }}>
-          This wallet address is not in the account mapping. You can enter your Account ID directly:
+          This wallet address is not in the leaderboard. You can enter your Account ID directly:
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
           <input
@@ -414,9 +438,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             Search
           </button>
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px' }}>
-          Tip: Run scripts/fetchMainnetAccounts.py to populate the mapping file
-        </p>
       </div>
     )
   }
