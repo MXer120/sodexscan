@@ -19,27 +19,24 @@
 .tab-switch-btn {
   padding: 12px 32px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: #888;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.tab-switch-btn:last-child {
-  border-right: none;
+  transition: color 0.2s;
+  border-radius: 6px;
+  margin: 0 2px;
 }
 
 .tab-switch-btn.active {
-  background: #4ade80;
-  color: #000;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 .tab-switch-btn:hover:not(.active) {
   color: #fff;
-  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Top 10 Grid */
@@ -258,24 +255,27 @@
   display: flex;
   background: rgba(30, 30, 30, 0.6);
   border-radius: 8px;
-  overflow: hidden;
+  gap: 4px;
+  padding: 2px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .leaderboard-toggle button {
   padding: 10px 20px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: #888;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s;
+  border-radius: 6px;
 }
 
 .leaderboard-toggle button.active {
-  background: #fff;
-  color: #000;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 .leaderboard-toggle button:hover:not(.active) {
@@ -341,6 +341,11 @@
   font-weight: 600;
 }
 
+.leaderboard-table td.pnl-cell.zero {
+  color: #888;
+  font-weight: 600;
+}
+
 .leaderboard-table td.volume-cell {
   color: #fff;
 }
@@ -384,4 +389,125 @@
 .page-info {
   color: #888;
   font-size: 14px;
+}
+
+/* Top Pairs Card */
+.top-pairs-card {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.top-pairs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.top-pairs-header h2 {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.top-pairs-table-wrapper {
+  overflow-x: auto;
+}
+
+.top-pairs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.top-pairs-table thead tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.top-pairs-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.top-pairs-table th.text-right {
+  text-align: right;
+}
+
+.top-pairs-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.top-pairs-table tbody tr:hover {
+  background: rgba(60, 200, 240, 0.05);
+}
+
+.top-pairs-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #fff;
+}
+
+.top-pairs-table td.rank {
+  font-weight: 600;
+  color: #888;
+  width: 60px;
+}
+
+.top-pairs-table td.pair-symbol {
+  font-weight: 500;
+  color: #fff;
+}
+
+.top-pairs-table td.price {
+  color: #fff;
+  font-weight: 500;
+}
+
+.top-pairs-table td.price.futures-price {
+  color: #ff9800;
+}
+
+.top-pairs-table td.volume {
+  color: var(--color-volume);
+  font-weight: 500;
+}
+
+.top-pairs-table td.text-right {
+  text-align: right;
+}
+
+@media (max-width: 1024px) {
+  .top-pairs-card > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Wallet address display - full by default, truncated on small screens */
+.wallet-full {
+  display: inline;
+}
+
+.wallet-truncated {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .wallet-full {
+    display: none;
+  }
+  
+  .wallet-truncated {
+    display: inline;
+  }
 }
