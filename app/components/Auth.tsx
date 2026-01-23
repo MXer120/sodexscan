@@ -116,14 +116,14 @@ export const Auth = () => {
         }}
         onMouseEnter={(e) => {
           if (!loading) {
-            e.target.style.background = 'rgba(255, 255, 255, 0.05)'
-            e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
           }
         }}
         onMouseLeave={(e) => {
           if (!loading) {
-            e.target.style.background = 'transparent'
-            e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
           }
         }}
       >
