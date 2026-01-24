@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from './lib/SessionContext'
 import { supabase } from './lib/supabaseClient'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
           </QueryClientProvider>
         </SessionContextProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
