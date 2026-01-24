@@ -24,6 +24,7 @@ body {
   background-attachment: fixed;
   color: #ffffff;
   min-height: 100vh;
+  padding-bottom: 32px;
 }
 
 #root {

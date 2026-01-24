@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import TopPairs from './TopPairs'
 import '../styles/MainnetPage.css'
-
-const BASE_URL = 'https://mainnet-data.sodex.dev/api/v1/dashboard'
+import { supabase } from '../lib/supabaseClient'
 
 export default function PlatformPage() {
   const [platformStats, setPlatformStats] = useState({
     totalUsers: 0,
-    totalVolume: 0,
-    totalOI: 0,
-    tvl: 0
+    totalTraders: 0,
+    activityRate: 0
   })
   const [platformLoading, setPlatformLoading] = useState(true)
 
@@ -21,41 +19,33 @@ export default function PlatformPage() {
     setPlatformLoading(true)
 
     try {
-      const [volumeRes, usersRes, tvlRes, oiRes] = await Promise.all([
-        fetch(`${BASE_URL}/volume?start_date=2024-01-01&end_date=2025-12-26&market_type=all`),
-        fetch(`${BASE_URL}/users?start_date=2024-01-01&end_date=2025-12-26`),
-        fetch(`${BASE_URL}/tvl?start_date=2024-01-01&end_date=2025-12-26`),
-        fetch(`${BASE_URL}/open-interest?start_date=2024-01-01&end_date=2025-12-26&symbols=BTC-USD,ETH-USD,SOL-USD`)
-      ])
+      // Fetch total users (all rows in leaderboard)
+      const { count: totalUsers, error: usersError } = await supabase
+        .from('leaderboard')
+        .select('*', { count: 'exact', head: true })
 
-      const volumeJson = await volumeRes.json()
-      const usersJson = await usersRes.json()
-      const tvlJson = await tvlRes.json()
-      const oiJson = await oiRes.json()
-
-      if (volumeJson.code === 0 && volumeJson.data) {
-        const vData = volumeJson.data.data
-        const totalVol = vData.length > 0 ? parseFloat(vData[vData.length - 1].cumulative) : 0
-        setPlatformStats(prev => ({ ...prev, totalVolume: totalVol }))
+      if (usersError) {
+        console.error('Failed to fetch total users:', usersError)
       }
 
-      if (usersJson.code === 0 && usersJson.data) {
-        const uData = usersJson.data.data
-        const totalUsers = uData.length > 0 ? parseFloat(uData[uData.length - 1].cumulativeUsers || uData[uData.length - 1].cumulative || 0) : 0
-        setPlatformStats(prev => ({ ...prev, totalUsers }))
+      // Fetch total traders (non-zero cumulative_pnl OR cumulative_volume)
+      const { count: totalTraders, error: tradersError } = await supabase
+        .from('leaderboard')
+        .select('*', { count: 'exact', head: true })
+        .or('cumulative_pnl.neq.0,cumulative_volume.neq.0')
+
+      if (tradersError) {
+        console.error('Failed to fetch total traders:', tradersError)
       }
 
-      if (tvlJson.code === 0 && tvlJson.data) {
-        const tvData = tvlJson.data.data
-        const latestTVL = tvData.length > 0 ? parseFloat(tvData[tvData.length - 1].value || tvData[tvData.length - 1].total || tvData[tvData.length - 1].tvl || 0) : 0
-        setPlatformStats(prev => ({ ...prev, tvl: latestTVL }))
-      }
+      // Calculate activity rate
+      const activityRate = totalUsers > 0 ? (totalTraders / totalUsers) * 100 : 0
 
-      if (oiJson.code === 0 && oiJson.data) {
-        const oData = oiJson.data.data
-        const latestOI = oData.length > 0 ? parseFloat(oData[oData.length - 1].total || 0) : 0
-        setPlatformStats(prev => ({ ...prev, totalOI: latestOI }))
-      }
+      setPlatformStats({
+        totalUsers: totalUsers || 0,
+        totalTraders: totalTraders || 0,
+        activityRate
+      })
 
       setPlatformLoading(false)
     } catch (err) {
@@ -76,6 +66,10 @@ export default function PlatformPage() {
     return `${prefix}${num.toFixed(2).replace('.', ',')}`
   }
 
+  const formatPercent = (num) => {
+    return `${num.toFixed(1)}%`
+  }
+
   return (
     <div className="mainnet-page dashboard">
       <h1 className="dashboard-title">Platform Stats</h1>
@@ -86,16 +80,12 @@ export default function PlatformPage() {
           <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.totalUsers)}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Total Volume</span>
-          <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.totalVolume, '$')}</span>
+          <span className="stat-label">Total Traders</span>
+          <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.totalTraders)}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Total OI</span>
-          <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.totalOI, '$')}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">TVL</span>
-          <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.tvl, '$')}</span>
+          <span className="stat-label">Activity Rate</span>
+          <span className="stat-value">{platformLoading ? '...' : formatPercent(platformStats.activityRate)}</span>
         </div>
       </div>
 

@@ -9,16 +9,32 @@ export function TimeSelector({
   const selectedIndex = options.indexOf(value)
 
   return (
-    <div style={{
-      display: 'inline-flex',
-      height: '32px',
-      borderRadius: '6px',
-      background: 'rgba(30, 30, 30, 0.6)',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-      padding: '3px',
-      gap: '2px'
-    }}>
-      <div style={{ position: 'relative', display: 'flex', gap: '2px' }}>
+    <div
+      className="time-selector-wrapper"
+      style={{
+        maxWidth: '100%',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none'
+      }}
+    >
+      <style>{`
+        .time-selector-wrapper::-webkit-scrollbar { display: none; }
+        @media (max-width: 600px) {
+          .time-selector-wrapper { justify-content: flex-start !important; }
+        }
+      `}</style>
+      <div style={{
+        display: 'inline-flex',
+        height: '32px',
+        borderRadius: '6px',
+        background: 'rgba(30, 30, 30, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        padding: '3px',
+        gap: '2px'
+      }}>
+        <div style={{ position: 'relative', display: 'flex', gap: '2px' }}>
         {/* Animated background slider */}
         <motion.div
           style={{
@@ -72,6 +88,7 @@ export function TimeSelector({
             {option}
           </button>
         ))}
+        </div>
       </div>
     </div>
   )

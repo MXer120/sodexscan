@@ -1,0 +1,122 @@
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: #0A0A0A;
+  border-top: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 1000;
+  font-size: 12px;
+}
+
+.status-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-link {
+  color: #888;
+  transition: color 0.2s;
+}
+
+.status-link:hover {
+  color: #fff;
+}
+
+.status-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.status-divider-text {
+  color: #444;
+}
+
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-divider-vertical {
+  width: 1px;
+  height: 16px;
+  background: #333;
+}
+
+.status-icon-link {
+  color: #888;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.status-icon-link:hover {
+  color: #fff;
+}
+
+/* Disclaimer Modal */
+.disclaimer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.disclaimer-modal {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+}
+
+.disclaimer-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.disclaimer-close:hover {
+  color: #fff;
+}
+
+.disclaimer-modal h2 {
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: #fff;
+}
+
+.disclaimer-content {
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.disclaimer-content p {
+  margin-bottom: 12px;
+}
+
+.disclaimer-content p:last-child {
+  margin-bottom: 0;
+}

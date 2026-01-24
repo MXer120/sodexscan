@@ -3,6 +3,7 @@
 import './styles/index.css'
 import './styles/App.css'
 import Navbar from './components/Navbar'
+import StatusBar from './components/StatusBar'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from './lib/SessionContext'
 import { supabase } from './lib/supabaseClient'
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
           <QueryClientProvider client={queryClient}>
             <Navbar />
             {children}
+            <StatusBar />
           </QueryClientProvider>
         </SessionContextProvider>
         <Analytics />

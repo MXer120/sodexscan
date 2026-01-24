@@ -11,6 +11,7 @@ function Navbar() {
   const pathname = usePathname()
   const [user, setUser] = useState(null)
   const [showAuth, setShowAuth] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -28,18 +29,17 @@ function Navbar() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setShowAuth(false)
-  }
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   const navLinks = [
     { path: '/tracker', label: 'Scan' },
     { path: '/mainnet', label: 'Leaderboard' },
     { path: '/platform', label: 'Platform' },
     ...(user ? [
-      { path: '/watchlist', label: 'Watchlist' },
-      { path: '/profile', label: 'Profile' }
+      { path: '/watchlist', label: 'Watchlist' }
     ] : []),
   ]
 
@@ -80,80 +80,136 @@ function Navbar() {
             )}
           </div>
 
-          <div className="navbar-auth" style={{ gridColumn: 3, justifySelf: 'end' }}>
-            {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.7)' }}>{user.email}</span>
+          <div className="navbar-right" style={{ gridColumn: 3, justifySelf: 'end', display: 'flex', alignItems: 'center' }}>
+            {/* Desktop auth */}
+            <div className="navbar-auth">
+              {user ? (
+                <Link
+                  href="/profile"
+                  className="login-btn"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '12px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  Profile
+                </Link>
+              ) : (
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setShowAuth(!showAuth)}
                   className="login-btn"
                   style={{
                     padding: '8px 16px',
                     fontSize: '12px'
                   }}
                 >
-                  Logout
+                  Login
                 </button>
-              </div>
-            ) : (
+              )}
+            </div>
+
+            {/* Hamburger menu button - mobile only */}
+            <button
+              className="hamburger-btn"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <span className={`hamburger-line ${mobileMenuOpen ? 'open' : ''}`}></span>
+              <span className={`hamburger-line ${mobileMenuOpen ? 'open' : ''}`}></span>
+              <span className={`hamburger-line ${mobileMenuOpen ? 'open' : ''}`}></span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                href={link.path}
+                className={`mobile-menu-link ${pathname === link.path ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {!user && (
               <button
-                onClick={() => setShowAuth(!showAuth)}
-                className="login-btn"
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '12px'
-                }}
+                className="mobile-menu-link"
+                onClick={() => { setMobileMenuOpen(false); setShowAuth(true); }}
               >
                 Login
               </button>
             )}
           </div>
-        </div>
+        )}
 
         {/* Only show glow line on non-landing pages */}
         {<div className="navbar-glow"></div>}
       </nav>
 
+      {/* Auth modal - centered */}
       {showAuth && !user && (
-        <div style={{
-          position: 'fixed',
-          top: '80px',
-          right: '20px',
-          background: '#1a1a1a',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          padding: '24px',
-          zIndex: 1000,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(10px)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600' }}>Login / Register</h3>
-            <button
-              onClick={() => setShowAuth(false)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'rgba(255, 255, 255, 0.6)',
-                cursor: 'pointer',
-                fontSize: '24px',
-                lineHeight: '1',
-                padding: '0',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#fff'}
-              onMouseLeave={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}
-            >
-              ×
-            </button>
+        <>
+          <div
+            className="auth-overlay"
+            onClick={() => setShowAuth(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 1000
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: '#1a1a1a',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '12px',
+            padding: '24px',
+            zIndex: 1001,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(10px)',
+            width: '90%',
+            maxWidth: '400px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600' }}>Login / Register</h3>
+              <button
+                onClick={() => setShowAuth(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontSize: '24px',
+                  lineHeight: '1',
+                  padding: '0',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.color = '#fff'}
+                onMouseLeave={(e) => e.target.style.color = 'rgba(255, 255, 255, 0.6)'}
+              >
+                ×
+              </button>
+            </div>
+            <Auth />
           </div>
-          <Auth />
-        </div>
+        </>
       )}
     </>
   )

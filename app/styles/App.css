@@ -393,4 +393,22 @@
   .stat-value {
     font-size: 22px;
   }
+
+  /* Reduce chart margins on mobile */
+  .chart-card {
+    margin-left: -8px;
+    margin-right: -8px;
+  }
+
+  .chart-container {
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+
+  /* Make tables scrollable on mobile */
+  .mainnet-tracker table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
