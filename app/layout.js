@@ -6,6 +6,7 @@ import Navbar from './components/Navbar'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from './lib/SessionContext'
 import { supabase } from './lib/supabaseClient'
+import { Analytics } from '@vercel/analytics/next'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
             {children}
           </QueryClientProvider>
         </SessionContextProvider>
+        <Analytics />
       </body>
     </html>
   )
