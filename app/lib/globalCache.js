@@ -17,13 +17,17 @@ class GlobalCache {
 
       // Platform/TopPairs caches
       tickers: { spot: [], futures: [], timestamp: 0 },
-      newestTraders: { data: [], timestamp: 0 }
+      newestTraders: { data: [], timestamp: 0 },
+
+      // Coin logos cache (long TTL, logos don't change often)
+      coinLogos: new Map() // url -> { loaded: bool, timestamp }
     }
 
     this.TTL = {
       mainnetPage: 5 * 60 * 1000,  // 5 minutes
       tracker: 2 * 60 * 1000,       // 2 minutes
-      platform: 5 * 60 * 1000       // 5 minutes for tickers & new traders
+      platform: 5 * 60 * 1000,      // 5 minutes for tickers & new traders
+      logos: 24 * 60 * 60 * 1000    // 24 hours for logos
     }
   }
 
@@ -173,6 +177,26 @@ class GlobalCache {
     }
   }
 
+  // Coin logo cache - check if logo URL was already validated
+  getCoinLogoStatus(url) {
+    const cached = this.caches.coinLogos.get(url)
+    if (!cached) return null
+
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.logos) {
+      this.caches.coinLogos.delete(url)
+      return null
+    }
+    return cached.loaded
+  }
+
+  setCoinLogoStatus(url, loaded) {
+    this.caches.coinLogos.set(url, {
+      loaded,
+      timestamp: Date.now()
+    })
+  }
+
   // Clear all caches
   clear() {
     this.caches.leaderboardPages.clear()
@@ -182,6 +206,7 @@ class GlobalCache {
     this.caches.accountData.clear()
     this.caches.tickers = { spot: [], futures: [], timestamp: 0 }
     this.caches.newestTraders = { data: [], timestamp: 0 }
+    this.caches.coinLogos.clear()
   }
 }
 

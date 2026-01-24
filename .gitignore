@@ -13,8 +13,9 @@
 /.next/
 /out/
 
-# production
+# production + vercel
 /build
+/supabase/functions
 
 # misc
 .DS_Store

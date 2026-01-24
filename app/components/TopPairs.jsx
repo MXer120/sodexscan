@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { TimeSelector } from './ui/TimeSelector'
 import { globalCache } from '../lib/globalCache'
@@ -10,70 +10,127 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-export default function TopPairs() {
-  const [filter, setFilter] = useState('All') // 'All', 'Spot', 'Futures'
-  const [data, setData] = useState({ spot: [], futures: [] })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/object/public/coin-logos/'
+const PAGE_SIZE = 10
 
-  // New Traders data for second box
+const LOGO_EXTENSIONS = {
+  hype: 'jpg',
+  pump: 'jpg',
+  trump: 'jpg',
+  wld: 'jpg',
+  xlm: 'jpg',
+  ton: 'jpg',
+  mag7: 'png',
+  soso: 'png'
+}
+
+// Map symbol aliases to their logo file names
+const LOGO_ALIASES = {
+  mag7ssi: 'mag7',
+  pepe: '1000pepe',
+  shib: '1000shib'
+}
+
+const getCoinLogoUrl = (symbol) => {
+  if (!symbol) return null
+  let lower = symbol.toLowerCase()
+  // Apply aliases
+  if (LOGO_ALIASES[lower]) lower = LOGO_ALIASES[lower]
+  const ext = LOGO_EXTENSIONS[lower] || 'png'
+  return `${LOGO_BASE_URL}${lower}.${ext}`
+}
+
+const getBaseCoin = (formattedSymbol) => {
+  if (!formattedSymbol) return null
+  const parts = formattedSymbol.split(/[\/\-]/)
+  return parts[0] || null
+}
+
+function CoinLogo({ symbol }) {
+  const logoUrl = getCoinLogoUrl(symbol)
+  const [show, setShow] = useState(() => {
+    if (!logoUrl) return false
+    const cached = globalCache.getCoinLogoStatus(logoUrl)
+    return cached === null ? true : cached
+  })
+
+  if (!logoUrl || !show) return null
+
+  return (
+    <img
+      src={logoUrl}
+      alt={symbol}
+      style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
+      onLoad={() => globalCache.setCoinLogoStatus(logoUrl, true)}
+      onError={() => { globalCache.setCoinLogoStatus(logoUrl, false); setShow(false) }}
+    />
+  )
+}
+
+export default function TopPairs() {
+  const [filter, setFilter] = useState('All')
+  const [tickers, setTickers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [error, setError] = useState(null)
+  const [hasMore, setHasMore] = useState(true)
+  const scrollRef = useRef(null)
+
   const [newestTraders, setNewestTraders] = useState([])
   const [newestTradersLoading, setNewestTradersLoading] = useState(true)
   const [newestTradersError, setNewestTradersError] = useState(null)
 
-  // Fetch all Spot and Futures tickers (we'll sort and limit after combining)
-  const loadTickers = async () => {
-    // Check global cache first
-    const cached = globalCache.getTickers()
-    if (cached) {
-      setData(cached)
-      setIsLoading(false)
-      return
+  // Fetch tickers page
+  const loadTickers = useCallback(async (offset = 0, append = false) => {
+    if (offset === 0) {
+      setIsLoading(true)
+      setTickers([])
+    } else {
+      setIsLoadingMore(true)
     }
-
-    setIsLoading(true)
     setError(null)
 
     try {
-      const [spotResult, futuresResult] = await Promise.all([
-        supabase
-          .from('tickers')
-          .select('*')
-          .eq('market_type', 'spot')
-          .order('volume_24h', { ascending: false }),
-        supabase
-          .from('tickers')
-          .select('*')
-          .eq('market_type', 'futures')
-          .order('volume_24h', { ascending: false })
-      ])
+      let query = supabase
+        .from('tickers')
+        .select('*')
+        .order('volume_24h', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1)
 
-      if (spotResult.error) throw spotResult.error
-      if (futuresResult.error) throw futuresResult.error
-
-      const spotData = spotResult.data || []
-      const futuresData = futuresResult.data || []
-
-      const newData = {
-        spot: spotData,
-        futures: futuresData
+      if (filter === 'Spot') {
+        query = query.eq('market_type', 'spot')
+      } else if (filter === 'Futures') {
+        query = query.eq('market_type', 'futures')
       }
 
-      // Store in global cache
-      globalCache.setTickers(spotData, futuresData)
+      const { data, error: fetchError } = await query
 
-      setData(newData)
+      if (fetchError) throw fetchError
+
+      const results = data || []
+      setHasMore(results.length === PAGE_SIZE)
+
+      if (append) {
+        setTickers(prev => [...prev, ...results])
+      } else {
+        setTickers(results)
+      }
     } catch (err) {
       console.error('Failed to load tickers:', err)
       setError(err.message || 'Error loading market data')
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
-  }
+  }, [filter])
 
-  // Load newest traders (only once on mount)
+  // Reset and load when filter changes
+  useEffect(() => {
+    setHasMore(true)
+    loadTickers(0, false)
+  }, [filter, loadTickers])
+
   const loadNewestTraders = async () => {
-    // Check global cache first
     const cached = globalCache.getNewestTraders()
     if (cached) {
       setNewestTraders(cached)
@@ -93,17 +150,14 @@ export default function TopPairs() {
 
       if (error) throw error
 
-      // Sort manually to ensure nulls go to the end
       const sorted = (data || []).sort((a, b) => {
         if (!a.first_trade_ts_ms && !b.first_trade_ts_ms) return 0
-        if (!a.first_trade_ts_ms) return 1 // nulls go to end
+        if (!a.first_trade_ts_ms) return 1
         if (!b.first_trade_ts_ms) return -1
-        return (b.first_trade_ts_ms || 0) - (a.first_trade_ts_ms || 0) // newest first
+        return (b.first_trade_ts_ms || 0) - (a.first_trade_ts_ms || 0)
       })
 
-      // Store in global cache
       globalCache.setNewestTraders(sorted)
-
       setNewestTraders(sorted)
     } catch (err) {
       console.error('Failed to load newest traders:', err)
@@ -114,66 +168,71 @@ export default function TopPairs() {
   }
 
   useEffect(() => {
-    // Initial load only
-    loadTickers()
     loadNewestTraders()
   }, [])
+
+  const handleScroll = useCallback((e) => {
+    if (isLoadingMore || !hasMore) return
+    const { scrollTop, scrollHeight, clientHeight } = e.target
+    if (scrollHeight - scrollTop - clientHeight < 50) {
+      loadTickers(tickers.length, true)
+    }
+  }, [isLoadingMore, hasMore, tickers.length, loadTickers])
 
   const formatNumber = (num) => {
     if (!num && num !== 0) return '0.00'
     const n = parseFloat(num)
-    if (Math.abs(n) >= 1000000) {
-      return `${(n / 1000000).toFixed(2)}M`
-    }
-    if (Math.abs(n) >= 1000) {
-      return `${(n / 1000).toFixed(2)}K`
-    }
+    if (Math.abs(n) >= 1000000) return `${(n / 1000000).toFixed(2)}M`
+    if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(2)}K`
     return n.toFixed(2)
   }
 
-  // Format symbol name: vTON_vUSDC -> TON/USDC (spot) or TON-USDC (futures)
-  // Also handles WSOSO -> SOSO (remove W prefix)
   const formatSymbol = (symbol, marketType) => {
     if (!symbol) return 'N/A'
-    
-    // Remove 'W' prefix if present (WSOSO -> SOSO)
-    let formatted = symbol.replace(/^W/g, '')
-    
+    // Only remove W prefix for WSOSO specifically
+    let formatted = symbol.replace(/^WSOSO/g, 'SOSO')
     // Remove 'v' prefix from each token (vTON_vUSDC -> TON_USDC)
     formatted = formatted.replace(/v([A-Z0-9]+)/g, '$1')
-    
     // Replace '_' with '/' for spot or '-' for futures
-    if (marketType === 'spot') {
-      formatted = formatted.replace(/_/g, '/')
-    } else {
-      formatted = formatted.replace(/_/g, '-')
-    }
-    
+    formatted = formatted.replace(/_/g, marketType === 'spot' ? '/' : '-')
     return formatted
   }
 
-  // Get combined and sorted data based on filter
-  const getDisplayTickers = () => {
-    if (filter === 'All') {
-      // Combine spot and futures, sort by volume, take top 10
-      const combined = [
-        ...data.spot.map(t => ({ ...t, market_type: 'spot' })),
-        ...data.futures.map(t => ({ ...t, market_type: 'futures' }))
-      ]
-        .sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0))
-        .slice(0, 10)
-      return combined
-    } else if (filter === 'Spot') {
-      return data.spot.slice(0, 10).map(t => ({ ...t, market_type: 'spot' }))
-    } else {
-      return data.futures.slice(0, 10).map(t => ({ ...t, market_type: 'futures' }))
-    }
+  const getHeading = () => {
+    if (filter === 'All') return 'Top Pairs'
+    if (filter === 'Spot') return 'Top Spot Pairs'
+    return 'Top Futures Pairs'
   }
 
-  const displayTickers = getDisplayTickers()
+  const timeAgo = (ms) => {
+    if (!ms) return 'Unknown'
+    const seconds = Math.floor((Date.now() - ms) / 1000)
+    if (seconds < 60) return 'Just now'
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes}m ago`
+    return `${Math.floor(minutes / 60)}h ago`
+  }
+
+  const formatWallet = (address) => address || 'N/A'
+
+  const formatWalletTruncated = (address) => {
+    if (!address) return 'N/A'
+    if (address.startsWith('0x')) {
+      const withoutPrefix = address.slice(2)
+      if (withoutPrefix.length <= 8) return address
+      return `0x${withoutPrefix.slice(0, 4)}...${withoutPrefix.slice(-4)}`
+    }
+    if (address.length <= 12) return address
+    return `${address.slice(0, 4)}...${address.slice(-4)}`
+  }
 
   const renderTable = () => (
-    <div className="top-pairs-table-wrapper">
+    <div
+      ref={scrollRef}
+      className="top-pairs-table-wrapper"
+      style={{ maxHeight: '480px', overflowY: 'auto' }}
+      onScroll={handleScroll}
+    >
       <table className="top-pairs-table">
         <thead>
           <tr>
@@ -183,40 +242,44 @@ export default function TopPairs() {
           </tr>
         </thead>
         <tbody>
-          {displayTickers.length === 0 ? (
+          {tickers.length === 0 && !isLoading ? (
             <tr>
               <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                 No pairs found
               </td>
             </tr>
           ) : (
-            displayTickers.map((ticker, idx) => {
+            tickers.map((ticker, idx) => {
               const isSpot = ticker.market_type === 'spot'
               const formattedSymbol = formatSymbol(ticker.symbol, ticker.market_type)
-              
+              const baseCoin = getBaseCoin(formattedSymbol)
+
               return (
                 <tr key={`${ticker.symbol}-${ticker.market_type}-${idx}`}>
                   <td className="rank">{idx + 1}</td>
                   <td className="pair-symbol">
-                    <span>{formattedSymbol}</span>
-                    {isSpot && (
-                      <span 
-                        className="spot-tag"
-                        style={{
-                          marginLeft: '8px',
-                          padding: '2px 6px',
-                          background: 'var(--color-spot-bg)',
-                          color: 'var(--color-spot)',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          borderRadius: '4px',
-                          textTransform: 'uppercase',
-                          border: 'none'
-                        }}
-                      >
-                        spot
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CoinLogo symbol={baseCoin} />
+                      <span>{formattedSymbol}</span>
+                      {isSpot && (
+                        <span
+                          className="spot-tag"
+                          style={{
+                            marginLeft: '4px',
+                            padding: '2px 6px',
+                            background: 'var(--color-spot-bg)',
+                            color: 'var(--color-spot)',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                            border: 'none'
+                          }}
+                        >
+                          spot
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="text-right volume">${formatNumber(ticker.volume_24h || 0)}</td>
                 </tr>
@@ -225,46 +288,19 @@ export default function TopPairs() {
           )}
         </tbody>
       </table>
+      {isLoadingMore && (
+        <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '12px' }}>
+          Loading...
+        </div>
+      )}
+      {hasMore && !isLoadingMore && tickers.length > 0 && (
+        <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '12px' }}>
+          Scroll for more...
+        </div>
+      )}
     </div>
   )
 
-  // Get heading text based on filter
-  const getHeading = () => {
-    if (filter === 'All') return 'Top 10 pairs'
-    if (filter === 'Spot') return 'Top 10 Spot Pairs'
-    return 'Top 10 Futures Pairs'
-  }
-
-  // Time ago function
-  const timeAgo = (ms) => {
-    if (!ms || ms === null || ms === undefined) return 'Unknown'
-    const seconds = Math.floor((Date.now() - ms) / 1000)
-    if (seconds < 60) return 'Just now'
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}m ago`
-    return `${Math.floor(minutes / 60)}h ago`
-  }
-
-  // Format wallet address - full by default, truncate only on small screens
-  const formatWallet = (address) => {
-    if (!address) return 'N/A'
-    return address // Show full address by default
-  }
-
-  // Truncated wallet format for small screens: 0x + 4 chars + ... + 4 chars
-  const formatWalletTruncated = (address) => {
-    if (!address) return 'N/A'
-    if (address.startsWith('0x')) {
-      const withoutPrefix = address.slice(2)
-      if (withoutPrefix.length <= 8) return address
-      return `0x${withoutPrefix.slice(0, 4)}...${withoutPrefix.slice(-4)}`
-    }
-    // If no 0x prefix, just truncate normally
-    if (address.length <= 12) return address
-    return `${address.slice(0, 4)}...${address.slice(-4)}`
-  }
-
-  // Render New Traders table
   const renderNewTradersTable = () => (
     <div className="top-pairs-table-wrapper">
       <table className="top-pairs-table">
@@ -312,8 +348,7 @@ export default function TopPairs() {
   )
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-      {/* First box - with data */}
+    <div className="top-pairs-grid">
       <div className="top-pairs-card">
         <div className="top-pairs-header">
           <h2>{getHeading()}</h2>
@@ -339,7 +374,6 @@ export default function TopPairs() {
         )}
       </div>
 
-      {/* Second box - New Traders */}
       <div className="top-pairs-card">
         <div className="top-pairs-header">
           <h2>New Traders</h2>

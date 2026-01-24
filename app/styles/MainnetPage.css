@@ -487,9 +487,42 @@
   text-align: right;
 }
 
-@media (max-width: 1024px) {
-  .top-pairs-card > div[style*="grid-template-columns"] {
-    grid-template-columns: 1fr !important;
+/* Top Pairs Grid - responsive layout */
+.top-pairs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .top-pairs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .top-pairs-card {
+    padding: 16px;
+  }
+
+  .top-pairs-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .top-pairs-header h2 {
+    font-size: 18px;
+  }
+
+  .top-pairs-table th,
+  .top-pairs-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .top-pairs-table td.rank {
+    width: 40px;
   }
 }
 
@@ -506,8 +539,30 @@
   .wallet-full {
     display: none;
   }
-  
+
   .wallet-truncated {
     display: inline;
+  }
+
+  .landing-page {
+    padding: 20px !important;
+    padding-top: 80px !important;
+  }
+
+  .landing-search-box {
+    padding: 24px !important;
+  }
+
+  .landing-search-box h2 {
+    font-size: 20px !important;
+  }
+
+  .landing-search-inputs {
+    flex-direction: column !important;
+  }
+
+  .landing-search-inputs input,
+  .landing-search-inputs button {
+    width: 100% !important;
   }
 }

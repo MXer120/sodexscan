@@ -73,13 +73,16 @@ function TrackerPage() {
           <div style={{
             padding: '60px 40px',
             textAlign: 'center',
-            background: 'rgba(60, 200, 240, 0.05)',
+            background: 'rgba(255, 118, 72, 0.05)',
             borderRadius: '12px',
-            border: '1px dashed rgba(60, 200, 240, 0.3)',
-            marginTop: '20px'
+            border: '1px dashed rgba(255, 118, 72, 0.3)',
+            marginTop: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <div style={{ fontSize: '64px', marginBottom: '20px', opacity: 0.6 }}>🌐</div>
-            <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px' }}>Mainnet Wallet Tracker</h3>
+            <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px' }}>SoDex Mainnet Scan</h3>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', maxWidth: '500px', margin: '0 auto' }}>
               Search for a wallet address above to view mainnet trading activity, positions, and performance metrics.
             </p>
