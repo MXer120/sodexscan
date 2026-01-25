@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 
 export function TimeSelector({
@@ -7,33 +7,63 @@ export function TimeSelector({
   options
 }) {
   const selectedIndex = options.indexOf(value)
+  const scrollRef = useRef(null)
+  const [showRightShadow, setShowRightShadow] = useState(false)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const checkScroll = () => {
+      const canScrollRight = el.scrollWidth > el.clientWidth &&
+        el.scrollLeft < el.scrollWidth - el.clientWidth - 2
+      setShowRightShadow(canScrollRight)
+    }
+
+    checkScroll()
+    el.addEventListener('scroll', checkScroll)
+    window.addEventListener('resize', checkScroll)
+
+    return () => {
+      el.removeEventListener('scroll', checkScroll)
+      window.removeEventListener('resize', checkScroll)
+    }
+  }, [options])
 
   return (
     <div
-      className="time-selector-wrapper"
+      className="time-selector-outer"
       style={{
-        maxWidth: '100%',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        msOverflowStyle: 'none',
-        scrollbarWidth: 'none'
+        position: 'relative',
+        maxWidth: '100%'
       }}
     >
-      <style>{`
-        .time-selector-wrapper::-webkit-scrollbar { display: none; }
-        @media (max-width: 600px) {
-          .time-selector-wrapper { justify-content: flex-start !important; }
-        }
-      `}</style>
-      <div style={{
-        display: 'inline-flex',
-        height: '32px',
-        borderRadius: '6px',
-        background: 'rgba(30, 30, 30, 0.6)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        padding: '3px',
-        gap: '2px'
-      }}>
+      <div
+        ref={scrollRef}
+        className="time-selector-wrapper"
+        style={{
+          maxWidth: '100%',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          msOverflowStyle: 'none',
+          scrollbarWidth: 'none'
+        }}
+      >
+        <style>{`
+          .time-selector-wrapper::-webkit-scrollbar { display: none; }
+          @media (max-width: 600px) {
+            .time-selector-wrapper { justify-content: flex-start !important; }
+          }
+        `}</style>
+        <div style={{
+          display: 'inline-flex',
+          height: '32px',
+          borderRadius: '6px',
+          background: 'rgba(30, 30, 30, 0.6)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          padding: '3px',
+          gap: '2px'
+        }}>
         <div style={{ position: 'relative', display: 'flex', gap: '2px' }}>
         {/* Animated background slider */}
         <motion.div
@@ -90,6 +120,22 @@ export function TimeSelector({
         ))}
         </div>
       </div>
+      </div>
+      {/* Right scroll shadow indicator */}
+      {showRightShadow && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '40px',
+            background: 'linear-gradient(to right, transparent, rgba(20, 20, 20, 0.95) 70%)',
+            pointerEvents: 'none',
+            borderRadius: '0 6px 6px 0'
+          }}
+        />
+      )}
     </div>
   )
 }

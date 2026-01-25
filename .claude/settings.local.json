@@ -14,7 +14,8 @@
       "Bash(npm ls:*)",
       "Bash(dir:*)",
       "Bash(npm run build:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(cd:*)"
     ]
   }
 }

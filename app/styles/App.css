@@ -394,15 +394,32 @@
     font-size: 22px;
   }
 
-  /* Reduce chart margins on mobile */
+  /* Reduce chart margins on mobile - only for container, keep header aligned */
   .chart-card {
-    margin-left: -8px;
-    margin-right: -8px;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .chart-container {
-    margin-left: -4px;
-    margin-right: -4px;
+    margin-left: -12px;
+    margin-right: -12px;
+  }
+
+  /* Chart header alignment on mobile */
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 0;
+  }
+
+  .chart-title {
+    text-align: left;
+  }
+
+  .chart-controls {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   /* Make tables scrollable on mobile */
@@ -410,5 +427,12 @@
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container {
+    margin-left: -16px;
+    margin-right: -16px;
   }
 }

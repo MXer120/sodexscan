@@ -59,8 +59,10 @@ export default function ChartCard({
     return 0
   })
 
-  // Initialize default selection
+  // Initialize default selection (only once on mount)
+  const [initialized, setInitialized] = useState(false)
   useEffect(() => {
+    if (initialized) return
     if (defaultSelected) {
       setSelectedSeries(defaultSelected)
     } else {
@@ -68,7 +70,8 @@ export default function ChartCard({
       const nonCumulative = sortedSeries.filter(s => !s.cumulative).slice(0, 3).map(s => s.key)
       setSelectedSeries([...cumulative, ...nonCumulative])
     }
-  }, [series.length])
+    setInitialized(true)
+  }, [series.length, initialized])
 
   // Close dropdown on outside click
   useEffect(() => {

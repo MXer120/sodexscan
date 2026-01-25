@@ -118,6 +118,15 @@
   padding: 12px 16px;
   border-radius: 8px;
   font-weight: 500;
+  text-align: right;
+  background: none;
+  border: none;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.mobile-menu-link.active {
+  color: #ff7637;
 }
 
 /* MEDIA QUERIES */

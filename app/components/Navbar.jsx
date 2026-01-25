@@ -39,7 +39,8 @@ function Navbar() {
     { path: '/mainnet', label: 'Leaderboard' },
     { path: '/platform', label: 'Platform' },
     ...(user ? [
-      { path: '/watchlist', label: 'Watchlist' }
+      { path: '/watchlist', label: 'Watchlist' },
+      { path: '/incoming', label: 'Incoming' }
     ] : []),
   ]
 
@@ -135,7 +136,15 @@ function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {!user && (
+            {user ? (
+              <Link
+                href="/profile"
+                className={`mobile-menu-link ${pathname === '/profile' ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Profile
+              </Link>
+            ) : (
               <button
                 className="mobile-menu-link"
                 onClick={() => { setMobileMenuOpen(false); setShowAuth(true); }}

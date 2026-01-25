@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import DebugPanel from './DebugPanel'
 import { createClient } from '@supabase/supabase-js'
 import { globalCache } from '../lib/globalCache'
 import '../styles/MainnetPage.css'
@@ -9,6 +8,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
+
+// Truncate address for mobile: 0x + first 4 ... last 4
+const truncateAddress = (address) => {
+  if (!address || address.length < 12) return address
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
 
 // Copy icon component for wallet addresses
 const CopyableAddress = ({ address }) => {
@@ -27,7 +32,8 @@ const CopyableAddress = ({ address }) => {
 
   return (
     <span className="copyable-address" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <span className="addr-text" style={{ fontFamily: 'monospace', fontSize: '13px' }}>{address}</span>
+      <span className="addr-text addr-full" style={{ fontFamily: 'monospace', fontSize: '13px' }}>{address}</span>
+      <span className="addr-text addr-truncated" style={{ fontFamily: 'monospace', fontSize: '13px' }}>{truncateAddress(address)}</span>
       <button
         className="copy-btn"
         onClick={handleCopy}
@@ -225,19 +231,6 @@ export default function MainnetPage() {
   }
 
 
-  const formatNumber = (num, prefix = '') => {
-    // Use European format: . for thousands, , for decimals
-    if (Math.abs(num) >= 1000000) {
-      const formatted = (num / 1000000).toFixed(2).replace('.', ',')
-      return `${prefix}${formatted}M`
-    }
-    if (Math.abs(num) >= 1000) {
-      const formatted = (num / 1000).toFixed(2).replace('.', ',')
-      return `${prefix}${formatted}K`
-    }
-    return `${prefix}${num.toFixed(2).replace('.', ',')}`
-  }
-
   const formatFullNumber = (num) => {
     // Use European format: . for thousands, , for decimals
     const absNum = Math.abs(num)
@@ -275,11 +268,7 @@ export default function MainnetPage() {
 
   // User stats loaded separately (aggregate query would be better for production)
   const [userStats, setUserStats] = React.useState({
-    totalUsers: 0,
-    deltaGains: 0,
-    profitPercent: 0,
-    drawdownPercent: 0,
-    tvl: 0
+    totalUsers: 0
   })
 
   // Load aggregate stats
@@ -303,14 +292,7 @@ export default function MainnetPage() {
         .from('leaderboard_smart')
         .select('*', { count: 'exact', head: true })
 
-      // For now, set basic stats (would need aggregate functions for PnL totals)
-      const stats = {
-        totalUsers: count || 0,
-        deltaGains: 0, // Would need aggregate query
-        profitPercent: 0, // Would need aggregate query
-        drawdownPercent: 0, // Would need aggregate query
-        tvl: 0
-      }
+      const stats = { totalUsers: count || 0 }
 
       // Update global cache
       globalCache.setUserStats(stats)
@@ -390,7 +372,6 @@ export default function MainnetPage() {
 
   return (
     <div className="mainnet-page dashboard">
-      <DebugPanel />
       <h1 className="dashboard-title">Leaderboard</h1>
 
       {/* User Overview Stats */}
@@ -398,24 +379,6 @@ export default function MainnetPage() {
         <div className="stat-item">
           <span className="stat-label">Total Users</span>
           <span className="stat-value">{userStats.totalUsers.toLocaleString()}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">Delta Gains</span>
-          <span className="stat-value" style={{ color: userStats.deltaGains >= 0 ? '#4ade80' : '#f44336' }}>
-            {userStats.deltaGains >= 0 ? '+' : ''}${formatFullNumber(userStats.deltaGains)}
-          </span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">Users in Profit</span>
-          <span className="stat-value" style={{ color: '#4ade80' }}>{userStats.profitPercent}%</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">Users in Drawdown</span>
-          <span className="stat-value" style={{ color: '#f44336' }}>{userStats.drawdownPercent}%</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">TVL</span>
-          <span className="stat-value">${formatNumber(userStats.tvl)}</span>
         </div>
       </div>
 
@@ -492,100 +455,6 @@ export default function MainnetPage() {
           <div className="leaderboard-header">
             <h2>Leaderboard</h2>
             <div className="leaderboard-controls">
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  userSelect: 'none',
-                  padding: '6px 12px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={showSyncStatus}
-                  onChange={(e) => setShowSyncStatus(e.target.checked)}
-                  style={{
-                    cursor: 'pointer',
-                    width: '16px',
-                    height: '16px',
-                    accentColor: '#667eea'
-                  }}
-                />
-                <span>Show Sync Status</span>
-              </label>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  userSelect: 'none',
-                  padding: '6px 12px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={excludeSodexOwned}
-                  onChange={(e) => setExcludeSodexOwned(e.target.checked)}
-                  style={{
-                    cursor: 'pointer',
-                    width: '16px',
-                    height: '16px',
-                    accentColor: '#667eea'
-                  }}
-                />
-                <span>Exclude Sodex-Owned</span>
-              </label>
-              <button
-                onClick={exportLeaderboardCSV}
-                className="export-csv-btn"
-                title="Export as CSV"
-                style={{
-                  padding: '8px 16px',
-                  background: '#667eea',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.background = '#5568d3'}
-                onMouseLeave={(e) => e.target.style.background = '#667eea'}
-              >
-                Export CSV
-              </button>
               <div className="leaderboard-toggle">
                 <button
                   className={leaderboardType === 'volume' ? 'active' : ''}
@@ -606,6 +475,54 @@ export default function MainnetPage() {
                   }}
                 >
                   PnL
+                </button>
+              </div>
+              <div className="leaderboard-options-row">
+                <label className="leaderboard-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={showSyncStatus}
+                    onChange={(e) => setShowSyncStatus(e.target.checked)}
+                  />
+                  <span className="custom-check">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>Sync Status</span>
+                </label>
+                <label className="leaderboard-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={excludeSodexOwned}
+                    onChange={(e) => setExcludeSodexOwned(e.target.checked)}
+                  />
+                  <span className="custom-check">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>Excl. Sodex</span>
+                </label>
+                <button
+                  onClick={exportLeaderboardCSV}
+                  className="export-csv-btn"
+                  title="Export as CSV"
+                  style={{
+                    padding: '8px 16px',
+                    background: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#5568d3'}
+                  onMouseLeave={(e) => e.target.style.background = '#667eea'}
+                >
+                  Export CSV
                 </button>
               </div>
             </div>

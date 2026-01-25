@@ -231,6 +231,13 @@
   align-items: center;
 }
 
+.leaderboard-options-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .leaderboard-search {
   padding: 10px 14px;
   background: rgba(30, 30, 30, 0.6);
@@ -526,6 +533,71 @@
   }
 }
 
+/* Custom Checkbox Styling */
+.leaderboard-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  user-select: none;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.leaderboard-checkbox:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.leaderboard-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.leaderboard-checkbox .custom-check {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  background: rgba(20, 20, 20, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.leaderboard-checkbox:hover .custom-check {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.leaderboard-checkbox input[type="checkbox"]:checked + .custom-check {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+.leaderboard-checkbox .custom-check svg {
+  width: 10px;
+  height: 10px;
+  stroke: #fff;
+  stroke-width: 3;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.15s;
+}
+
+.leaderboard-checkbox input[type="checkbox"]:checked + .custom-check svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
 /* Wallet address display - full by default, truncated on small screens */
 .wallet-full {
   display: inline;
@@ -535,7 +607,63 @@
   display: none;
 }
 
+/* Address truncation for mobile */
+.addr-full {
+  display: inline;
+}
+
+.addr-truncated {
+  display: none;
+}
+
+/* Stats row */
+.stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Mobile-first responsive styles */
 @media (max-width: 768px) {
+  .mainnet-page {
+    padding: 16px;
+    padding-top: 80px;
+  }
+
+  .dashboard-title {
+    font-size: 24px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Truncate addresses on mobile */
+  .addr-full {
+    display: none;
+  }
+
+  .addr-truncated {
+    display: inline;
+  }
+
   .wallet-full {
     display: none;
   }
@@ -544,6 +672,140 @@
     display: inline;
   }
 
+  /* Top 10 grid - stack on mobile */
+  .top-10-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .top-10-card {
+    width: 100%;
+  }
+
+  .top-10-header {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .top-10-table-wrapper {
+    padding: 0 12px 12px;
+    overflow-x: auto;
+  }
+
+  .top-10-table th,
+  .top-10-table td {
+    padding: 6px 4px;
+    font-size: 12px;
+  }
+
+  .top-10-table th:first-child {
+    width: 35px;
+  }
+
+  /* Leaderboard card */
+  .mainnet-leaderboard {
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  .leaderboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .leaderboard-header h2 {
+    font-size: 18px;
+  }
+
+  /* Controls reorganization for mobile */
+  .leaderboard-controls {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  /* Toggle stays on top */
+  .leaderboard-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .leaderboard-toggle button {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Options row: sync, exclude, export in one row below toggle */
+  .leaderboard-options-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .leaderboard-checkbox {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-width: fit-content;
+    justify-content: center;
+  }
+
+  .leaderboard-checkbox span:last-child {
+    white-space: nowrap;
+  }
+
+  .export-csv-btn {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    min-width: fit-content;
+  }
+
+  /* Table responsive */
+  .table-wrapper {
+    margin: 0 -16px;
+    padding: 0 16px;
+    overflow-x: auto;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .leaderboard-table th:first-child,
+  .leaderboard-table td:first-child {
+    padding-left: 4px;
+  }
+
+  .leaderboard-table th:last-child,
+  .leaderboard-table td:last-child {
+    padding-right: 4px;
+  }
+
+  /* Pagination */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .page-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .page-info {
+    font-size: 12px;
+    width: 100%;
+    text-align: center;
+    order: -1;
+  }
+
+  /* Landing page */
   .landing-page {
     padding: 20px !important;
     padding-top: 80px !important;
@@ -564,5 +826,48 @@
   .landing-search-inputs input,
   .landing-search-inputs button {
     width: 100% !important;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .mainnet-page {
+    padding: 12px;
+    padding-top: 70px;
+  }
+
+  .top-10-table th,
+  .top-10-table td {
+    padding: 5px 3px;
+    font-size: 11px;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+
+  .leaderboard-checkbox {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .leaderboard-checkbox .custom-check {
+    width: 14px;
+    height: 14px;
+  }
+
+  .export-csv-btn {
+    padding: 5px 10px !important;
+    font-size: 10px !important;
+  }
+
+  .stat-item {
+    padding: 12px 16px;
+  }
+
+  .stat-value {
+    font-size: 18px;
   }
 }

@@ -12,6 +12,7 @@ function TrackerPage() {
   const searchParams = useSearchParams()
   const [searchInput, setSearchInput] = useState('')
   const [walletAddress, setWalletAddress] = useState(null)
+  const [searchedTagName, setSearchedTagName] = useState(null)
   const [loading, setLoading] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [showTagInput, setShowTagInput] = useState(false)
@@ -32,11 +33,24 @@ function TrackerPage() {
   // Handle URL search params
   useEffect(() => {
     const walletParam = searchParams.get('wallet')
-    if (walletParam) {
+    const tagParam = searchParams.get('tag')
+
+    if (tagParam && tags) {
+      // Search by tag name
+      const matchedTag = tags.find(t =>
+        t.tag_name.toLowerCase() === tagParam.toLowerCase()
+      )
+      if (matchedTag) {
+        setSearchInput(tagParam)
+        setWalletAddress(matchedTag.wallet_address)
+        setSearchedTagName(matchedTag.tag_name)
+      }
+    } else if (walletParam) {
       setSearchInput(walletParam)
       setWalletAddress(walletParam)
+      setSearchedTagName(null)
     }
-  }, [searchParams])
+  }, [searchParams, tags])
 
 
   const handleSearch = () => {
@@ -46,13 +60,27 @@ function TrackerPage() {
     // Show button loading state briefly
     setLoading(true)
     setWalletAddress(null)
+    setSearchedTagName(null)
 
     // Clear button loading after brief delay (MainnetTracker shows its own loading)
     setTimeout(() => {
       setLoading(false)
     }, 300)
 
-    // Trigger search
+    // For logged-in users: check if input matches a tag name
+    if (user && tags) {
+      const matchedTag = tags.find(t =>
+        t.tag_name.toLowerCase() === input.toLowerCase()
+      )
+      if (matchedTag) {
+        setWalletAddress(matchedTag.wallet_address)
+        setSearchedTagName(matchedTag.tag_name)
+        recordSearch(matchedTag.wallet_address)
+        return
+      }
+    }
+
+    // Otherwise treat as wallet address
     setWalletAddress(input)
     recordSearch(input)
   }
@@ -68,7 +96,7 @@ function TrackerPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !loading && handleSearch()}
-            placeholder="Enter wallet address..."
+            placeholder={user ? "Enter wallet address or tag name..." : "Enter wallet address..."}
             className="search-input"
             disabled={loading}
           />
@@ -118,8 +146,28 @@ function TrackerPage() {
                 padding: '12px 16px',
                 background: 'rgba(20, 20, 20, 0.4)',
                 borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.08)'
+                border: '1px solid rgba(255,255,255,0.08)',
+                flexWrap: 'wrap'
               }}>
+                {searchedTagName && (
+                  <span style={{
+                    color: '#3cc8f0',
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(60, 200, 240, 0.1)',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(60, 200, 240, 0.2)'
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                      <line x1="7" y1="7" x2="7.01" y2="7"/>
+                    </svg>
+                    {searchedTagName}
+                  </span>
+                )}
                 {existingTag ? (
                   <span style={{ color: '#4ade80', fontSize: '14px' }}>
                     Tagged as: <strong>{existingTag.tag_name}</strong>
