@@ -26,7 +26,7 @@ function LandingPage() {
         border: '1px solid rgba(255, 118, 72, 0.2)',
         textAlign: 'center'
       }}>
-        <h2 style={{ color: '#fff', marginBottom: '16px', fontSize: '24px' }}>SoDex Mainnet Scan</h2>
+        <h2 style={{ color: '#fff', marginBottom: '16px', fontSize: '24px' }}>Community-Built SoDex Mainnet Scan</h2>
         <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '24px', fontSize: '14px' }}>
           Search any wallet to view trading activity, positions, and performance metrics
         </p>
