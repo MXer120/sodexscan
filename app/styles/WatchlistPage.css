@@ -22,16 +22,153 @@
   background-clip: text;
 }
 
+/* Add Wallet Form */
+.add-wallet-form {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #fff;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #FF7648;
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.form-group input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-group-address {
+  flex: 1;
+  min-width: 200px;
+}
+
+.add-button {
+  background: #FF7648;
+  border: none;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.add-button:hover:not(:disabled) {
+  background: #D23714;
+}
+
+.add-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-error {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+/* Search Filter */
+.search-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.search-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #fff;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #FF7648;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.clear-search {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-search:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* Table Wrapper */
 .watchlist-table-wrapper {
   background: rgba(20, 20, 20, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 24px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .watchlist-table {
   width: 100%;
+  min-width: 900px;
   border-collapse: collapse;
 }
 
@@ -62,10 +199,94 @@
   border-bottom: none;
 }
 
+/* Table Cells */
+.wallet-cell {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.wallet-cell:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .wallet-display {
   font-family: 'monospace', monospace;
   font-size: 13px;
   color: #fff;
+}
+
+.group-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.position-cell {
+  font-size: 13px;
+}
+
+.position-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.position-symbol {
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.position-side {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.position-side.long {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.position-side.short {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.no-position {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+}
+
+.rank-cell {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
 }
 
 .watchlist-date {
@@ -73,6 +294,14 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.actions-cell {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Buttons */
 .unwatch-button {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -95,6 +324,23 @@
   cursor: not-allowed;
 }
 
+/* States */
+.loading-state {
+  padding: 40px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.error-state {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #ef4444;
+  font-size: 14px;
+}
+
 .empty-state {
   background: rgba(20, 20, 20, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -105,6 +351,30 @@
   font-size: 14px;
 }
 
+/* Auth Required */
+.auth-required {
+  background: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+}
+
+.auth-required p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin-bottom: 24px;
+}
+
+/* Stats */
+.watchlist-stats {
+  margin-top: 16px;
+  text-align: right;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .watchlist-content {
     padding: 20px 16px;
@@ -115,16 +385,71 @@
     margin-bottom: 24px;
   }
 
+  .add-wallet-form {
+    padding: 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-group-address {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .add-button {
+    width: 100%;
+  }
+
+  .search-filter {
+    flex-direction: column;
+  }
+
   .watchlist-table-wrapper {
     padding: 16px;
+    overflow-x: auto;
   }
 
   .watchlist-table {
     font-size: 12px;
+    min-width: 800px;
   }
 
   .watchlist-table th,
   .watchlist-table td {
     padding: 10px 8px;
+  }
+
+  .wallet-info {
+    max-width: 200px;
+  }
+
+  .group-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .position-info {
+    font-size: 11px;
+  }
+
+  .position-symbol {
+    font-size: 12px;
+  }
+
+  .position-side {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .rank-cell {
+    font-size: 12px;
+  }
+
+  .actions-cell {
+    flex-direction: column;
+    gap: 6px;
   }
 }

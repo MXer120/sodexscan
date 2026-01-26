@@ -50,8 +50,8 @@ export default function Profile() {
     setTimeout(() => setCopiedWallet(null), 1500)
   }
 
-  const handleTagClick = (tagName: string) => {
-    router.push(`/scanner?tag=${encodeURIComponent(tagName)}`)
+  const handleTagClick = (walletAddress: string) => {
+    router.push(`/tracker?wallet=${encodeURIComponent(walletAddress)}`)
   }
 
   const handleLogout = async () => {
@@ -502,7 +502,7 @@ export default function Profile() {
                       <>
                         <span
                           className="tag-name clickable"
-                          onClick={() => handleTagClick(tag.tag_name)}
+                          onClick={() => handleTagClick(tag.wallet_address)}
                           title="Search in Scanner"
                         >
                           {tag.tag_name}

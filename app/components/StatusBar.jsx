@@ -99,7 +99,6 @@ export default function StatusBar() {
               </div>
             </div>
           )}
-
           {/* DSGVO Modal */}
           {showDSGVO && (
             <div className="disclaimer-overlay" onClick={() => setShowDSGVO(false)}>
@@ -110,20 +109,24 @@ export default function StatusBar() {
                   {/* Deutsch */}
                   <h3>Deutsch</h3>
                   <p><strong>Verantwortlicher:</strong> Luke Steinfartz (<strong>luke@steinfartz.de</strong>)</p>
-                  <p><strong>Technischer Kontakt:</strong> Lutz Steinfartz, <strong> Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
-                  <p><strong>Erhobene personenbezogene Daten:</strong> E-Mail, Wallet-Daten, Tags, Gruppen, Profil-Metadaten.</p>
-                  <p><strong>Zweck der Verarbeitung:</strong> Verwaltung von Nutzerprofilen, Wallet-Management, Funktionsfähigkeit der Website.</p>
+                  <p><strong>Technischer Kontakt:</strong> Lutz Steinfartz, <strong>Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
+                  <p><strong>Erhobene personenbezogene Daten:</strong> E-Mail-Adresse, Wallet-Daten, Tags, Gruppen, Profil-Metadaten.</p>
+                  <p><strong>Zweck der Verarbeitung:</strong> Verwaltung von Nutzerprofilen und Wallets, Sicherstellung der Funktionsfähigkeit der Website sowie Versand von projektbezogenen Informationen per E-Mail (z. B. Updates zum aktuellen Projekt oder Ankündigungen neuer Projekte).</p>
+                  <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) und Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Information bestehender Nutzer).</p>
+                  <p><strong>E-Mail-Kommunikation:</strong> Die hinterlegte E-Mail-Adresse kann für projektbezogene Informationen genutzt werden. Eine separate Verwaltung von Kommunikationspräferenzen ist derzeit nicht vorgesehen. Nutzer können der E-Mail-Kommunikation jederzeit widersprechen.</p>
                   <p><strong>Speicherdauer:</strong> Wallets, Tags und Gruppen werden gelöscht, wenn der User sie löscht. Accounts bleiben bestehen, können aber auf Anfrage manuell gelöscht werden.</p>
                   <p><strong>Datenweitergabe / Drittanbieter:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Öffentliche APIs wie sodex.com greifen nicht auf personenbezogene Daten zu.</p>
                   <p><strong>Rechte der Nutzer:</strong> Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit, Widerruf der Einwilligung jederzeit.</p>
 
-                  {/* Englisch */}
+                  {/* English */}
                   <h3>English</h3>
-                  <p><strong>Controller:</strong> Luke Steinfartz(<strong>luke@steinfartz.de</strong>)</p>
-                  <p><strong>Technical Contact:</strong> Lutz Steinfartz, <strong> Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
-                  <p><strong>Collected Personal Data:</strong> Email, wallet data, tags, groups, profile metadata.</p>
-                  <p><strong>Purpose of Processing:</strong> User profile management, wallet management, ensuring website functionality.</p>
-                  <p><strong>Data Retention:</strong> Wallets, tags, and groups are deleted when the user deletes them. Accounts remain, but email and wallet-related data can be manually deleted on request.</p>
+                  <p><strong>Controller:</strong> Luke Steinfartz (<strong>luke@steinfartz.de</strong>)</p>
+                  <p><strong>Technical Contact:</strong> Lutz Steinfartz, <strong>Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
+                  <p><strong>Collected Personal Data:</strong> Email address, wallet data, tags, groups, profile metadata.</p>
+                  <p><strong>Purpose of Processing:</strong> User profile and wallet management, ensuring website functionality, and sending project-related emails (e.g. updates about the current project or announcements of new projects).</p>
+                  <p><strong>Legal Basis:</strong> Art. 6(1)(a) GDPR (consent) and Art. 6(1)(f) GDPR (legitimate interest in informing existing users).</p>
+                  <p><strong>Email Communication:</strong> The provided email address may be used for project-related information. Separate communication preferences are currently not available. Users may object to email communication at any time.</p>
+                  <p><strong>Data Retention:</strong> Wallets, tags, and groups are deleted when the user deletes them. Accounts remain, but personal data can be manually deleted on request.</p>
                   <p><strong>Data Sharing / Third Parties:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Public APIs like sodex.com do not access personal data.</p>
                   <p><strong>User Rights:</strong> Access, correction, deletion, restriction of processing, data portability, withdrawal of consent at any time.</p>
                 </div>
