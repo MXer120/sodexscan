@@ -6,10 +6,12 @@ interface WalletDisplayProps {
   walletAddress: string
   tagName?: string | null
   className?: string
+  truncate?: boolean
 }
 
-export default function WalletDisplay({ walletAddress, tagName, className = '' }: WalletDisplayProps) {
-  const displayText = tagName || truncateAddress(walletAddress)
+export default function WalletDisplay({ walletAddress, tagName, className = '', truncate = false }: WalletDisplayProps) {
+  // If tagName is provided, we use it. Otherwise we check if we should truncate.
+  const displayText = tagName || (truncate ? truncateAddress(walletAddress) : walletAddress)
 
   return (
     <span className={`wallet-display ${className}`} title={walletAddress}>
@@ -18,7 +20,7 @@ export default function WalletDisplay({ walletAddress, tagName, className = '' }
   )
 }
 
-function truncateAddress(address: string): string {
+export function truncateAddress(address: string): string {
   if (!address || address.length < 10) return address
-  return `${address.slice(0, 4)}...${address.slice(-4)}`
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
 }

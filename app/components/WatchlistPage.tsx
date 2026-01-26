@@ -1,63 +1,114 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWatchlist, WatchlistItem } from '../hooks/useWatchlist'
 import { useSessionContext } from '../lib/SessionContext'
-import { COLOR_HEX, GroupColor } from '../lib/walletTags'
+import { COLOR_HEX, GroupColor, fetchUserTags, WalletTag } from '../lib/walletTags'
 import WalletDisplay from './WalletDisplay'
 import Auth from './Auth'
 import '../styles/WatchlistPage.css'
 
-// Add Wallet Form Component
-function AddWalletForm({ onAdd, isAdding }: {
-  onAdd: (data: { wallet_address: string }) => Promise<void>
+type FilterType = 'all' | 'address' | 'tag'
+
+// Unified Search and Add Box Component
+function SearchAndAddBox({
+  onAdd,
+  isAdding,
+  onSearchChange,
+  searchValue,
+  filterType,
+  onFilterChange
+}: {
+  onAdd: (data: { wallet_address: string }) => Promise<any>
   isAdding: boolean
+  onSearchChange: (value: string) => void
+  searchValue: string
+  filterType: FilterType
+  onFilterChange: (type: FilterType) => void
 }) {
-  const [walletAddress, setWalletAddress] = useState('')
+  const [tags, setTags] = useState<WalletTag[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [inputValue, setInputValue] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    fetchUserTags().then(setTags)
+  }, [])
+
+  const handleAdd = async () => {
     setError(null)
-
-    const trimmedAddress = walletAddress.trim()
-    if (!trimmedAddress) {
-      setError('Wallet address is required')
+    const trimmed = inputValue.trim()
+    if (!trimmed) {
+      setError('Input required')
       return
     }
 
+    let addressToAdd = trimmed
+
+    // If input looks like a tag name, resolve it
+    const matchingTag = tags.find(t =>
+      t.tag_name.toLowerCase() === trimmed.toLowerCase()
+    )
+
+    if (matchingTag) {
+      addressToAdd = matchingTag.wallet_address
+    }
+
     try {
-      await onAdd({ wallet_address: trimmedAddress })
-      setWalletAddress('')
-      console.log('[Watchlist] Added wallet:', trimmedAddress)
+      await onAdd({ wallet_address: addressToAdd })
+      setInputValue('')
+      console.log('[Watchlist] Added:', addressToAdd)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add wallet'
+      const message = err instanceof Error ? err.message : 'Failed to add'
       setError(message)
       console.error('[Watchlist] Add error:', message)
     }
   }
 
+  const handleInputChange = (value: string) => {
+    setInputValue(value)
+    onSearchChange(value)
+  }
+
+  const getPlaceholder = () => {
+    switch (filterType) {
+      case 'address': return 'Search or add by address...'
+      case 'tag': return 'Search or add by tag name...'
+      default: return 'Search or add by address / tag...'
+    }
+  }
+
   return (
-    <form className="add-wallet-form" onSubmit={handleSubmit}>
-      <div className="form-row">
-        <div className="form-group form-group-address">
-          <label htmlFor="wallet-address">Wallet Address</label>
-          <input
-            id="wallet-address"
-            type="text"
-            value={walletAddress}
-            onChange={(e) => setWalletAddress(e.target.value)}
-            placeholder="0x..."
-            disabled={isAdding}
-          />
-        </div>
-        <button type="submit" className="add-button" disabled={isAdding}>
-          {isAdding ? 'Adding...' : 'Add Wallet'}
+    <div className="search-add-container">
+      <div className="search-add-box">
+        <select
+          className="filter-dropdown"
+          value={filterType}
+          onChange={(e) => onFilterChange(e.target.value as FilterType)}
+        >
+          <option value="all">All Filters</option>
+          <option value="address">Address</option>
+          <option value="tag">Name Tags</option>
+        </select>
+        <input
+          type="text"
+          placeholder={getPlaceholder()}
+          value={inputValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          className="search-add-input"
+          disabled={isAdding}
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+        />
+        <button
+          className="add-button-inline"
+          onClick={handleAdd}
+          disabled={isAdding || !inputValue.trim()}
+        >
+          {isAdding ? 'Adding...' : 'Add'}
         </button>
       </div>
       {error && <div className="form-error">{error}</div>}
-    </form>
+    </div>
   )
 }
 
@@ -66,12 +117,14 @@ function WatchlistRow({
   item,
   onDelete,
   isRemoving,
-  onNavigate
+  onNavigate,
+  showAddedTime
 }: {
   item: WatchlistItem
   onDelete: (id: number) => void
   isRemoving: boolean
   onNavigate: (address: string) => void
+  showAddedTime: boolean
 }) {
   const handleDelete = () => {
     if (window.confirm('Remove this wallet from your watchlist?')) {
@@ -89,27 +142,34 @@ function WatchlistRow({
     : null
 
   return (
-    <tr>
-      <td className="wallet-cell" onClick={handleWalletClick} style={{ cursor: 'pointer' }}>
+    <tr className="watchlist-row">
+      <td className="wallet-cell" onClick={handleWalletClick}>
         <div className="wallet-info">
-          <WalletDisplay
-            walletAddress={item.wallet_address}
-            tagName={item.wallet_tags?.tag_name}
-          />
-          {item.wallet_tags?.group_name && (
-            <span
-              className="group-badge"
-              style={{
-                color: groupColor || '#888',
-                borderColor: groupColor || '#888'
-              }}
-            >
-              <span
-                className="group-dot"
-                style={{ background: groupColor || '#888' }}
-              />
-              {item.wallet_tags.group_name}
-            </span>
+          {item.wallet_tags?.tag_name ? (
+            <div className="tag-display-wrapper">
+              <span className="tag-name-main">{item.wallet_tags.tag_name}</span>
+              {item.wallet_tags.group_name && (
+                <span
+                  className="group-badge"
+                  style={{
+                    color: groupColor || '#888',
+                    borderColor: groupColor || '#888'
+                  }}
+                >
+                  <span
+                    className="group-dot"
+                    style={{ background: groupColor || '#888' }}
+                  />
+                  {item.wallet_tags.group_name}
+                </span>
+              )}
+            </div>
+          ) : (
+            <WalletDisplay
+              walletAddress={item.wallet_address}
+              tagName={item.wallet_tags?.tag_name}
+              truncate={true}
+            />
           )}
         </div>
       </td>
@@ -128,14 +188,16 @@ function WatchlistRow({
         )}
       </td>
       <td className="rank-cell">
-        {item.leaderboard?.pnl_rank ? `#${item.leaderboard.pnl_rank}` : '-'}
+        {item.leaderboard?.pnl_rank != null ? `#${item.leaderboard.pnl_rank}` : <span className="no-rank">-</span>}
       </td>
       <td className="rank-cell">
-        {item.leaderboard?.volume_rank ? `#${item.leaderboard.volume_rank}` : '-'}
+        {item.leaderboard?.volume_rank != null ? `#${item.leaderboard.volume_rank}` : <span className="no-rank">-</span>}
       </td>
-      <td className="watchlist-date">
-        {new Date(item.created_at).toLocaleDateString()}
-      </td>
+      {showAddedTime && (
+        <td className="watchlist-date">
+          {new Date(item.created_at).toLocaleDateString()}
+        </td>
+      )}
       <td className="actions-cell">
         <button
           className="unwatch-button"
@@ -149,35 +211,6 @@ function WatchlistRow({
   )
 }
 
-// Search/Filter Component
-function SearchFilter({
-  value,
-  onChange
-}: {
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <div className="search-filter">
-      <input
-        type="text"
-        placeholder="Search by address..."
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="search-input"
-      />
-      {value && (
-        <button
-          className="clear-search"
-          onClick={() => onChange('')}
-          type="button"
-        >
-          Clear
-        </button>
-      )}
-    </div>
-  )
-}
 
 // Main Watchlist Page Component
 export default function WatchlistPage() {
@@ -194,21 +227,30 @@ export default function WatchlistPage() {
   } = useWatchlist()
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterType, setFilterType] = useState<FilterType>('all')
+  const [showAddedTime, setShowAddedTime] = useState(false)
 
   const handleNavigateToTracker = (address: string) => {
     router.push(`/tracker?wallet=${encodeURIComponent(address)}`)
   }
 
-  // Filter watchlist by search term (client-side)
+  // Filter watchlist by search term and filter type
   const filteredWatchlist = useMemo(() => {
     if (!searchTerm.trim()) return watchlist
 
     const term = searchTerm.toLowerCase()
-    return watchlist.filter(item =>
-      item.wallet_address.toLowerCase().includes(term) ||
-      (item.wallet_tags?.tag_name && item.wallet_tags.tag_name.toLowerCase().includes(term))
-    )
-  }, [watchlist, searchTerm])
+    return watchlist.filter(item => {
+      if (filterType === 'address') {
+        return item.wallet_address.toLowerCase().includes(term)
+      } else if (filterType === 'tag') {
+        return item.wallet_tags?.tag_name && item.wallet_tags.tag_name.toLowerCase().includes(term)
+      } else {
+        // 'all' filter
+        return item.wallet_address.toLowerCase().includes(term) ||
+          (item.wallet_tags?.tag_name && item.wallet_tags.tag_name.toLowerCase().includes(term))
+      }
+    })
+  }, [watchlist, searchTerm, filterType])
 
   if (authLoading) {
     return (
@@ -263,10 +305,31 @@ export default function WatchlistPage() {
       <div className="watchlist-content">
         <h1 className="watchlist-title">Your Watchlist</h1>
 
-        <AddWalletForm onAdd={addToWatchlist} isAdding={isAdding} />
+        <SearchAndAddBox
+          onAdd={addToWatchlist}
+          isAdding={isAdding}
+          onSearchChange={setSearchTerm}
+          searchValue={searchTerm}
+          filterType={filterType}
+          onFilterChange={setFilterType}
+        />
 
         {watchlist.length > 0 && (
-          <SearchFilter value={searchTerm} onChange={setSearchTerm} />
+          <div className="watchlist-controls">
+            <label className="toggle-item">
+              <input
+                type="checkbox"
+                checked={showAddedTime}
+                onChange={(e) => setShowAddedTime(e.target.checked)}
+              />
+              <span className="custom-checkbox">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+              <span className="toggle-label">Show Added Time</span>
+            </label>
+          </div>
         )}
 
         {watchlist.length === 0 ? (
@@ -286,8 +349,8 @@ export default function WatchlistPage() {
                   <th>Position</th>
                   <th>PnL Rank</th>
                   <th>Volume Rank</th>
-                  <th>Added</th>
-                  <th>Actions</th>
+                  {showAddedTime && <th>Added</th>}
+                  <th className="actions-header">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,6 +361,7 @@ export default function WatchlistPage() {
                     onDelete={removeFromWatchlistById}
                     isRemoving={isRemoving}
                     onNavigate={handleNavigateToTracker}
+                    showAddedTime={showAddedTime}
                   />
                 ))}
               </tbody>
