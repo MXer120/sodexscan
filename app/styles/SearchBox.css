@@ -1,0 +1,139 @@
+/* Unified Search and Add Box */
+.search-add-container {
+    margin-bottom: 24px;
+}
+
+.search-add-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: nowrap;
+    max-width: 600px;
+    /* Limit width on large screens */
+}
+
+.filter-dropdown {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fff;
+    cursor: pointer;
+    min-width: 120px;
+    flex-shrink: 0;
+    border-radius: 6px;
+}
+
+.filter-dropdown:focus {
+    outline: none;
+    background: rgba(30, 30, 30, 0.8);
+}
+
+.filter-dropdown option {
+    background: #1a1a1a;
+    color: #fff;
+    padding: 8px;
+}
+
+.search-add-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fff;
+    min-width: 50px;
+}
+
+.search-add-input:focus {
+    outline: none;
+}
+
+.search-add-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.search-add-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.add-button-inline {
+    background: #FF7648;
+    border: none;
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-right: 4px;
+}
+
+.add-button-inline:hover:not(:disabled) {
+    background: #D23714;
+    transform: translateY(-1px);
+}
+
+.add-button-inline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.form-error {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: #ef4444;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .search-add-container {
+        padding: 0;
+        margin: 0 0 24px 0;
+        width: 100%;
+    }
+
+    .search-add-box {
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        /* Restore border */
+        gap: 8px;
+        padding: 6px 10px;
+        flex-wrap: nowrap !important;
+        display: flex;
+        flex-direction: row !important;
+        /* Force row layout */
+        align-items: center;
+    }
+
+    .filter-dropdown {
+        display: none;
+    }
+
+    .search-add-input {
+        flex: 1;
+        min-width: 0;
+        padding: 8px 0;
+        width: auto;
+    }
+
+    .add-button-inline {
+        padding: 8px 14px;
+        font-size: 13px;
+        margin-right: 0;
+        white-space: nowrap;
+        flex-shrink: 0;
+        width: auto !important;
+    }
+}

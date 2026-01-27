@@ -6,11 +6,13 @@ import MainnetTracker from './MainnetTracker'
 import { useRecordSearch } from '../lib/searchHistory'
 import { useAddTag, useWalletTags } from '../hooks/useWalletTags'
 import { useSessionContext } from '../lib/SessionContext'
+import SearchAndAddBox from './SearchAndAddBox'
 import '../styles/TrackerPage.css'
 
 function TrackerPage() {
   const searchParams = useSearchParams()
   const [searchInput, setSearchInput] = useState('')
+  const [filterType, setFilterType] = useState('all')
   const [walletAddress, setWalletAddress] = useState(null)
   const [searchedTagName, setSearchedTagName] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -53,61 +55,46 @@ function TrackerPage() {
   }, [searchParams, tags])
 
 
-  const handleSearch = () => {
-    const input = searchInput.trim()
-    if (!input) return
-
+  const handleSearchResult = ({ wallet_address }) => {
     // Show button loading state briefly
     setLoading(true)
     setWalletAddress(null)
     setSearchedTagName(null)
 
-    // Clear button loading after brief delay (MainnetTracker shows its own loading)
+    // Clear button loading after brief delay
     setTimeout(() => {
       setLoading(false)
     }, 300)
 
-    // For logged-in users: check if input matches a tag name
-    if (user && tags) {
+    // Check if this address has a known tag to display
+    if (tags) {
       const matchedTag = tags.find(t =>
-        t.tag_name.toLowerCase() === input.toLowerCase()
+        t.wallet_address.toLowerCase() === wallet_address.toLowerCase()
       )
       if (matchedTag) {
-        setWalletAddress(matchedTag.wallet_address)
         setSearchedTagName(matchedTag.tag_name)
-        recordSearch(matchedTag.wallet_address)
-        return
       }
     }
 
-    // Otherwise treat as wallet address
-    setWalletAddress(input)
-    recordSearch(input)
+    setWalletAddress(wallet_address)
+    recordSearch(wallet_address)
   }
 
   return (
     <div className="dashboard">
-      <h1 className="dashboard-title">Wallet Tracker</h1>
+      <h1 className="dashboard-title">Wallet Scan</h1>
 
       <section className="wallet-finder">
-        <div className="search-box">
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !loading && handleSearch()}
-            placeholder={user ? "Enter wallet address or tag name..." : "Enter wallet address..."}
-            className="search-input"
-            disabled={loading}
+        <div className="search-box-wrapper" style={{ marginBottom: '20px' }}>
+          <SearchAndAddBox
+            onAction={handleSearchResult}
+            isActionLoading={loading}
+            onSearchChange={setSearchInput}
+            searchValue={searchInput}
+            actionLabel={loading ? 'Searching...' : 'Search'}
+            filterType={filterType}
+            onFilterChange={setFilterType}
           />
-          <button
-            onClick={handleSearch}
-            className="search-btn"
-            disabled={loading}
-            style={{ opacity: loading ? 0.6 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
         </div>
 
         {loading && <div className="loading">Loading...</div>}
@@ -162,8 +149,8 @@ function TrackerPage() {
                     border: '1px solid rgba(60, 200, 240, 0.2)'
                   }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                      <line x1="7" y1="7" x2="7.01" y2="7"/>
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                      <line x1="7" y1="7" x2="7.01" y2="7" />
                     </svg>
                     {searchedTagName}
                   </span>
@@ -239,8 +226,8 @@ function TrackerPage() {
                     }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                      <line x1="7" y1="7" x2="7.01" y2="7"/>
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                      <line x1="7" y1="7" x2="7.01" y2="7" />
                     </svg>
                     Add Tag
                   </button>

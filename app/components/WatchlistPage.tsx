@@ -6,111 +6,13 @@ import { useWatchlist, WatchlistItem } from '../hooks/useWatchlist'
 import { useSessionContext } from '../lib/SessionContext'
 import { COLOR_HEX, GroupColor, fetchUserTags, WalletTag } from '../lib/walletTags'
 import WalletDisplay from './WalletDisplay'
+import SearchAndAddBox from './SearchAndAddBox'
 import Auth from './Auth'
 import '../styles/WatchlistPage.css'
 
 type FilterType = 'all' | 'address' | 'tag'
 
-// Unified Search and Add Box Component
-function SearchAndAddBox({
-  onAdd,
-  isAdding,
-  onSearchChange,
-  searchValue,
-  filterType,
-  onFilterChange
-}: {
-  onAdd: (data: { wallet_address: string }) => Promise<any>
-  isAdding: boolean
-  onSearchChange: (value: string) => void
-  searchValue: string
-  filterType: FilterType
-  onFilterChange: (type: FilterType) => void
-}) {
-  const [tags, setTags] = useState<WalletTag[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [inputValue, setInputValue] = useState('')
 
-  useEffect(() => {
-    fetchUserTags().then(setTags)
-  }, [])
-
-  const handleAdd = async () => {
-    setError(null)
-    const trimmed = inputValue.trim()
-    if (!trimmed) {
-      setError('Input required')
-      return
-    }
-
-    let addressToAdd = trimmed
-
-    // If input looks like a tag name, resolve it
-    const matchingTag = tags.find(t =>
-      t.tag_name.toLowerCase() === trimmed.toLowerCase()
-    )
-
-    if (matchingTag) {
-      addressToAdd = matchingTag.wallet_address
-    }
-
-    try {
-      await onAdd({ wallet_address: addressToAdd })
-      setInputValue('')
-      console.log('[Watchlist] Added:', addressToAdd)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add'
-      setError(message)
-      console.error('[Watchlist] Add error:', message)
-    }
-  }
-
-  const handleInputChange = (value: string) => {
-    setInputValue(value)
-    onSearchChange(value)
-  }
-
-  const getPlaceholder = () => {
-    switch (filterType) {
-      case 'address': return 'Search or add by address...'
-      case 'tag': return 'Search or add by tag name...'
-      default: return 'Search or add by address / tag...'
-    }
-  }
-
-  return (
-    <div className="search-add-container">
-      <div className="search-add-box">
-        <select
-          className="filter-dropdown"
-          value={filterType}
-          onChange={(e) => onFilterChange(e.target.value as FilterType)}
-        >
-          <option value="all">All Filters</option>
-          <option value="address">Address</option>
-          <option value="tag">Name Tags</option>
-        </select>
-        <input
-          type="text"
-          placeholder={getPlaceholder()}
-          value={inputValue}
-          onChange={(e) => handleInputChange(e.target.value)}
-          className="search-add-input"
-          disabled={isAdding}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-        />
-        <button
-          className="add-button-inline"
-          onClick={handleAdd}
-          disabled={isAdding || !inputValue.trim()}
-        >
-          {isAdding ? 'Adding...' : 'Add'}
-        </button>
-      </div>
-      {error && <div className="form-error">{error}</div>}
-    </div>
-  )
-}
 
 // Watchlist Row Component
 function WatchlistRow({
@@ -306,12 +208,13 @@ export default function WatchlistPage() {
         <h1 className="watchlist-title">Your Watchlist</h1>
 
         <SearchAndAddBox
-          onAdd={addToWatchlist}
-          isAdding={isAdding}
+          onAction={addToWatchlist}
+          isActionLoading={isAdding}
           onSearchChange={setSearchTerm}
           searchValue={searchTerm}
           filterType={filterType}
           onFilterChange={setFilterType}
+          actionLabel="Add"
         />
 
         {watchlist.length > 0 && (

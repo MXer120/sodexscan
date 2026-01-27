@@ -3,31 +3,15 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { supabase } from '../lib/supabaseClient'
+import { useSessionContext } from '../lib/SessionContext'
 import { Auth } from './Auth'
 import '../styles/Navbar.css'
 
 function Navbar() {
   const pathname = usePathname()
-  const [user, setUser] = useState(null)
+  const { user } = useSessionContext()
   const [showAuth, setShowAuth] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -35,13 +19,11 @@ function Navbar() {
   }, [pathname])
 
   const navLinks = [
-    { path: '/tracker', label: 'Scan' },
-    { path: '/mainnet', label: 'Leaderboard' },
-    { path: '/platform', label: 'Platform' },
-    ...(user ? [
-      { path: '/watchlist', label: 'Watchlist' },
-      { path: '/incoming', label: 'Incoming' }
-    ] : []),
+    { path: '/tracker', label: 'Scan', protected: false },
+    { path: '/mainnet', label: 'Leaderboard', protected: true },
+    { path: '/platform', label: 'Platform', protected: false },
+    { path: '/watchlist', label: 'Watchlist', protected: true },
+    { path: '/incoming', label: 'Incoming', protected: true }
   ]
 
   const isLandingPage = pathname === '/'
@@ -58,8 +40,15 @@ function Navbar() {
           </Link>
 
           <div className="navbar-links">
-            {navLinks.map((link) =>
-              link.external ? (
+            {navLinks.map((link) => {
+              const checkAuth = (e) => {
+                if (link.protected && !user) {
+                  e.preventDefault()
+                  setShowAuth(true)
+                }
+              }
+
+              return link.external ? (
                 <a
                   key={link.path}
                   href={link.path}
@@ -74,11 +63,12 @@ function Navbar() {
                   key={link.path}
                   href={link.path}
                   className={`nav-link ${pathname === link.path ? 'active' : ''}`}
+                  onClick={checkAuth}
                 >
                   {link.label}
                 </Link>
               )
-            )}
+            })}
           </div>
 
           <div className="navbar-right" style={{ gridColumn: 3, justifySelf: 'end', display: 'flex', alignItems: 'center' }}>
@@ -131,7 +121,15 @@ function Navbar() {
                 key={link.path}
                 href={link.path}
                 className={`mobile-menu-link ${pathname === link.path ? 'active' : ''}`}
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  if (link.protected && !user) {
+                    e.preventDefault()
+                    setMobileMenuOpen(false);
+                    setShowAuth(true);
+                  } else {
+                    setMobileMenuOpen(false);
+                  }
+                }}
               >
                 {link.label}
               </Link>
