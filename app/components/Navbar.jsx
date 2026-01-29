@@ -21,6 +21,15 @@ function Navbar() {
   const navLinks = [
     { path: '/tracker', label: 'Scan', protected: false },
     { path: '/mainnet', label: 'Leaderboard', protected: true },
+    {
+      path: '/social',
+      label: 'Social',
+      protected: true,
+      children: [
+        { path: '/social', label: 'Leaderboard' },
+        { path: '/social/stats', label: 'Stats' }
+      ]
+    },
     { path: '/platform', label: 'Platform', protected: false },
     { path: '/watchlist', label: 'Watchlist', protected: true },
     { path: '/incoming', label: 'Incoming', protected: true }
@@ -46,6 +55,33 @@ function Navbar() {
                   e.preventDefault()
                   setShowAuth(true)
                 }
+              }
+
+              if (link.children) {
+                return (
+                  <div key={link.label} className="nav-item-dropdown">
+                    <button className={`nav-link ${pathname.startsWith(link.path) ? 'active' : ''}`}>
+                      {link.label} ▾
+                    </button>
+                    <div className="dropdown-menu">
+                      {link.children.map(child => (
+                        <Link
+                          key={child.path}
+                          href={child.path}
+                          className="dropdown-link"
+                          onClick={(e) => {
+                            if (link.protected && !user) {
+                              e.preventDefault()
+                              setShowAuth(true)
+                            }
+                          }}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )
               }
 
               return link.external ? (
@@ -116,24 +152,46 @@ function Navbar() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="mobile-menu">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                href={link.path}
-                className={`mobile-menu-link ${pathname === link.path ? 'active' : ''}`}
-                onClick={(e) => {
-                  if (link.protected && !user) {
-                    e.preventDefault()
-                    setMobileMenuOpen(false);
-                    setShowAuth(true);
-                  } else {
-                    setMobileMenuOpen(false);
-                  }
-                }}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              if (link.children) {
+                return link.children.map(child => (
+                  <Link
+                    key={child.path}
+                    href={child.path}
+                    className={`mobile-menu-link ${pathname === child.path ? 'active' : ''}`}
+                    onClick={(e) => {
+                      if (link.protected && !user) {
+                        e.preventDefault()
+                        setMobileMenuOpen(false);
+                        setShowAuth(true);
+                      } else {
+                        setMobileMenuOpen(false);
+                      }
+                    }}
+                  >
+                    {link.label} - {child.label}
+                  </Link>
+                ))
+              }
+              return (
+                <Link
+                  key={link.path}
+                  href={link.path}
+                  className={`mobile-menu-link ${pathname === link.path ? 'active' : ''}`}
+                  onClick={(e) => {
+                    if (link.protected && !user) {
+                      e.preventDefault()
+                      setMobileMenuOpen(false);
+                      setShowAuth(true);
+                    } else {
+                      setMobileMenuOpen(false);
+                    }
+                  }}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
             {user ? (
               <Link
                 href="/profile"

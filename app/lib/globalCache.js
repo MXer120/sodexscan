@@ -20,14 +20,59 @@ class GlobalCache {
       newestTraders: { data: [], timestamp: 0 },
 
       // Coin logos cache (long TTL, logos don't change often)
-      coinLogos: new Map() // url -> { loaded: bool, timestamp }
+      coinLogos: new Map(), // url -> { loaded: bool, timestamp }
+
+      // Social leaderboard caches - key: "lb:{view}:{group_id}:{limit}"
+      socialLeaderboards: new Map(), // key -> {data, timestamp, fetchTime}
+      socialPersistent: null, // localStorage backup, loaded on init
+
+      // Social page leaderboard cache - key: "viewKey_page"
+      socialPages: new Map(), // key -> {data, totalCount, fetchTime, timestamp}
+
+      // Social stats (group_stats_daily) cache
+      socialStats: { data: null, timestamp: 0 }
     }
 
     this.TTL = {
       mainnetPage: 5 * 60 * 1000,  // 5 minutes
       tracker: 2 * 60 * 1000,       // 2 minutes
       platform: 5 * 60 * 1000,      // 5 minutes for tickers & new traders
-      logos: 24 * 60 * 60 * 1000    // 24 hours for logos
+      logos: 24 * 60 * 60 * 1000,   // 24 hours for logos
+      social: 10 * 60 * 1000        // 10 minutes for social leaderboards
+    }
+
+    // Load persistent cache from localStorage
+    this._loadPersistentSocialCache()
+  }
+
+  // Load social cache from localStorage
+  _loadPersistentSocialCache() {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem('socialLeaderboardCache')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // Restore to Map
+        Object.entries(parsed).forEach(([key, value]) => {
+          this.caches.socialLeaderboards.set(key, value)
+        })
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }
+
+  // Save social cache to localStorage
+  _savePersistentSocialCache() {
+    if (typeof window === 'undefined') return
+    try {
+      const obj = {}
+      this.caches.socialLeaderboards.forEach((value, key) => {
+        obj[key] = value
+      })
+      localStorage.setItem('socialLeaderboardCache', JSON.stringify(obj))
+    } catch (e) {
+      // Ignore localStorage errors (quota, etc)
     }
   }
 
@@ -197,6 +242,86 @@ class GlobalCache {
     })
   }
 
+  // Social leaderboard cache - key format: "lb:{view}:{group_id}:{limit}"
+  getSocialLeaderboard(view, groupId = null, limit = 50) {
+    const key = `lb:${view}:${groupId || 'all'}:${limit}`
+    const cached = this.caches.socialLeaderboards.get(key)
+    if (!cached) return null
+
+    const age = Date.now() - cached.timestamp
+    const isStale = age >= this.TTL.social
+
+    // Return data even if stale (for resilience), but mark it
+    return {
+      data: cached.data,
+      fetchTime: cached.fetchTime,
+      isStale
+    }
+  }
+
+  setSocialLeaderboard(view, groupId = null, limit = 50, data) {
+    const key = `lb:${view}:${groupId || 'all'}:${limit}`
+    const entry = {
+      data,
+      timestamp: Date.now(),
+      fetchTime: new Date().toISOString()
+    }
+    this.caches.socialLeaderboards.set(key, entry)
+    this._savePersistentSocialCache()
+  }
+
+  // Check if social data is fresh (not stale)
+  isSocialFresh(view, groupId = null, limit = 50) {
+    const key = `lb:${view}:${groupId || 'all'}:${limit}`
+    const cached = this.caches.socialLeaderboards.get(key)
+    if (!cached) return false
+    return Date.now() - cached.timestamp < this.TTL.social
+  }
+
+  // Social stats cache (group_stats_daily)
+  getSocialStats() {
+    const cached = this.caches.socialStats
+    if (!cached.data) return null
+
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.social) {
+      this.caches.socialStats = { data: null, timestamp: 0 }
+      return null
+    }
+    return cached.data
+  }
+
+  setSocialStats(data) {
+    this.caches.socialStats = {
+      data,
+      timestamp: Date.now()
+    }
+  }
+
+  // Social page cache (per view + page)
+  getSocialPage(viewKey, page) {
+    const key = `${viewKey}_${page}`
+    const cached = this.caches.socialPages.get(key)
+    if (!cached) return null
+
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.social) {
+      this.caches.socialPages.delete(key)
+      return null
+    }
+    return cached
+  }
+
+  setSocialPage(viewKey, page, data, totalCount, fetchTime) {
+    const key = `${viewKey}_${page}`
+    this.caches.socialPages.set(key, {
+      data,
+      totalCount,
+      fetchTime,
+      timestamp: Date.now()
+    })
+  }
+
   // Clear all caches
   clear() {
     this.caches.leaderboardPages.clear()
@@ -207,6 +332,12 @@ class GlobalCache {
     this.caches.tickers = { spot: [], futures: [], timestamp: 0 }
     this.caches.newestTraders = { data: [], timestamp: 0 }
     this.caches.coinLogos.clear()
+    this.caches.socialLeaderboards.clear()
+    this.caches.socialPages.clear()
+    this.caches.socialStats = { data: null, timestamp: 0 }
+    if (typeof window !== 'undefined') {
+      try { localStorage.removeItem('socialLeaderboardCache') } catch (e) {}
+    }
   }
 }
 

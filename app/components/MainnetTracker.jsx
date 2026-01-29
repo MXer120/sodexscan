@@ -3,6 +3,12 @@ import ChartCard from './ChartCard'
 import { TimeSelector } from './ui/TimeSelector'
 import { getSodexIdFromWallet } from '../lib/accountResolver'
 import { globalCache } from '../lib/globalCache'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 // Copyable address component
 const CopyableAddress = ({ address, truncated = true }) => {
@@ -41,12 +47,12 @@ const CopyableAddress = ({ address, truncated = true }) => {
       >
         {copied ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12"/>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
         )}
       </button>
@@ -75,6 +81,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [positions, setPositions] = useState([])
   const [positionHistory, setPositionHistory] = useState([])
   const [totalAssets, setTotalAssets] = useState(0)
+  const [symbolMap, setSymbolMap] = useState({})
+  const [leaderboardStats, setLeaderboardStats] = useState({ rank: null, volumeRank: null, volume: 0 })
 
   // Pagination
   const [withdrawalsPage, setWithdrawalsPage] = useState(1)
@@ -308,6 +316,35 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       console.error('Failed to fetch mainnet data:', error)
     }
 
+    // Fetch Supabase data (Leaderboard stats & Tickermap)
+    try {
+      const [lbRes, tickersRes] = await Promise.all([
+        supabase.from('leaderboard_smart')
+          .select('pnl_rank, volume_rank, cumulative_volume')
+          .eq('account_id', accountId)
+          .maybeSingle(),
+        supabase.from('tickers').select('id, symbol')
+      ])
+
+      if (lbRes.data) {
+        setLeaderboardStats({
+          rank: lbRes.data.pnl_rank,
+          volumeRank: lbRes.data.volume_rank,
+          volume: lbRes.data.cumulative_volume || 0
+        })
+      }
+
+      if (tickersRes.data) {
+        const map = {}
+        tickersRes.data.forEach(t => {
+          map[t.id] = t.symbol
+        })
+        setSymbolMap(map)
+      }
+    } catch (err) {
+      console.error('Aux fetch error', err)
+    }
+
     setLoading(false)
   }
 
@@ -469,6 +506,22 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         <div className="metric-card">
           <span className="metric-label">Open Positions</span>
           <span className="metric-value">{positions.length}</span>
+        </div>
+        <div className="metric-card">
+          <span className="metric-label">Volume</span>
+          <span className="metric-value">${formatNumber(leaderboardStats.volume)}</span>
+        </div>
+        <div className="metric-card">
+          <span className="metric-label">PnL Rank</span>
+          <span className="metric-value">
+            {leaderboardStats.rank ? `#${leaderboardStats.rank}` : '-'}
+          </span>
+        </div>
+        <div className="metric-card">
+          <span className="metric-label">Vol Rank</span>
+          <span className="metric-value">
+            {leaderboardStats.volumeRank ? `#${leaderboardStats.volumeRank}` : '-'}
+          </span>
         </div>
       </div>
 
@@ -767,7 +820,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}>
-                          Symbol #{pos.symbol_id}
+                          {symbolMap[pos.symbol_id] || `Symbol #${pos.symbol_id}`}
                         </td>
                         <td style={{
                           padding: '12px 8px',

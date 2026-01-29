@@ -16,7 +16,8 @@
       "Bash(npm run build:*)",
       "Bash(xargs:*)",
       "Bash(cd:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Remove-Item -Recurse -Force ''C:\\\\Users\\\\lutzs\\\\OneDrive - Fam. Steinfartz\\\\Lutz Schriftgut\\\\.work\\\\sodexscan\\\\.next'' -ErrorAction SilentlyContinue; Write-Host ''Done''\")"
     ]
   }
 }
