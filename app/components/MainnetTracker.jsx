@@ -16,11 +16,11 @@ const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/objec
 
 const LOGO_EXTENSIONS = {
   hype: 'jpg', pump: 'jpg', trump: 'jpg', wld: 'jpg', xlm: 'jpg', ton: 'jpg',
-  mag7: 'png', soso: 'png'
+  mag7: 'png', soso: 'png', silver: 'svg', wif: 'jpeg'
 }
 
 const LOGO_ALIASES = {
-  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', '1000bonk': 'bonk'
+  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk'
 }
 
 const getCoinLogoUrl = (symbol) => {
@@ -31,73 +31,72 @@ const getCoinLogoUrl = (symbol) => {
   return `${LOGO_BASE_URL}${lower}.${ext}`
 }
 
-const getBaseCoin = (symbol) => {
+// Will be populated from API - maps symbol (e.g. "BTC-USD") to baseCoin (e.g. "BTC")
+let coinRegistry = {}
+
+// Quote currencies - never return these as display names
+const QUOTE_CURRENCIES = ['USD', 'USDT', 'USDE', 'DAI']
+
+const getBaseCoin = (symbol, registry = coinRegistry) => {
   if (!symbol) return ''
   let clean = symbol.toString().trim()
+  let cleanUpper = clean.toUpperCase()
 
-  if (clean.toUpperCase() === 'WSOSO') return 'SOSO'
+  // Special cases
+  if (cleanUpper === 'WSOSO') return 'SOSO'
+  // USD variants should show as USDC
+  if (cleanUpper === 'USD' || cleanUpper === 'VUSD') return 'USDC'
 
-  // Quote currencies that should NOT be returned as base coin (unless they're the only part)
-  const quoteCurrencies = ['USD', 'USDT', 'USDC', 'USDE', 'DAI', 'USDbC']
+  // Direct lookup in registry (exact match)
+  if (registry[cleanUpper]) return registry[cleanUpper]
 
-  // Known coins that we want to prioritize for logos and display
-  const knownCoins = ['USDC', 'USDT', 'ETH', 'BTC', 'SOL', 'AVAX', 'BNB', 'WLD', 'HYPE', 'TRUMP', 'XLM', 'TON', 'SOSO', 'MAG7', 'DAI', 'USD', 'USDE', 'USDbC', 'XAUT', 'WBTC', 'WETH', 'WBNB', 'WUSDC', 'WUSDT']
-
-  const checkKnown = (s, allowQuote = true) => {
-    let uc = s.toUpperCase()
-    // Skip quote currencies unless explicitly allowed
-    if (!allowQuote && quoteCurrencies.includes(uc)) return null
-    if (knownCoins.includes(uc)) return uc === 'USDbC' || uc === 'WUSDC' ? 'USDC' : (uc === 'WETH' ? 'ETH' : (uc === 'WBTC' ? 'BTC' : (uc === 'WBNB' ? 'BNB' : uc)))
-    if (/^[VW][A-Z]/.test(uc)) {
-      let stripped = uc.slice(1)
-      if (!allowQuote && quoteCurrencies.includes(stripped)) return null
-      if (knownCoins.includes(stripped)) return stripped === 'USDbC' ? 'USDC' : stripped
-    }
-    return null
+  // Wrapped/alias coin mappings
+  const coinMap = {
+    'WETH': 'ETH', 'WBTC': 'BTC', 'WBNB': 'BNB',
+    'WUSDC': 'USDC', 'WUSDT': 'USDT', 'USDbC': 'USDC',
+    'VUSDC': 'USDC', 'USDT': 'USDC', 'USDE': 'USDC', 'DAI': 'USDC'
   }
+  if (coinMap[cleanUpper]) return coinMap[cleanUpper]
 
-  // 1. Exact match priority for the whole string (allow quote currencies here - they're the only part)
-  let direct = checkKnown(clean, true)
-  if (direct) return direct
-
-  // 2. Split by common separators and look for known coins (skip quote currencies)
+  // Split by common separators
   const parts = clean.split(/[_./-]/)
 
-  // First pass: look for non-quote base coins
-  for (const part of parts) {
-    let k = checkKnown(part, false)
-    if (k) return k
-  }
-
-  // 3. Look for partial matches within parts (handles things like vUSDCd) - skip quote currencies
+  // Check if any part is in registry values (known base coins)
+  const knownBaseCoins = new Set(Object.values(registry))
   for (const part of parts) {
     let uc = part.toUpperCase()
-    for (const kc of knownCoins) {
-      if (quoteCurrencies.includes(kc)) continue
-      if (uc.includes(kc)) return kc
+    // Skip quote currencies
+    if (QUOTE_CURRENCIES.includes(uc)) continue
+    // Check mapped
+    if (coinMap[uc]) return coinMap[uc]
+    // Check if it's a known base coin
+    if (knownBaseCoins.has(uc)) return uc
+    // Strip v/w prefix and check again
+    if (/^[VW][A-Z]/.test(uc)) {
+      let stripped = uc.slice(1)
+      if (coinMap[stripped]) return coinMap[stripped]
+      if (knownBaseCoins.has(stripped)) return stripped
+      // Return stripped if not a quote currency
+      if (!QUOTE_CURRENCIES.includes(stripped)) return stripped
     }
   }
 
-  // 4. Handle Network prefixes to remove (e.g. BASE_*)
+  // Handle network prefixes (e.g. BASE_ETH)
   const networks = ['BASE', 'ARB', 'OP', 'POLYGON', 'BSC', 'SONIC', 'HYPER', 'ETH']
   if (networks.includes(parts[0].toUpperCase()) && parts.length > 1) {
-    let candidate = getBaseCoin(parts.slice(1).join('_'))
-    if (candidate) return candidate
+    let candidate = getBaseCoin(parts.slice(1).join('_'), registry)
+    if (candidate && !QUOTE_CURRENCIES.includes(candidate)) return candidate
   }
 
-  // 5. Default fallback: strip v/w and return first part cleaned (unless it's a quote currency and there's more parts)
-  let first = parts[0]
-  if (/^[vw][A-Z]/.test(first)) first = first.slice(1)
-  let firstUpper = first.toUpperCase()
-
-  // If first part is quote currency and there are more parts, try second part
-  if (quoteCurrencies.includes(firstUpper) && parts.length > 1) {
-    let second = parts[1]
-    if (/^[vw][A-Z]/.test(second)) second = second.slice(1)
-    return second.toUpperCase()
+  // Fallback: return first non-quote part
+  for (const part of parts) {
+    let uc = part.toUpperCase()
+    if (/^[vw][A-Z]/.test(uc)) uc = uc.slice(1)
+    if (!QUOTE_CURRENCIES.includes(uc) && uc !== 'USDC') return uc
   }
 
-  return firstUpper
+  // Last resort: if everything is quote currency, return USDC
+  return 'USDC'
 }
 
 const CoinLogo = ({ symbol, size = '18px' }) => {
@@ -249,6 +248,40 @@ const SideBadge = ({ side, leverage, BULLISH_COLOR, BEARISH_COLOR }) => {
     </div>
   )
 }
+
+const getWithdrawalTypeMeta = (w) => {
+  const t = (w.type || '').toLowerCase()
+  const isInternal = t.includes('transfer')
+  const isDeposit = t.includes('deposit') && !isInternal
+  const isWithdraw = t.includes('withdraw') && !isInternal
+  const typeLabel = t.includes('spot to fund') ? 'Transfer' :
+    isInternal ? 'Transfer' :
+      isDeposit ? 'Deposit' :
+        isWithdraw ? 'Withdraw' : (w.type || '')
+  return { isDeposit, isWithdraw, isInternal: isInternal || t.includes('spot to fund'), typeLabel }
+}
+
+// Formatter that handles large strings and prevents scientific notation/rounding
+const formatPreciseAmount = (amount, decimals) => {
+  if (amount === undefined || amount === null || amount === '') return '0'
+  try {
+    let s = amount.toString().split('.')[0]
+    if (!s || s === '0') return '0'
+    const raw = BigInt(s)
+    const div = BigInt(10) ** BigInt(decimals)
+    const integral = raw / div
+    const fractional = raw % div
+    if (fractional === BigInt(0)) return integral.toString()
+    let fracStr = fractional.toString().padStart(decimals, '0')
+    fracStr = fracStr.replace(/0+$/, '')
+    return integral.toString() + '.' + fracStr
+  } catch (e) {
+    const val = parseFloat(amount) / Math.pow(10, decimals)
+    return val.toLocaleString('en-US', { maximumFractionDigits: decimals, useGrouping: false })
+  }
+}
+
+const formatCoin = (amount, decimals) => formatPreciseAmount(amount, decimals)
 
 export default function MainnetTracker({ walletAddress, accountId: propAccountId, searchBox, tagSection }) {
   const [accountId, setAccountId] = useState(propAccountId || null)
@@ -483,6 +516,77 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [accountId])
 
+  // Prepare Activity Timeline - memoized to prevent random reordering on re-renders
+  // Store rawSymbol so getBaseCoin can be called at render time with current coinRegistry
+  // Must be placed before any early returns to maintain hook order
+  const activityTimeline = useMemo(() => {
+    const items = [
+      // 1. Current Positions (as Opened events)
+      ...positions.map((p, i) => {
+        const isLongSide = p.positionSide === 'LONG' || p.positionSide === '2' || p.positionSide === 2
+        const timestamp = p.updateTime || 0
+        return {
+          id: `pos-${p.symbol}-${i}`,
+          date: p.updateTime ? new Date(p.updateTime).toISOString() : new Date().toISOString(),
+          type: 'Trade Opened',
+          subType: `${isLongSide ? 'Long' : 'Short'} Opened`,
+          rawSymbol: p.symbol || '',
+          size: p.positionSize,
+          status: isLongSide ? 'pos' : 'neg',
+          timestamp: timestamp > 1000000000000 ? timestamp : timestamp * 1000
+        }
+      }),
+      // 2. Closed Trades
+      ...positionHistory.map((p, i) => {
+        const symbolName = symbolMap[p.symbol_id] || ''
+        const isLong = parseInt(p.position_side) === 2
+        const ts = new Date(p.updated_at).getTime()
+        return {
+          id: `trade-${p.symbol_id}-${p.updated_at}-${i}`,
+          date: p.updated_at,
+          type: 'Trade Closed',
+          subType: `${isLong ? 'Long' : 'Short'} Closed`,
+          rawSymbol: symbolName,
+          symbolId: p.symbol_id,
+          size: p.max_size,
+          pnl: parseFloat(p.realized_pnl) || 0,
+          status: parseFloat(p.realized_pnl) >= 0 ? 'pos' : 'neg',
+          timestamp: isNaN(ts) ? 0 : ts
+        }
+      }),
+      // 3. Transfers/Withdrawals
+      ...withdrawals.map((w, i) => {
+        const meta = getWithdrawalTypeMeta(w)
+        const ts = w.stmp || 0
+        return {
+          id: `withdraw-${w.stmp}-${i}`,
+          date: new Date((ts > 1000000000000 ? ts : ts * 1000)).toISOString(),
+          type: meta.typeLabel,
+          rawSymbol: w.coin || '',
+          amount: formatCoin(w.amount, w.decimals),
+          status: meta.isInternal ? 'internal' : (meta.isDeposit ? 'pos' : 'neg'),
+          timestamp: ts > 1000000000000 ? ts : ts * 1000
+        }
+      }),
+      // 4. Fund Transfers (Internal)
+      ...fundTransfers.map((f, i) => {
+        const ts = f.stmp || 0
+        return {
+          id: `fund-${f.stmp}-${i}`,
+          date: new Date((ts > 1000000000000 ? ts : ts * 1000)).toISOString(),
+          type: f.type,
+          rawSymbol: f.coin || '',
+          amount: formatCoin(f.amount, f.decimals),
+          status: 'internal',
+          timestamp: ts > 1000000000000 ? ts : ts * 1000
+        }
+      })
+    ]
+    // Sort by timestamp desc, then by id for stable ordering
+    return items.sort((a, b) => b.timestamp - a.timestamp || a.id.localeCompare(b.id))
+  }, [positions, positionHistory, withdrawals, fundTransfers, symbolMap])
+
+  const displayedActivity = activityTimeline.slice(0, activityLimit)
 
   const handleManualIdSearch = () => {
     const id = manualIdInput.trim()
@@ -498,12 +602,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     // Always fetch meta even if cached (fast, global context)
     const fetchMetadata = async () => {
       try {
-        const [lbRes, bracketRes] = await Promise.all([
+        const [lbRes, bracketRes, symbolListRes] = await Promise.all([
           supabase.from('leaderboard_smart')
             .select('pnl_rank, volume_rank, cumulative_volume')
             .eq('account_id', accountId)
             .maybeSingle(),
-          fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list')
+          fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list'),
+          fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/symbol/list')
         ])
 
         if (lbRes.data) {
@@ -521,6 +626,18 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             if (item.symbolId) map[item.symbolId] = item.symbol
           })
           setSymbolMap(map)
+        }
+
+        // Build coin registry from symbol list
+        const symbolListData = await symbolListRes.json()
+        if (symbolListData.code === 0 && symbolListData.data) {
+          const registry = {}
+          symbolListData.data.forEach(item => {
+            if (item.symbol && item.baseCoin) {
+              registry[item.symbol.toUpperCase()] = item.baseCoin.toUpperCase()
+            }
+          })
+          coinRegistry = registry
         }
       } catch (e) {
         console.error('Metadata fetch failed:', e)
@@ -768,34 +885,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     return str
   }
 
-  // New formatter that handles large strings and prevents scientific notation/rounding
-  const formatPreciseAmount = (amount, decimals) => {
-    if (amount === undefined || amount === null || amount === '') return '0'
-    try {
-      // Ensure we have a string representing a whole number (raw units)
-      let s = amount.toString().split('.')[0]
-      if (!s || s === '0') return '0'
-
-      const raw = BigInt(s)
-      const div = BigInt(10) ** BigInt(decimals)
-
-      const integral = raw / div
-      const fractional = raw % div
-
-      if (fractional === BigInt(0)) return integral.toString()
-
-      let fracStr = fractional.toString().padStart(decimals, '0')
-      // Remove trailing zeros
-      fracStr = fracStr.replace(/0+$/, '')
-
-      return integral.toString() + '.' + fracStr
-    } catch (e) {
-      console.error('Precise format failed:', e)
-      const val = parseFloat(amount) / Math.pow(10, decimals)
-      return val.toLocaleString('en-US', { maximumFractionDigits: decimals, useGrouping: false })
-    }
-  }
-
   // For values < 1: keep leading zeros, then show 3 significant digits (first non-zero + 2),
   // e.g. 0.053454 -> 0.0535, 0.0001234 -> 0.000123
   const trimSmallWithSig3 = (value, maxDecimalsCap = 10) => {
@@ -828,11 +917,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       second: '2-digit',
       hour12: false
     })
-  }
-
-  const formatCoin = (amount, decimals) => {
-    // For coins in transfers/activity, use precise formatter to avoid any scientific notation or rounding
-    return formatPreciseAmount(amount, decimals)
   }
 
   const handleScroll = (e) => {
@@ -873,18 +957,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     const underscoreSplit = s.split('_')[0]
     const dotSplit = underscoreSplit.split('.')[0]
     return dotSplit || s
-  }
-
-  const getWithdrawalTypeMeta = (w) => {
-    const t = (w.type || '').toLowerCase()
-    const isInternal = t.includes('transfer')
-    const isDeposit = t.includes('deposit') && !isInternal
-    const isWithdraw = t.includes('withdraw') && !isInternal
-    const typeLabel = t.includes('spot to fund') ? 'Transfer' :
-      isInternal ? 'Transfer' :
-        isDeposit ? 'Deposit' :
-          isWithdraw ? 'Withdraw' : (w.type || '')
-    return { isDeposit, isWithdraw, isInternal: isInternal || t.includes('spot to fund'), typeLabel }
   }
 
   // Calculate total assets from wallet balance
@@ -1192,71 +1264,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       </div>
     )
   }
-
-  // Prepare Activity Timeline
-  const activityTimeline = [
-    // 1. Current Positions (as Opened events)
-    ...positions.map(p => {
-      const coin = getBaseCoin(p.symbol || '')
-      const isLongSide = p.positionSide === 'LONG' || p.positionSide === '2' || p.positionSide === 2
-      const timestamp = p.updateTime || Date.now()
-      return {
-        date: p.updateTime ? new Date(p.updateTime).toISOString() : new Date().toISOString(),
-        type: 'Trade Opened',
-        subType: `${isLongSide ? 'Long' : 'Short'} Opened`,
-        coin: coin,
-        size: p.positionSize,
-        status: isLongSide ? 'pos' : 'neg',
-        timestamp: timestamp > 1000000000000 ? timestamp : timestamp * 1000
-      }
-    }),
-    // 2. Closed Trades
-    ...positionHistory.map(p => {
-      const symbolName = symbolMap[p.symbol_id] || `Symbol #${p.symbol_id}`
-      const coin = getBaseCoin(symbolName)
-      const isLong = parseInt(p.position_side) === 2
-      const ts = new Date(p.updated_at).getTime()
-      return {
-        date: p.updated_at,
-        type: 'Trade Closed',
-        subType: `${isLong ? 'Long' : 'Short'} Closed`,
-        coin: coin,
-        size: p.max_size,
-        pnl: parseFloat(p.realized_pnl) || 0,
-        status: parseFloat(p.realized_pnl) >= 0 ? 'pos' : 'neg',
-        timestamp: isNaN(ts) ? Date.now() : ts
-      }
-    }),
-    // 3. Transfers/Withdrawals
-    ...withdrawals.map(w => {
-      const meta = getWithdrawalTypeMeta(w)
-      const coin = getBaseCoin(w.coin || '')
-      const ts = w.stmp || 0
-      return {
-        date: new Date((ts > 1000000000000 ? ts : ts * 1000)).toISOString(),
-        type: meta.typeLabel,
-        desc: `${meta.typeLabel} ${coin}`,
-        coin: coin,
-        amount: formatCoin(w.amount, w.decimals),
-        status: meta.isInternal ? 'internal' : (meta.isDeposit ? 'pos' : 'neg'),
-        timestamp: ts > 1000000000000 ? ts : ts * 1000
-      }
-    }),
-    // 4. Fund Transfers (Internal)
-    ...fundTransfers.map(f => {
-      const coin = getBaseCoin(f.coin || '')
-      const ts = f.stmp || 0
-      return {
-        date: new Date((ts > 1000000000000 ? ts : ts * 1000)).toISOString(),
-        type: f.type,
-        coin: coin,
-        amount: formatCoin(f.amount, f.decimals),
-        status: 'internal',
-        timestamp: ts > 1000000000000 ? ts : ts * 1000
-      }
-    })
-  ].sort((a, b) => b.timestamp - a.timestamp)
-  const displayedActivity = activityTimeline.slice(0, activityLimit)
 
   const handleActivityScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
@@ -1584,12 +1591,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           {displayedActivity.length > 0 ? (
             displayedActivity.map((item, idx) => {
               const isTrade = item.type.includes('Trade')
+              const coin = getBaseCoin(item.rawSymbol)
               const color = item.status === 'pos' ? BULLISH_COLOR :
                 item.status === 'neg' ? BEARISH_COLOR :
                   item.status === 'internal' ? INTERNAL_COLOR : '#fff'
 
               return (
-                <div key={idx} className={`timeline-item ${item.status}`} style={{
+                <div key={item.id} className={`timeline-item ${item.status}`} style={{
                   borderBottom: idx === displayedActivity.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)',
                   paddingTop: '6px',
                   paddingBottom: '8px',
@@ -1613,7 +1621,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <CoinLogo symbol={item.coin} />
+                        <CoinLogo symbol={coin} />
                       </div>
                     ) : (item.type === 'Deposit' || item.type === 'Withdraw') ? (
                       <div className="timeline-icon-box" style={{
@@ -1653,9 +1661,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
                     <div className="timeline-content" style={{ color: isTrade ? '#fff' : color, fontSize: '11px', fontWeight: '600', paddingLeft: '4px' }}>
                       {isTrade ? (
-                        <span>{item.coin} {item.subType}</span>
+                        <span>{coin} {item.subType}</span>
                       ) : (
-                        <span>{item.type} {item.coin}</span>
+                        <span>{item.type} {coin}</span>
                       )}
                     </div>
 
@@ -1668,7 +1676,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     {isTrade ? (
                       <>
                         <div className="timeline-desc" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                          {item.size} {item.coin}
+                          {item.size} {coin}
                         </div>
                         {item.type === 'Trade Closed' && (
                           <div style={{ fontSize: '10px', fontWeight: '600', color: color }}>

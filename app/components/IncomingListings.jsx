@@ -12,21 +12,12 @@ if (typeof document !== 'undefined') {
 const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/object/public/coin-logos/'
 
 const LOGO_EXTENSIONS = {
-  hype: 'jpg',
-  pump: 'jpg',
-  trump: 'jpg',
-  wld: 'jpg',
-  xlm: 'jpg',
-  ton: 'jpg',
-  mag7: 'png',
-  soso: 'png'
+  hype: 'jpg', pump: 'jpg', trump: 'jpg', wld: 'jpg', xlm: 'jpg', ton: 'jpg',
+  mag7: 'png', soso: 'png', silver: 'svg', wif: 'jpeg'
 }
 
 const LOGO_ALIASES = {
-  mag7ssi: 'mag7',
-  pepe: '1000pepe',
-  shib: '1000shib',
-  '1000bonk': 'bonk'
+  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk'
 }
 
 const getCoinLogoUrl = (symbol) => {

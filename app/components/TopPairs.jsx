@@ -14,21 +14,13 @@ const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/objec
 const PAGE_SIZE = 10
 
 const LOGO_EXTENSIONS = {
-  hype: 'jpg',
-  pump: 'jpg',
-  trump: 'jpg',
-  wld: 'jpg',
-  xlm: 'jpg',
-  ton: 'jpg',
-  mag7: 'png',
-  soso: 'png'
+  hype: 'jpg', pump: 'jpg', trump: 'jpg', wld: 'jpg', xlm: 'jpg', ton: 'jpg',
+  mag7: 'png', soso: 'png', silver: 'svg', wif: 'jpeg'
 }
 
 // Map symbol aliases to their logo file names
 const LOGO_ALIASES = {
-  mag7ssi: 'mag7',
-  pepe: '1000pepe',
-  shib: '1000shib'
+  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk'
 }
 
 const getCoinLogoUrl = (symbol) => {

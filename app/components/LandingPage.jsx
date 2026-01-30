@@ -37,7 +37,7 @@ function LandingPage() {
         <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '24px', fontSize: '14px' }}>
           Search any wallet to view trading activity, positions, and performance metrics
         </p>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
           <SearchAndAddBox
             onAction={({ wallet_address }) => router.push(`/tracker?wallet=${encodeURIComponent(wallet_address)}`)}
             actionLabel="Search"
