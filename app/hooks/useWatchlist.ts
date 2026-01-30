@@ -250,7 +250,7 @@ export function useWatchlist() {
       const { error } = await supabase
         .from('watchlist')
         .delete()
-        .eq('wallet_address', walletAddress.toLowerCase())
+        .ilike('wallet_address', walletAddress)
 
       if (error) throw error
     },

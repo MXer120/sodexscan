@@ -1,0 +1,551 @@
+.scanner-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    grid-template-rows: auto 475px 1fr;
+    /* Increased chart height */
+    gap: 12px;
+    grid-template-areas:
+        "path path path"
+        "sidebar top-center activity"
+        "sidebar bottom-center activity";
+    width: 100%;
+    height: calc(100vh - 44px - 32px);
+    /* Navbar (44px) + StatusBar (32px) */
+    padding: 12px 20px;
+    padding-top: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Generic Section Styling */
+.section-path,
+.section-sidebar,
+.section-top-center,
+.section-bottom-center,
+.section-activity {
+    background: rgba(20, 20, 20, 0.4);
+    backdrop-filter: blur(12px);
+    border: none;
+    border-radius: 8px;
+    /* Reduced from 12px */
+    padding: 20px 24px;
+    /* Increased horizontal padding */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 1. Path Bar */
+.section-path {
+    grid-area: path;
+    padding: 0 20px !important;
+    /* Increased horizontal padding */
+    min-height: 48px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.path-breadcrumbs {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    /* Don't block search clicks */
+}
+
+.path-breadcrumbs b {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.path-search-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 60%;
+    max-width: 400px;
+}
+
+/* 2. Left Sidebar */
+.section-sidebar {
+    grid-area: sidebar;
+    gap: 12px;
+    height: 100%;
+    /* Extend whole height */
+    overflow-y: auto;
+}
+
+/* 3. Top Center - Chart */
+.section-top-center {
+    grid-area: top-center;
+    padding: 0 !important;
+    min-height: 0;
+    /* Important for flex/grid sizing */
+}
+
+.section-bottom-center {
+    grid-area: bottom-center;
+    overflow: hidden;
+    padding: 8px 0 16px 0 !important;
+    /* Reduced top padding */
+}
+
+/* Tab scrollable area */
+.section-bottom-center .tab-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    /* Removed padding for full-width content */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tab navigation row */
+.tab-nav-row {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tab-buttons {
+    width: 500px;
+    flex-shrink: 0;
+}
+
+/* 5. Right Sidebar - Activity */
+.section-activity {
+    grid-area: activity;
+    overflow-y: auto;
+    /* Scrollable activity */
+}
+
+/* Metrics in Sidebar */
+.metric-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Timeline Customization */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 24px;
+}
+
+/* Sidebar and Activity Headings */
+.section-sidebar h3,
+.section-activity h3,
+.section-bottom-center h3 {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    margin-top: 0;
+}
+
+/* Timeline in Activity Sidebar */
+.timeline-date {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 4px;
+}
+
+.timeline-content {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.timeline-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+}
+
+/* Loading Animation Styles */
+.loading-progress-container {
+    width: 100%;
+    max-width: 300px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    margin-top: 24px;
+    overflow: hidden;
+    position: relative;
+}
+
+.loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #FF7648, #D23714);
+    box-shadow: 0 0 10px rgba(255, 118, 72, 0.4);
+    border-radius: 2px;
+    transition: width 0.5s ease-out;
+}
+
+.loading-step-text {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    margin-top: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    height: 20px;
+}
+
+/* Table scroll wrapper for horizontal scrolling */
+.table-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Table refinements */
+.section-bottom-center table {
+    font-size: 11px;
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px;
+}
+
+.section-bottom-center th {
+    font-size: 10px !important;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4) !important;
+    padding: 8px 12px !important;
+    /* Reduced padding */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: color 0.2s ease;
+}
+
+.section-bottom-center th.active {
+    color: #FF7648 !important;
+}
+
+/* Sort Arrows */
+.sort-arrows {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-left: 6px;
+    line-height: 1;
+}
+
+.sort-arrow {
+    font-size: 7px;
+    color: rgba(255, 118, 72, 0.3);
+    /* Inactive darker orange */
+    transition: color 0.2s ease;
+}
+
+.sort-arrow.active {
+    color: #FF7648;
+    /* Active orange */
+}
+
+.section-bottom-center td {
+    padding: 8px 12px !important;
+    /* Reduced padding for smaller rows */
+    font-size: 11px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Responsive - Tablet landscape / small desktop */
+@media (max-width: 1200px) {
+    .scanner-grid {
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: auto auto 1fr auto;
+        grid-template-areas:
+            "path path"
+            "sidebar top-center"
+            "sidebar bottom-center"
+            "activity activity";
+        overflow-y: auto;
+        height: auto;
+    }
+
+    .section-activity {
+        max-height: 400px;
+    }
+}
+
+/* Tablet portrait */
+@media (max-width: 900px) {
+    .scanner-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto;
+        grid-template-areas:
+            "path"
+            "sidebar"
+            "top-center"
+            "bottom-center"
+            "activity";
+        padding: 12px 16px;
+        padding-top: 16px;
+        height: auto;
+        min-height: calc(100vh - 44px - 32px);
+        overflow-y: auto;
+    }
+
+    .section-sidebar {
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .section-top-center {
+        min-height: 350px;
+    }
+
+    .section-bottom-center {
+        min-height: 300px;
+        max-height: 500px;
+        overflow: hidden;
+    }
+
+    .section-activity {
+        max-height: 350px;
+    }
+
+    .path-breadcrumbs {
+        display: none;
+    }
+
+    .path-search-wrapper {
+        width: 100%;
+        max-width: none;
+    }
+
+    .tab-buttons {
+        width: 100%;
+    }
+
+    .tab-nav-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    .balance-view-switch {
+        align-self: flex-start;
+    }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .scanner-grid {
+        padding: 8px 12px;
+        padding-top: 20px;
+        gap: 8px;
+        overflow-y: auto;
+    }
+
+    .section-path,
+    .section-sidebar,
+    .section-top-center,
+    .section-bottom-center,
+    .section-activity {
+        padding: 12px 14px;
+        border-radius: 6px;
+    }
+
+    .section-path {
+        min-height: 40px;
+        padding: 0 12px !important;
+    }
+
+    .section-top-center {
+        min-height: 280px;
+        padding: 0 !important;
+    }
+
+    .section-bottom-center {
+        padding: 6px 0 12px 0 !important;
+        min-height: 250px;
+        max-height: 400px;
+    }
+
+    .section-activity {
+        max-height: 300px;
+    }
+
+    .metric-card {
+        padding: 10px 12px;
+    }
+
+    .metric-label {
+        font-size: 9px;
+    }
+
+    .metric-value {
+        font-size: 14px;
+    }
+
+    .section-sidebar h3,
+    .section-activity h3,
+    .section-bottom-center h3 {
+        font-size: 13px;
+    }
+
+    .section-bottom-center th {
+        font-size: 9px !important;
+        padding: 6px 8px !important;
+    }
+
+    .section-bottom-center td {
+        padding: 6px 8px !important;
+        font-size: 10px;
+    }
+
+    .timeline-item {
+        padding-left: 20px;
+        margin-bottom: 16px;
+    }
+
+    .timeline-content {
+        font-size: 10px;
+    }
+
+    .timeline-desc {
+        font-size: 10px;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 400px) {
+    .scanner-grid {
+        padding: 6px 8px;
+        padding-top: 20px;
+        gap: 6px;
+        overflow-y: auto;
+    }
+
+    .section-path,
+    .section-sidebar,
+    .section-top-center,
+    .section-bottom-center,
+    .section-activity {
+        padding: 10px 10px;
+    }
+
+    .section-top-center {
+        min-height: 220px;
+    }
+
+    .metric-card {
+        padding: 8px 10px;
+    }
+
+    .metric-value {
+        font-size: 13px;
+    }
+}
+
+/* Ultrawide (1920px+) */
+@media (min-width: 1920px) {
+    .scanner-grid {
+        grid-template-columns: 340px 1fr 340px;
+        gap: 16px;
+        padding: 16px 24px;
+    }
+
+    .section-path,
+    .section-sidebar,
+    .section-top-center,
+    .section-bottom-center,
+    .section-activity {
+        padding: 24px 28px;
+    }
+
+    .section-path {
+        padding: 0 24px !important;
+    }
+
+    .metric-card {
+        padding: 14px 18px;
+    }
+
+    .metric-value {
+        font-size: 18px;
+    }
+}
+
+/* Super ultrawide (2560px+) */
+@media (min-width: 2560px) {
+    .scanner-grid {
+        grid-template-columns: 380px 1fr 380px;
+        gap: 20px;
+        padding: 20px 32px;
+    }
+}
+
+.menu-item-hover:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Scanner dashboard wrapper responsive */
+.scanner-dashboard {
+    height: 100vh;
+    overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+    .scanner-dashboard {
+        height: auto;
+        overflow-y: auto;
+    }
+}

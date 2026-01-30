@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 16px 48px;
+  padding: 8px 32px;
   background: #0A0A0A;
   overflow: visible;
 }
@@ -28,7 +28,7 @@
 }
 
 .logo-icon {
-  height: 32px;
+  height: 24px;
   width: auto;
 }
 
@@ -36,16 +36,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 32px;
+  gap: 24px;
   grid-column: 2;
 }
 
 .nav-link {
   color: #fff;
   text-decoration: none;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   transition: all 0.3s ease;
   background: none;
   border: none;
@@ -67,9 +67,9 @@
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #fff;
-  padding: 10px 24px;
-  border-radius: 24px;
-  font-size: 14px;
+  padding: 6px 16px;
+  border-radius: 18px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;

@@ -47,7 +47,6 @@ export default function SearchAndAddBox({
         setError(null)
         const trimmed = internalValue.trim()
         if (!trimmed) {
-            setError('Input required')
             return
         }
 

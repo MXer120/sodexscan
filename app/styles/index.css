@@ -3,11 +3,11 @@
   --color-primary: #FF7648;
   --color-primary-light: #FF7648;
   --color-primary-dark: #D23714;
-  
+
   /* Spot tag colors */
   --color-spot: #DA6631;
   --color-spot-bg: rgba(218, 102, 49, 0.25);
-  
+
   /* Volume color */
   --color-volume: #FF7A45;
 }
@@ -24,7 +24,6 @@ body {
   background-attachment: fixed;
   color: #ffffff;
   min-height: 100vh;
-  padding-bottom: 32px;
 }
 
 #root {

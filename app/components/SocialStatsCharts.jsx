@@ -9,6 +9,8 @@ import {
 import { TimeSelector } from './ui/TimeSelector'
 import { supabase } from '../lib/supabaseClient'
 import { globalCache } from '../lib/globalCache'
+import '../styles/MainnetPage.css'
+import '../styles/SocialPage.css'
 
 const TIMEFRAMES = ['24H', '7D', '30D', '3M', '1Y', 'All']
 const TIMEFRAME_DAYS = {

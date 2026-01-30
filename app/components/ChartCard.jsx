@@ -18,13 +18,13 @@ const COLORS = [
   '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
 ]
 
-const TIMEFRAMES = ['7D', '30D', '90D', '1Y', 'All-time']
+const TIMEFRAMES = ['1W', '1M', '3M', '1Y', 'ALL']
 const TIMEFRAME_DAYS = {
-  '7D': 7,
-  '30D': 30,
-  '90D': 90,
+  '1W': 7,
+  '1M': 30,
+  '3M': 90,
   '1Y': 365,
-  'All-time': null
+  'ALL': null
 }
 
 export default function ChartCard({
@@ -39,10 +39,11 @@ export default function ChartCard({
   disableTimeframes = false,
   customColors = null,
   yAxisDomain = null,
-  onTimeframeChange = null
+  onTimeframeChange = null,
+  fullHeight = false
 }) {
   const [selectedSeries, setSelectedSeries] = useState([])
-  const [timeframe, setTimeframe] = useState('All-time')
+  const [timeframe, setTimeframe] = useState('ALL')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [hoveredSeries, setHoveredSeries] = useState(null)
   const [legendExpanded, setLegendExpanded] = useState(false)
@@ -109,10 +110,17 @@ export default function ChartCard({
   const deselectAll = () => setSelectedSeries([])
 
   const formatValue = (value) => {
-    if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)}B`
-    if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}K`
-    return value?.toFixed(2)
+    if (value === undefined || value === null) return '0'
+    const abs = Math.abs(value)
+    const sign = value < 0 ? '-' : ''
+
+    let formatted
+    if (abs >= 1000000000) formatted = `${(abs / 1000000000).toFixed(2)}B`
+    else if (abs >= 1000000) formatted = `${(abs / 1000000).toFixed(2)}M`
+    else if (abs >= 1000) formatted = `${(abs / 1000).toFixed(2)}K`
+    else formatted = abs.toFixed(2)
+
+    return `${sign}${formatted}`
   }
 
   const formatDate = (date) => {
@@ -143,30 +151,34 @@ export default function ChartCard({
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || payload.length === 0) return null
 
-    const total = payload
-      .filter(p => !p.dataKey.includes('cumulative'))
-      .reduce((sum, p) => sum + (p.value || 0), 0)
+    // Separate cumulative from regular series
+    const regularItems = payload.filter(p => !p.dataKey.toString().includes('cumulative'))
+    const cumulativeItem = payload.find(p => p.dataKey.toString().includes('cumulative'))
 
     return (
       <div style={{
-        background: 'rgba(26, 26, 26, 0.95)',
-        border: '1px solid #333',
+        background: 'rgba(15, 15, 15, 0.96)',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '8px',
-        padding: '16px',
-        minWidth: '180px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+        padding: '12px 16px',
+        minWidth: '160px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(10px)'
       }}>
         <p style={{
-          color: '#fff',
-          marginBottom: '12px',
-          fontSize: '14px',
-          fontWeight: '600',
-          borderBottom: '1px solid #333',
-          paddingBottom: '8px'
+          color: 'rgba(255,255,255,0.5)',
+          marginBottom: '10px',
+          fontSize: '11px',
+          fontWeight: '500',
+          letterSpacing: '0.4px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          paddingBottom: '8px',
+          textTransform: 'uppercase'
         }}>
           {formatFullDate(label)}
         </p>
-        {payload.map((entry, i) => (
+
+        {regularItems.map((entry, i) => (
           <div key={i} style={{
             display: 'flex',
             alignItems: 'center',
@@ -176,29 +188,42 @@ export default function ChartCard({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '2px',
-                background: entry.color
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: entry.dataKey === 'daily'
+                  ? (entry.value >= 0 ? '#33AF80' : '#DB324D')
+                  : entry.color
               }} />
-              <span style={{ color: '#999' }}>{entry.name}:</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{entry.name}:</span>
             </div>
-            <span style={{ color: entry.color, fontWeight: '500' }}>
-              ${formatValue(entry.value)}
+            <span style={{
+              color: entry.dataKey === 'daily'
+                ? (entry.value >= 0 ? '#33AF80' : '#DB324D')
+                : entry.color,
+              fontWeight: '700'
+            }}>
+              {entry.value >= 0 ? '+' : ''}${formatValue(entry.value)}
             </span>
           </div>
         ))}
-        {payload.length > 1 && !payload.every(p => p.dataKey.includes('cumulative')) && (
+
+        {cumulativeItem && (
           <div style={{
-            borderTop: '1px solid #333',
-            marginTop: '8px',
-            paddingTop: '8px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            marginTop: '10px',
+            paddingTop: '10px',
             display: 'flex',
             justifyContent: 'space-between',
-            fontSize: '12px'
+            fontSize: '13px'
           }}>
-            <span style={{ color: '#999' }}>Total:</span>
-            <span style={{ color: '#fff', fontWeight: '600' }}>${formatValue(total)}</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>Total:</span>
+            <span style={{
+              color: (cumulativeItem.value >= 0 ? '#33AF80' : '#DB324D'),
+              fontWeight: '800'
+            }}>
+              {cumulativeItem.value >= 0 ? '+' : ''}${formatValue(cumulativeItem.value)}
+            </span>
           </div>
         )}
       </div>
@@ -206,13 +231,27 @@ export default function ChartCard({
   }
 
   // Get visible legend items (selected series only, max ~6 before truncation)
-  const visibleSeries = sortedSeries.filter(s => selectedSeries.includes(s.key))
+  const visibleSeries = sortedSeries.filter(s => selectedSeries.includes(s.key) && !s.hideLegend)
   const maxLegendItems = 6
   const showLegendExpander = visibleSeries.length > maxLegendItems
   const displayedLegendItems = legendExpanded ? visibleSeries : visibleSeries.slice(0, maxLegendItems)
 
+  // Calculate Gradient Offsets for Cumulative Line (Green above 0, Red below)
+  const getGradientOffsets = (dataKey) => {
+    if (!displayData || displayData.length === 0) return { top: '0%', bottom: '100%' }
+    const values = displayData.map(d => parseFloat(d[dataKey] || 0))
+    const max = Math.max(...values, 0.0001)
+    const min = Math.min(...values, -0.0001)
+
+    // Offset is calculated from the top (0% is max, 100% is min)
+    const zeroPos = (max / (max - min)) * 100
+    return zeroPos
+  }
+
+  const zeroOffset = getGradientOffsets('cumulative')
+
   return (
-    <div className="chart-card">
+    <div className="chart-card" style={fullHeight ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}}>
       <div className="chart-header">
         <h3 className="chart-title">{title}</h3>
         <div className="chart-controls">
@@ -311,14 +350,14 @@ export default function ChartCard({
                   >
                     <input
                       type="checkbox"
-                      id={`${title}-${s.key}`}
                       checked={selectedSeries.includes(s.key)}
-                      onChange={() => {}}
+                      readOnly
                       style={{
                         width: '14px',
                         height: '14px',
                         marginRight: '10px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        pointerEvents: 'none'
                       }}
                     />
                     <span
@@ -328,17 +367,18 @@ export default function ChartCard({
                         borderRadius: '2px',
                         background: getSeriesColor(s, i),
                         marginRight: '8px',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        pointerEvents: 'none'
                       }}
                     />
                     <label
-                      htmlFor={`${title}-${s.key}`}
                       style={{
                         color: 'rgba(255, 255, 255, 0.9)',
                         fontSize: '12px',
                         cursor: 'pointer',
                         userSelect: 'none',
-                        flex: 1
+                        flex: 1,
+                        pointerEvents: 'none'
                       }}
                     >
                       {s.label}
@@ -362,34 +402,55 @@ export default function ChartCard({
         </div>
       </div>
 
-      <div className="chart-container">
+      <div className="chart-container" style={{ position: 'relative', flex: fullHeight ? 1 : undefined, height: fullHeight ? 'auto' : undefined }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={displayData}
             onMouseLeave={() => setHoveredSeries(null)}
-            barCategoryGap="20%"
+            barCategoryGap="24%"
+            margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+            <defs>
+              <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                <stop offset={`${zeroOffset}%`} stopColor="#33AF80" stopOpacity={1} />
+                <stop offset={`${zeroOffset}%`} stopColor="#DB324D" stopOpacity={1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="1 10"
+              stroke="rgba(255,255,255,0.07)"
+              horizontal={true}
+              vertical={true}
+            />
             <XAxis
               dataKey={dateKey}
               tickFormatter={formatDate}
-              stroke="#666"
-              tick={{ fontSize: 11 }}
+              stroke="rgba(255,255,255,0.4)"
+              tick={{ fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              dy={10}
             />
             <YAxis
               yAxisId="left"
               tickFormatter={formatValue}
-              stroke="#666"
-              tick={{ fontSize: 11 }}
+              stroke="rgba(255,255,255,0.4)"
+              tick={{ fontSize: 10 }}
               domain={yAxisDomain || ['auto', 'auto']}
+              axisLine={false}
+              tickLine={false}
+              dx={-5}
             />
             {showCumulative && (
               <YAxis
                 yAxisId="right"
                 orientation="right"
                 tickFormatter={formatValue}
-                stroke="#666"
-                tick={{ fontSize: 11 }}
+                stroke="rgba(255,255,255,0.4)"
+                tick={{ fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                dx={5}
               />
             )}
             <Tooltip content={<CustomTooltip />} />
@@ -443,18 +504,18 @@ export default function ChartCard({
                   dataKey={s.key}
                   name={s.label}
                   fill={color}
-                  fillOpacity={opacity}
+                  fillOpacity={0.4 * opacity}
                   yAxisId="left"
                   stackId={stacked ? 'stack' : undefined}
                   onMouseEnter={() => setHoveredSeries(s.key)}
                   onMouseLeave={() => setHoveredSeries(null)}
-                  barSize={60}
+                  barSize={40}
                 >
                   {s.key === 'daily' && Array.isArray(displayData) && displayData.map((entry, idx) => (
                     <Cell
                       key={idx}
-                      fill={(entry[s.key] ?? 0) >= 0 ? '#4ade80' : '#f44336'}
-                      fillOpacity={opacity}
+                      fill={(entry[s.key] ?? 0) >= 0 ? '#33AF80' : '#DB324D'}
+                      fillOpacity={0.25 * opacity}
                     />
                   ))}
                 </Bar>
@@ -463,9 +524,7 @@ export default function ChartCard({
 
             {/* Render cumulative lines last (on top) */}
             {sortedSeries.filter(s => s.cumulative).map((s, i) => {
-              const originalIndex = sortedSeries.findIndex(ss => ss.key === s.key)
               if (!selectedSeries.includes(s.key)) return null
-              const color = getSeriesColor(s, originalIndex)
               const opacity = getOpacity(s.key)
 
               return (
@@ -474,13 +533,14 @@ export default function ChartCard({
                   type="monotone"
                   dataKey={s.key}
                   name={s.label}
-                  stroke={color}
-                  strokeWidth={2}
+                  stroke="url(#splitColor)"
+                  strokeWidth={3}
                   dot={false}
                   yAxisId="right"
                   strokeOpacity={opacity}
                   onMouseEnter={() => setHoveredSeries(s.key)}
                   onMouseLeave={() => setHoveredSeries(null)}
+                  animationDuration={1000}
                 />
               )
             })}
@@ -498,11 +558,20 @@ export default function ChartCard({
               className={`legend-item ${hoveredSeries === s.key ? 'hovered' : ''}`}
               onMouseEnter={() => setHoveredSeries(s.key)}
               onMouseLeave={() => setHoveredSeries(null)}
-              style={{ opacity: hoveredSeries && hoveredSeries !== s.key ? 0.4 : 1 }}
+              style={{
+                opacity: hoveredSeries && hoveredSeries !== s.key ? 0.4 : 1,
+                fontSize: '10px'
+              }}
             >
               <span
                 className="legend-color"
-                style={{ background: getSeriesColor(s, originalIndex) }}
+                style={{
+                  background: s.cumulative
+                    ? (displayData.length > 0 && displayData[displayData.length - 1][s.key] >= 0 ? '#33AF80' : '#DB324D')
+                    : getSeriesColor(s, originalIndex),
+                  width: '6px',
+                  height: '6px'
+                }}
               />
               {s.label}
             </div>

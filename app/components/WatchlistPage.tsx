@@ -208,13 +208,16 @@ export default function WatchlistPage() {
         <h1 className="watchlist-title">Your Watchlist</h1>
 
         <SearchAndAddBox
-          onAction={addToWatchlist}
+          onAction={async (data) => {
+            await addToWatchlist(data)
+            setSearchTerm('')
+          }}
           isActionLoading={isAdding}
           onSearchChange={setSearchTerm}
           searchValue={searchTerm}
           filterType={filterType}
           onFilterChange={setFilterType}
-          actionLabel="Add"
+          actionLabel="Add to Watchlist"
         />
 
         {watchlist.length > 0 && (

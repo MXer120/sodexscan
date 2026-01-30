@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { globalCache } from '../lib/globalCache'
 import '../styles/SocialPage.css'
+import '../styles/MainnetPage.css'
 
 const PAGE_SIZE = 20
 

@@ -15,13 +15,25 @@ function TrackerPage() {
   const [filterType, setFilterType] = useState('all')
   const [walletAddress, setWalletAddress] = useState(null)
   const [searchedTagName, setSearchedTagName] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [showResults, setShowResults] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [showTagInput, setShowTagInput] = useState(false)
   const recordSearch = useRecordSearch()
   const { user } = useSessionContext()
   const addTag = useAddTag()
   const { data: tags } = useWalletTags()
+
+  useEffect(() => {
+    const handleResize = () => {
+      document.body.style.overflow = window.innerWidth <= 1200 ? 'auto' : 'hidden'
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      document.body.style.overflow = 'auto'
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   const existingTag = tags?.find(t => t.wallet_address === walletAddress)
 
@@ -51,22 +63,15 @@ function TrackerPage() {
       setSearchInput(walletParam)
       setWalletAddress(walletParam)
       setSearchedTagName(null)
+      setShowResults(true) // Immediately show results if params are present
     }
   }, [searchParams, tags])
 
 
   const handleSearchResult = ({ wallet_address }) => {
-    // Show button loading state briefly
-    setLoading(true)
-    setWalletAddress(null)
     setSearchedTagName(null)
 
-    // Clear button loading after brief delay
-    setTimeout(() => {
-      setLoading(false)
-    }, 300)
-
-    // Check if this address has a known tag to display
+    // Check if this address has a known tag
     if (tags) {
       const matchedTag = tags.find(t =>
         t.wallet_address.toLowerCase() === wallet_address.toLowerCase()
@@ -77,165 +82,144 @@ function TrackerPage() {
     }
 
     setWalletAddress(wallet_address)
+    setShowResults(true)
     recordSearch(wallet_address)
   }
 
   return (
-    <div className="dashboard">
-      <h1 className="dashboard-title">Wallet Scan</h1>
-
+    <div className="dashboard scanner-dashboard" style={{
+      padding: '0',
+      paddingTop: '44px',
+      minHeight: '100vh',
+      maxWidth: '100%',
+      margin: '0',
+      boxSizing: 'border-box'
+    }}>
       <section className="wallet-finder">
-        <div className="search-box-wrapper" style={{ marginBottom: '20px' }}>
-          <SearchAndAddBox
-            onAction={handleSearchResult}
-            isActionLoading={loading}
-            onSearchChange={setSearchInput}
-            searchValue={searchInput}
-            actionLabel={loading ? 'Searching...' : 'Search'}
-            filterType={filterType}
-            onFilterChange={setFilterType}
-          />
-        </div>
-
-        {loading && <div className="loading">Loading...</div>}
-
         {/* Mainnet Preview - Show when no search yet */}
-        {!walletAddress && !loading && (
-          <div style={{
-            padding: '60px 40px',
-            textAlign: 'center',
-            background: 'rgba(255, 118, 72, 0.05)',
-            borderRadius: '12px',
-            border: '1px dashed rgba(255, 118, 72, 0.3)',
-            marginTop: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px' }}>SoDex Mainnet Scan</h3>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', maxWidth: '500px', margin: '0 auto' }}>
-              Search for a wallet address above to view mainnet trading activity, positions, and performance metrics.
-            </p>
+        {!showResults && (
+          <div className="scanner-grid">
+            <div className="section-path">
+              <div className="path-breadcrumbs">
+                <span>Home</span>
+                <span>/</span>
+                <span>Scanner</span>
+                <span>/</span>
+                <b>Dashboard</b>
+              </div>
+              <div className="path-search-wrapper">
+                <SearchAndAddBox
+                  onAction={handleSearchResult}
+                  onSearchChange={setSearchInput}
+                  searchValue={searchInput}
+                  actionLabel="Search"
+                  filterType={filterType}
+                  onFilterChange={setFilterType}
+                />
+              </div>
+            </div>
+
+            <aside className="section-sidebar" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}></aside>
+
+            <div className="section-top-center" style={{
+              background: 'rgba(255, 118, 72, 0.05)',
+              borderRadius: '8px',
+              border: '1px dashed rgba(255, 118, 72, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '40px'
+            }}>
+              <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>SoDex Mainnet Scan</h3>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
+                Enter a wallet address or ENS name above to begin a deep-dive analysis of mainnet trading performance, current positions, and historical activity.
+              </p>
+            </div>
+
+            <aside className="section-activity" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}></aside>
+
+            <div className="section-bottom-center" style={{
+              background: 'rgba(20,20,20,0.4)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}>
+            </div>
           </div>
         )}
 
-        {/* Show MainnetTracker when wallet searched */}
-        {walletAddress && (
-          <div className="wallet-details">
-            {/* Tag section for logged-in users */}
-            {user && (
+        {/* Show MainnetTracker when search is triggered */}
+        {showResults && walletAddress && (
+          <MainnetTracker
+            walletAddress={walletAddress}
+            searchBox={
+              <SearchAndAddBox
+                onAction={handleSearchResult}
+                onSearchChange={setSearchInput}
+                searchValue={searchInput}
+                actionLabel="Search"
+                filterType={filterType}
+                onFilterChange={setFilterType}
+              />
+            }
+            tagSection={user && (
               <div className="tag-section" style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                marginBottom: '16px',
-                padding: '12px 16px',
-                background: 'rgba(20, 20, 20, 0.4)',
+                gap: '8px',
+                marginBottom: '8px',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.03)',
                 borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                flexWrap: 'wrap'
+                border: '1px solid rgba(255,255,255,0.05)',
+                width: '100%'
               }}>
                 {searchedTagName && (
                   <span style={{
                     color: '#3cc8f0',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
+                    fontSize: '12px',
                     background: 'rgba(60, 200, 240, 0.1)',
-                    padding: '4px 10px',
+                    padding: '4px 8px',
                     borderRadius: '4px',
                     border: '1px solid rgba(60, 200, 240, 0.2)'
                   }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                      <line x1="7" y1="7" x2="7.01" y2="7" />
-                    </svg>
                     {searchedTagName}
                   </span>
                 )}
                 {existingTag ? (
-                  <span style={{ color: '#4ade80', fontSize: '14px' }}>
-                    Tagged as: <strong>{existingTag.tag_name}</strong>
+                  <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: '500' }}>
+                    {existingTag.tag_name}
                   </span>
                 ) : showTagInput ? (
-                  <>
+                  <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
                     <input
                       type="text"
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-                      placeholder="Enter tag name..."
+                      placeholder="Add tag..."
                       style={{
-                        background: 'rgba(30, 30, 30, 0.6)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
+                        background: 'rgba(30,30,30,0.8)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
                         color: '#fff',
-                        fontSize: '13px',
-                        width: '160px'
+                        fontSize: '11px',
+                        flex: 1
                       }}
                       autoFocus
                     />
-                    <button
-                      onClick={handleAddTag}
-                      disabled={addTag.isPending || !tagInput.trim()}
-                      style={{
-                        background: 'rgba(74, 222, 128, 0.15)',
-                        border: '1px solid rgba(74, 222, 128, 0.3)',
-                        color: '#4ade80',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        cursor: addTag.isPending ? 'not-allowed' : 'pointer',
-                        fontSize: '13px',
-                        opacity: addTag.isPending ? 0.6 : 1
-                      }}
-                    >
-                      {addTag.isPending ? 'Saving...' : 'Save'}
-                    </button>
-                    <button
-                      onClick={() => { setShowTagInput(false); setTagInput('') }}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        color: '#888',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '13px'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </>
+                    <button onClick={handleAddTag} style={{ background: '#4ade8022', border: '1px solid #4ade8044', color: '#4ade80', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>Save</button>
+                  </div>
                 ) : (
-                  <button
-                    onClick={() => setShowTagInput(true)}
-                    style={{
-                      background: 'rgba(60, 200, 240, 0.1)',
-                      border: '1px solid rgba(60, 200, 240, 0.2)',
-                      color: '#3cc8f0',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                      <line x1="7" y1="7" x2="7.01" y2="7" />
-                    </svg>
-                    Add Tag
+                  <button onClick={() => setShowTagInput(true)} style={{ background: 'transparent', border: '1px dashed rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', width: '100%' }}>
+                    + Add Tag
                   </button>
                 )}
               </div>
             )}
-            <MainnetTracker walletAddress={walletAddress} />
-          </div>
+          />
         )}
       </section>
     </div>
