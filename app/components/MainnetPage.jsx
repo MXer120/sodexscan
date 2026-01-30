@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { globalCache } from '../lib/globalCache'
 import '../styles/MainnetPage.css'
 
+// Set document title
+if (typeof document !== 'undefined') {
+  document.title = 'Mainnet | CommunityScan SoDEX'
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

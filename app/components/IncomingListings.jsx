@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react'
 import { TimeSelector } from './ui/TimeSelector'
 import { globalCache } from '../lib/globalCache'
 
+// Set document title
+if (typeof document !== 'undefined') {
+  document.title = 'Incoming Listings | CommunityScan SoDEX'
+}
+
 const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/object/public/coin-logos/'
 
 const LOGO_EXTENSIONS = {

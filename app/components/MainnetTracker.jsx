@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
+import Link from 'next/link'
 import ChartCard from './ChartCard'
 import { TimeSelector } from './ui/TimeSelector'
 import { getSodexIdFromWallet } from '../lib/accountResolver'
@@ -36,35 +37,44 @@ const getBaseCoin = (symbol) => {
 
   if (clean.toUpperCase() === 'WSOSO') return 'SOSO'
 
+  // Quote currencies that should NOT be returned as base coin (unless they're the only part)
+  const quoteCurrencies = ['USD', 'USDT', 'USDC', 'USDE', 'DAI', 'USDbC']
+
   // Known coins that we want to prioritize for logos and display
   const knownCoins = ['USDC', 'USDT', 'ETH', 'BTC', 'SOL', 'AVAX', 'BNB', 'WLD', 'HYPE', 'TRUMP', 'XLM', 'TON', 'SOSO', 'MAG7', 'DAI', 'USD', 'USDE', 'USDbC', 'XAUT', 'WBTC', 'WETH', 'WBNB', 'WUSDC', 'WUSDT']
 
-  const checkKnown = (s) => {
+  const checkKnown = (s, allowQuote = true) => {
     let uc = s.toUpperCase()
+    // Skip quote currencies unless explicitly allowed
+    if (!allowQuote && quoteCurrencies.includes(uc)) return null
     if (knownCoins.includes(uc)) return uc === 'USDbC' || uc === 'WUSDC' ? 'USDC' : (uc === 'WETH' ? 'ETH' : (uc === 'WBTC' ? 'BTC' : (uc === 'WBNB' ? 'BNB' : uc)))
     if (/^[VW][A-Z]/.test(uc)) {
       let stripped = uc.slice(1)
+      if (!allowQuote && quoteCurrencies.includes(stripped)) return null
       if (knownCoins.includes(stripped)) return stripped === 'USDbC' ? 'USDC' : stripped
     }
     return null
   }
 
-  // 1. Exact match priority for the whole string
-  let direct = checkKnown(clean)
+  // 1. Exact match priority for the whole string (allow quote currencies here - they're the only part)
+  let direct = checkKnown(clean, true)
   if (direct) return direct
 
-  // 2. Split by common separators and look for known coins
+  // 2. Split by common separators and look for known coins (skip quote currencies)
   const parts = clean.split(/[_./-]/)
+
+  // First pass: look for non-quote base coins
   for (const part of parts) {
-    let k = checkKnown(part)
+    let k = checkKnown(part, false)
     if (k) return k
   }
 
-  // 3. Look for partial matches within parts (handles things like vUSDCd)
+  // 3. Look for partial matches within parts (handles things like vUSDCd) - skip quote currencies
   for (const part of parts) {
     let uc = part.toUpperCase()
     for (const kc of knownCoins) {
-      if (uc.includes(kc)) return kc === 'USDbC' ? 'USDC' : kc
+      if (quoteCurrencies.includes(kc)) continue
+      if (uc.includes(kc)) return kc
     }
   }
 
@@ -75,10 +85,19 @@ const getBaseCoin = (symbol) => {
     if (candidate) return candidate
   }
 
-  // 5. Default fallback: strip v/w and return first part cleaned
+  // 5. Default fallback: strip v/w and return first part cleaned (unless it's a quote currency and there's more parts)
   let first = parts[0]
   if (/^[vw][A-Z]/.test(first)) first = first.slice(1)
-  return first.toUpperCase()
+  let firstUpper = first.toUpperCase()
+
+  // If first part is quote currency and there are more parts, try second part
+  if (quoteCurrencies.includes(firstUpper) && parts.length > 1) {
+    let second = parts[1]
+    if (/^[vw][A-Z]/.test(second)) second = second.slice(1)
+    return second.toUpperCase()
+  }
+
+  return firstUpper
 }
 
 const CoinLogo = ({ symbol, size = '18px' }) => {
@@ -889,9 +908,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       <div className="scanner-grid">
         <div className="section-path">
           <div className="path-breadcrumbs">
-            <span>Home</span>
+            <Link href="/">Home</Link>
             <span>/</span>
-            <span>Scanner</span>
+            <a href="/tracker">Scanner</a>
             <span>/</span>
             <b>Dashboard</b>
           </div>
@@ -978,9 +997,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       <div className="scanner-grid">
         <div className="section-path">
           <div className="path-breadcrumbs">
-            <span>Home</span>
+            <Link href="/">Home</Link>
             <span>/</span>
-            <span>Scanner</span>
+            <a href="/tracker">Scanner</a>
             <span>/</span>
             <b>Dashboard</b>
           </div>
@@ -989,10 +1008,100 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
         </div>
 
+        {/* Highly Accurate Sidebar Skeleton */}
         <aside className="section-sidebar" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
           {tagSection}
+          <div style={{ padding: '20px' }}>
+            {/* Section 1: Alias & Address info (Accurate positions) */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton" style={{ width: '100px', height: '18px', marginBottom: '6px' }}></div>
+                  <div className="skeleton" style={{ width: '140px', height: '14px', opacity: 0.6 }}></div>
+                </div>
+                <div className="skeleton" style={{ width: '70px', height: '22px', borderRadius: '4px' }}></div>
+              </div>
+
+              {/* Accurate Actions row */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <div className="skeleton" style={{ flex: 1, height: '28px', borderRadius: '6px' }}></div>
+                <div className="skeleton" style={{ flex: 1, height: '28px', borderRadius: '6px' }}></div>
+              </div>
+
+              {/* Account Value block */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="skeleton" style={{ width: '90px', height: '10px', opacity: 0.5 }}></div>
+                <div className="skeleton" style={{ width: '120px', height: '28px' }}></div>
+              </div>
+            </div>
+
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+
+            {/* Section 2: Account Equity */}
+            <div style={{ marginBottom: '0' }}>
+              <div className="skeleton" style={{ width: '100px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[1, 2, 3].map(i => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="skeleton" style={{ width: '45px', height: '11px', opacity: 0.5 }}></div>
+                    <div className="skeleton" style={{ width: '65px', height: '11px' }}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+
+            {/* Section 3: Futures */}
+            <div style={{ marginBottom: '0' }}>
+              <div className="skeleton" style={{ width: '70px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="skeleton" style={{ width: '85px', height: '11px', opacity: 0.5 }}></div>
+                    <div className="skeleton" style={{ width: '55px', height: '11px' }}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+
+            {/* Section 4: Performance */}
+            <div style={{ marginBottom: '0' }}>
+              <div className="skeleton" style={{ width: '120px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="skeleton" style={{ width: '60px', height: '11px', opacity: 0.5 }}></div>
+                  <div className="skeleton" style={{ width: '50px', height: '11px' }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="skeleton" style={{ width: '75px', height: '11px', opacity: 0.5 }}></div>
+                  <div className="skeleton" style={{ width: '40px', height: '11px' }}></div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+
+            {/* Section 5: Rankings */}
+            <div style={{ marginBottom: '0' }}>
+              <div className="skeleton" style={{ width: '70px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="skeleton" style={{ width: '40px', height: '11px', opacity: 0.5 }}></div>
+                  <div className="skeleton" style={{ width: '30px', height: '11px' }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="skeleton" style={{ width: '50px', height: '11px', opacity: 0.5 }}></div>
+                  <div className="skeleton" style={{ width: '35px', height: '11px' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </aside>
 
+        {/* Central Area: Chart Loading View */}
         <div className="section-top-center" style={{
           background: 'rgba(255, 118, 72, 0.05)',
           borderRadius: '8px',
@@ -1004,20 +1113,81 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           textAlign: 'center',
           padding: '40px'
         }}>
-          <h3 style={{ color: '#fff', marginBottom: '8px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
+          <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
           <div className="loading-progress-container">
             <div className="loading-progress-bar" style={{ width: `${loadingProgress}%` }}></div>
           </div>
-          <p className="loading-step-text">{loadingStep}</p>
+          <p className="loading-step-text" style={{ height: '20px' }}>{loadingStep}</p>
         </div>
 
-        <aside className="section-activity" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}></aside>
+        {/* Improved Accurate Activity Skeleton */}
+        <aside className="section-activity" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', padding: '20px' }}>
+          <div className="skeleton" style={{ width: '130px', height: '18px', marginBottom: '24px' }}></div>
+          <div className="timeline" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
+                    <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+                  </div>
+                  <div className="skeleton" style={{ width: '40px', height: '10px', opacity: 0.3 }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '28px' }}>
+                  <div className="skeleton" style={{ width: '60px', height: '10px', opacity: 0.4 }}></div>
+                  <div className="skeleton" style={{ width: '45px', height: '10px', opacity: 0.5 }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
 
+        {/* Improved Accurate Bottom Table Skeleton */}
         <div className="section-bottom-center" style={{
           background: 'rgba(20,20,20,0.4)',
           borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.08)'
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '0'
         }}>
+          {/* Tab Nav Skeleton */}
+          <div style={{ padding: '16px 16px 0 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '0' }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="skeleton" style={{ height: '32px', width: '70px', borderRadius: '4px 4px 0 0' }}></div>
+              ))}
+            </div>
+          </div>
+
+          {/* Table Header Skeleton */}
+          <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="skeleton" style={{ width: '120px', height: '14px' }}></div>
+              <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
+              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
+              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
+              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
+              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
+              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
+            </div>
+          </div>
+
+          {/* Table Body Skeleton */}
+          <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
+                  <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+                </div>
+                <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
+                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
+                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
+                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
+                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
+                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -1104,9 +1274,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       {/* 1. Path Bar */}
       <div className="section-path">
         <div className="path-breadcrumbs">
-          <span>Home</span>
+          <Link href="/">Home</Link>
           <span>/</span>
-          <span>Scanner</span>
+          <a href="/tracker">Scanner</a>
           <span>/</span>
           <b title={walletAddress}>
             {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Dashboard'}
@@ -1617,7 +1787,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           {activeTab === 'Positions' && (
             <div>
               {positions.length === 0 ? (
-                <p style={{ color: 'rgba(255,255,255,0.5)' }}>No open positions</p>
+                <div className="empty-state-container">
+                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No open positions</p>
+                </div>
               ) : (
                 <>
                   <div className="table-scroll-wrapper">
@@ -1804,7 +1976,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '40px' }}>No futures balances found</p>
+                  <div className="empty-state-container">
+                    <p style={{ color: 'rgba(255,255,255,0.5)' }}>No futures balances found</p>
+                  </div>
                 )
               )}
 
@@ -1878,14 +2052,16 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '40px' }}>No spot balances found</p>
+                  <div className="empty-state-container">
+                    <p style={{ color: 'rgba(255,255,255,0.5)' }}>No spot balances found</p>
+                  </div>
                 )
               )}
             </div>
           )}
 
           {activeTab === 'Orders' && (
-            <div style={{ padding: '40px', textAlign: 'center' }}>
+            <div className="empty-state-container">
               <p style={{ color: 'rgba(255,255,255,0.5)' }}>No active orders found.</p>
             </div>
           )}
@@ -1893,7 +2069,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           {activeTab === 'Trades' && (
             <div>
               {positionHistory.length === 0 ? (
-                <p style={{ color: 'rgba(255,255,255,0.5)' }}>No position history found</p>
+                <div className="empty-state-container">
+                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No position history found</p>
+                </div>
               ) : (
                 <div className="table-scroll-wrapper">
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -2020,8 +2198,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
           {activeTab === 'Transfers' && (
             <div>
-              {withdrawals.length === 0 ? (
-                <p style={{ color: 'rgba(255,255,255,0.5)' }}>No withdrawals found</p>
+              {withdrawals.length === 0 && fundTransfers.length === 0 ? (
+                <div className="empty-state-container">
+                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No withdrawals or transfers found</p>
+                </div>
               ) : (
                 <>
                   <div className="table-scroll-wrapper">
@@ -2149,7 +2329,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           {activeTab === 'Performance' && (
             <div>
               {positionHistory.length === 0 ? (
-                <p style={{ color: 'rgba(255,255,255,0.5)' }}>No trade history available</p>
+                <div className="empty-state-container">
+                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No trade history available</p>
+                </div>
               ) : (
                 <div className="table-scroll-wrapper">
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>

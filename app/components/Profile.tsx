@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUserProfile, useUpdateOwnWallet, useUpdateShowZeroData } from '../hooks/useProfile'
 import {
@@ -14,6 +14,9 @@ import { supabase } from '../lib/supabaseClient'
 import '../styles/Profile.css'
 
 export default function Profile() {
+  useEffect(() => {
+    document.title = 'Profile | CommunityScan SoDEX'
+  }, [])
   const { data: profileData, isLoading, error } = useUserProfile()
   const { data: walletTags } = useWalletTags()
   const { data: groups } = useWalletGroups()

@@ -63,8 +63,17 @@
     font-size: 11px;
     font-weight: 500;
     white-space: nowrap;
-    pointer-events: none;
-    /* Don't block search clicks */
+}
+
+.path-breadcrumbs a,
+.path-breadcrumbs span {
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.path-breadcrumbs a:hover {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .path-breadcrumbs b {
@@ -534,6 +543,60 @@
     background: rgba(255, 255, 255, 0.08) !important;
 }
 
+/* Skeleton Loading */
+.skeleton {
+    background: rgba(255, 255, 255, 0.05);
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 25%,
+            rgba(255, 255, 255, 0.08) 37%,
+            rgba(255, 255, 255, 0.05) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.pulse {
+    animation: pulse-animation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-animation {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.skeleton-text {
+    height: 12px;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+.skeleton-title {
+    height: 20px;
+    margin-bottom: 12px;
+    width: 60%;
+}
+
+.skeleton-circle {
+    border-radius: 50%;
+}
+
 /* Scanner dashboard wrapper */
 .scanner-dashboard {
     min-height: 100vh;
@@ -544,4 +607,14 @@ html:has(.scanner-dashboard),
 body:has(.scanner-dashboard) {
     overflow-y: auto !important;
     height: auto !important;
+}
+
+.empty-state-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    width: 100%;
+    text-align: center;
 }

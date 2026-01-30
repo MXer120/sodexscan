@@ -12,6 +12,11 @@ import '../styles/WatchlistPage.css'
 
 type FilterType = 'all' | 'address' | 'tag'
 
+// Set document title
+if (typeof document !== 'undefined') {
+  document.title = 'Watchlist | CommunityScan SoDEX'
+}
+
 
 
 // Watchlist Row Component

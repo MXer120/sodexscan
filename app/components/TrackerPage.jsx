@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import MainnetTracker from './MainnetTracker'
 import { useRecordSearch } from '../lib/searchHistory'
 import { useAddTag, useWalletTags } from '../hooks/useWalletTags'
@@ -22,6 +23,16 @@ function TrackerPage() {
   const { user } = useSessionContext()
   const addTag = useAddTag()
   const { data: tags } = useWalletTags()
+
+  // Set document title
+  useEffect(() => {
+    if (walletAddress) {
+      const truncated = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+      document.title = `${truncated} | CommunityScan SoDEX`
+    } else {
+      document.title = 'Scan | CommunityScan SoDEX'
+    }
+  }, [walletAddress])
 
   useEffect(() => {
     document.body.style.overflow = 'auto'
@@ -96,9 +107,9 @@ function TrackerPage() {
           <div className="scanner-grid">
             <div className="section-path">
               <div className="path-breadcrumbs">
-                <span>Home</span>
+                <Link href="/">Home</Link>
                 <span>/</span>
-                <span>Scanner</span>
+                <a href="/tracker">Scanner</a>
                 <span>/</span>
                 <b>Dashboard</b>
               </div>

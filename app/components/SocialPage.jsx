@@ -6,6 +6,11 @@ import { globalCache } from '../lib/globalCache'
 import '../styles/SocialPage.css'
 import '../styles/MainnetPage.css'
 
+// Set document title
+if (typeof document !== 'undefined') {
+  document.title = 'Social | CommunityScan SoDEX'
+}
+
 const PAGE_SIZE = 20
 
 // Truncate long names

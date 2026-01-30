@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import TopPairs from './TopPairs'
 import SearchAndAddBox from './SearchAndAddBox'
@@ -11,6 +11,10 @@ function LandingPage() {
   const router = useRouter()
 
   const [filterType, setFilterType] = useState('all')
+
+  useEffect(() => {
+    document.title = 'Home | CommunityScan SoDEX'
+  }, [])
 
   const handleSearch = () => {
     const input = searchInput.trim()

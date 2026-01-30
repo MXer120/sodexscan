@@ -12,6 +12,7 @@ export default function PlatformPage() {
   const [platformLoading, setPlatformLoading] = useState(true)
 
   useEffect(() => {
+    document.title = 'Platform | CommunityScan SoDEX'
     loadPlatformData()
   }, [])
 
