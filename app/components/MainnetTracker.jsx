@@ -283,6 +283,52 @@ const formatPreciseAmount = (amount, decimals) => {
 
 const formatCoin = (amount, decimals) => formatPreciseAmount(amount, decimals)
 
+// Calculate liquidation price for a position
+// Formula: Long: liqPrice = entryPrice * (1 - 1/leverage + MMR)
+//          Short: liqPrice = entryPrice * (1 + 1/leverage - MMR)
+const calculateLiquidationPrice = (pos, brackets) => {
+  const entryPrice = parseFloat(pos.entryPrice || 0)
+  const positionSize = parseFloat(pos.positionSize || 0)
+  const leverage = parseFloat(pos.leverage || 1)
+  const isLong = pos.positionSide === 'LONG' || pos.positionSide === '2' || pos.positionSide === 2
+  const isolatedMargin = parseFloat(pos.isolatedMargin || 0)
+
+  if (!entryPrice || !positionSize || !leverage) return 0
+
+  // Get maintenance margin rate from brackets based on position notional value
+  const notionalValue = positionSize * entryPrice
+  let mmr = 0.004 // Default 0.4% if no bracket found
+
+  const symbolBrackets = brackets[pos.symbol] || []
+  for (const bracket of symbolBrackets) {
+    const maxNotional = parseFloat(bracket.notionalCap || bracket.maxNotional || Infinity)
+    if (notionalValue <= maxNotional) {
+      mmr = parseFloat(bracket.maintMarginRate || bracket.mmr || 0.004)
+      break
+    }
+  }
+
+  // For isolated margin positions, use margin-based calculation
+  // Liq Price = Entry Price ± (Margin - Maintenance Margin) / Position Size
+  if (isolatedMargin > 0) {
+    const maintenanceMargin = notionalValue * mmr
+    if (isLong) {
+      // Long: price drops, liquidated when loss exceeds (margin - maintenance)
+      return entryPrice - (isolatedMargin - maintenanceMargin) / positionSize
+    } else {
+      // Short: price rises, liquidated when loss exceeds (margin - maintenance)
+      return entryPrice + (isolatedMargin - maintenanceMargin) / positionSize
+    }
+  }
+
+  // Fallback to leverage-based approximation
+  if (isLong) {
+    return entryPrice * (1 - 1/leverage + mmr)
+  } else {
+    return entryPrice * (1 + 1/leverage - mmr)
+  }
+}
+
 export default function MainnetTracker({ walletAddress, accountId: propAccountId, searchBox, tagSection }) {
   const [accountId, setAccountId] = useState(propAccountId || null)
   const [loading, setLoading] = useState(true)
@@ -312,6 +358,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [positionHistory, setPositionHistory] = useState([])
   const [totalAssets, setTotalAssets] = useState(0)
   const [symbolMap, setSymbolMap] = useState({})
+  const [leverageBrackets, setLeverageBrackets] = useState({})
   const [leaderboardStats, setLeaderboardStats] = useState({ rank: null, volumeRank: null, volume: 0 })
   const [markPrices, setMarkPrices] = useState({})
 
@@ -622,10 +669,16 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         const bracketData = await bracketRes.json()
         if (bracketData.code === 0 && bracketData.data) {
           const map = {}
+          const brackets = {}
           bracketData.data.forEach(item => {
-            if (item.symbolId) map[item.symbolId] = item.symbol
+            if (item.symbolId) {
+              map[item.symbolId] = item.symbol
+              // Store bracket data with maintenance margin rates per symbol
+              brackets[item.symbol] = item.brackets || []
+            }
           })
           setSymbolMap(map)
+          setLeverageBrackets(brackets)
         }
 
         // Build coin registry from symbol list
@@ -1852,7 +1905,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                               case 'side': valA = a.positionSide; valB = b.positionSide; break
                               case 'size': valA = parseFloat(a.positionSize); valB = parseFloat(b.positionSize); break
                               case 'entry': valA = parseFloat(a.entryPrice); valB = parseFloat(b.entryPrice); break
-                              case 'liq': valA = parseFloat(a.liquidationPrice); valB = parseFloat(b.liquidationPrice); break
+                              case 'liq': valA = calculateLiquidationPrice(a, leverageBrackets); valB = calculateLiquidationPrice(b, leverageBrackets); break
                               case 'margin': valA = parseFloat(a.isolatedMargin); valB = parseFloat(b.isolatedMargin); break
                               case 'leverage': valA = parseFloat(a.leverage); valB = parseFloat(b.leverage); break
                               case 'pnl': valA = parseFloat(a.unrealizedProfit); valB = parseFloat(b.unrealizedProfit); break
@@ -1865,7 +1918,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           .slice(0, positionsLimit)
                           .map((pos, i) => {
                             const unrealizedPnl = parseFloat(pos.unrealizedProfit || 0)
-                            const estLiqPrice = parseFloat(pos.liquidationPrice || 0)
+                            const estLiqPrice = calculateLiquidationPrice(pos, leverageBrackets)
                             return (
                               <tr key={i}>
                                 <td style={{ fontWeight: '500' }}>
