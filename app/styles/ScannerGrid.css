@@ -1,8 +1,8 @@
 .scanner-grid {
     display: grid;
     grid-template-columns: 300px 1fr 300px;
-    grid-template-rows: auto 475px 1fr;
-    /* Increased chart height */
+    grid-template-rows: auto 475px minmax(440px, 1fr);
+    /* Row 1: path, Row 2: chart (fixed 475px), Row 3: bottom-center (min 440px, fills rest) */
     gap: 12px;
     grid-template-areas:
         "path path path"
@@ -11,10 +11,11 @@
     width: 100%;
     height: calc(100vh - 44px - 32px);
     /* Navbar (44px) + StatusBar (32px) */
+    min-height: 1000px;
+    /* Minimum: path(~50) + chart(475) + bottom(440) + gaps(24) + padding(~12) */
     padding: 12px 20px;
     padding-top: 16px;
     box-sizing: border-box;
-    overflow: hidden;
 }
 
 /* Generic Section Styling */
@@ -30,7 +31,6 @@
     /* Reduced from 12px */
     padding: 20px 24px;
     /* Increased horizontal padding */
-    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -83,8 +83,7 @@
 .section-sidebar {
     grid-area: sidebar;
     gap: 12px;
-    height: 100%;
-    /* Extend whole height */
+    align-self: stretch;
     overflow-y: auto;
 }
 
@@ -94,19 +93,36 @@
     padding: 0 !important;
     min-height: 0;
     /* Important for flex/grid sizing */
+    display: flex;
+    flex-direction: column;
 }
 
+/* Chart fills the top-center section */
+.section-top-center .chart-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.section-top-center .chart-container {
+    flex: 1;
+    height: auto !important;
+    min-height: 0;
+}
+
+/* 4. Bottom Center - Tables */
 .section-bottom-center {
     grid-area: bottom-center;
-    overflow: hidden;
     padding: 8px 0 16px 0 !important;
     /* Reduced top padding */
+    min-height: 220px;
+    overflow-y: auto;
 }
 
 /* Tab scrollable area */
 .section-bottom-center .tab-scroll-area {
     flex: 1;
-    overflow-y: auto;
+    overflow: visible;
     padding: 0;
     /* Removed padding for full-width content */
     display: flex;
@@ -127,8 +143,8 @@
 /* 5. Right Sidebar - Activity */
 .section-activity {
     grid-area: activity;
+    align-self: stretch;
     overflow-y: auto;
-    /* Scrollable activity */
 }
 
 /* Metrics in Sidebar */
@@ -309,18 +325,17 @@
 @media (max-width: 1200px) {
     .scanner-grid {
         grid-template-columns: 240px 1fr;
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto 475px minmax(220px, 1fr) auto;
         grid-template-areas:
             "path path"
             "sidebar top-center"
             "sidebar bottom-center"
             "activity activity";
-        overflow-y: auto;
-        height: auto;
+        min-height: 780px;
     }
 
     .section-activity {
-        max-height: 400px;
+        align-self: start;
     }
 }
 
@@ -328,7 +343,7 @@
 @media (max-width: 900px) {
     .scanner-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto auto;
+        grid-template-rows: auto auto 350px minmax(220px, 1fr) auto;
         grid-template-areas:
             "path"
             "sidebar"
@@ -339,26 +354,17 @@
         padding-top: 16px;
         height: auto;
         min-height: calc(100vh - 44px - 32px);
-        overflow-y: auto;
     }
 
     .section-sidebar {
+        align-self: start;
         max-height: none;
         overflow-y: visible;
     }
 
-    .section-top-center {
-        min-height: 350px;
-    }
-
-    .section-bottom-center {
-        min-height: 300px;
-        max-height: 500px;
-        overflow: hidden;
-    }
-
     .section-activity {
-        max-height: 350px;
+        align-self: start;
+        max-height: none;
     }
 
     .path-breadcrumbs {
@@ -391,7 +397,7 @@
         padding: 8px 12px;
         padding-top: 20px;
         gap: 8px;
-        overflow-y: auto;
+        grid-template-rows: auto auto 300px minmax(200px, 1fr) auto;
     }
 
     .section-path,
@@ -409,18 +415,11 @@
     }
 
     .section-top-center {
-        min-height: 280px;
         padding: 0 !important;
     }
 
     .section-bottom-center {
         padding: 6px 0 12px 0 !important;
-        min-height: 250px;
-        max-height: 400px;
-    }
-
-    .section-activity {
-        max-height: 300px;
     }
 
     .metric-card {
@@ -471,7 +470,7 @@
         padding: 6px 8px;
         padding-top: 20px;
         gap: 6px;
-        overflow-y: auto;
+        grid-template-rows: auto auto 260px minmax(180px, 1fr) auto;
     }
 
     .section-path,
@@ -480,10 +479,6 @@
     .section-bottom-center,
     .section-activity {
         padding: 10px 10px;
-    }
-
-    .section-top-center {
-        min-height: 220px;
     }
 
     .metric-card {
@@ -499,6 +494,7 @@
 @media (min-width: 1920px) {
     .scanner-grid {
         grid-template-columns: 340px 1fr 340px;
+        grid-template-rows: auto 475px minmax(250px, 1fr);
         gap: 16px;
         padding: 16px 24px;
     }
@@ -528,6 +524,7 @@
 @media (min-width: 2560px) {
     .scanner-grid {
         grid-template-columns: 380px 1fr 380px;
+        grid-template-rows: auto 475px minmax(280px, 1fr);
         gap: 20px;
         padding: 20px 32px;
     }
@@ -537,15 +534,14 @@
     background: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Scanner dashboard wrapper responsive */
+/* Scanner dashboard wrapper */
 .scanner-dashboard {
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
 }
 
-@media (max-width: 1200px) {
-    .scanner-dashboard {
-        height: auto;
-        overflow-y: auto;
-    }
+/* Ensure html/body allow scrolling */
+html:has(.scanner-dashboard),
+body:has(.scanner-dashboard) {
+    overflow-y: auto !important;
+    height: auto !important;
 }

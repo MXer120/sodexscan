@@ -24,14 +24,9 @@ function TrackerPage() {
   const { data: tags } = useWalletTags()
 
   useEffect(() => {
-    const handleResize = () => {
-      document.body.style.overflow = window.innerWidth <= 1200 ? 'auto' : 'hidden'
-    }
-    handleResize()
-    window.addEventListener('resize', handleResize)
+    document.body.style.overflow = 'auto'
     return () => {
       document.body.style.overflow = 'auto'
-      window.removeEventListener('resize', handleResize)
     }
   }, [])
 
