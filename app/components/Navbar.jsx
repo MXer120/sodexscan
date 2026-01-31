@@ -27,7 +27,8 @@ function Navbar() {
       protected: true,
       children: [
         { path: '/social', label: 'Leaderboard' },
-        { path: '/social/stats', label: 'Stats' }
+        { path: '/social/stats', label: 'Stats' },
+        { path: '/referral', label: 'Referral' }
       ]
     },
     { path: '/platform', label: 'Platform', protected: false },

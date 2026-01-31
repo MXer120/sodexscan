@@ -68,6 +68,7 @@ export default function StatusBar() {
                   <p><strong>Inhalte & Nutzung:</strong> Alle Inhalte dieser Website dienen ausschließlich zu Informationszwecken. Trotz sorgfältiger Prüfung übernehmen wir keine Gewähr für die Aktualität, Vollständigkeit oder Richtigkeit der Inhalte.</p>
                   <p><strong>Haftung:</strong> Die Nutzung der Website erfolgt <strong>auf eigenes Risiko</strong>. Wir übernehmen keine Haftung für direkte oder indirekte Schäden, Datenverlust oder sonstige Nachteile, die durch die Nutzung der Website oder der angezeigten Inhalte entstehen.</p>
                   <p><strong>Externe Daten & APIs:</strong> Inhalte von Dritten (z. B. sodex.com) werden angezeigt, ohne dass wir deren Korrektheit garantieren. Wir haften nicht für Fehler oder Ausfälle dieser Datenquellen.</p>
+                  <p><strong>Referral-Daten:</strong> Die Referral-Seite zeigt öffentlich beobachtbare Verknüpfungen zwischen Referral-Codes, Wallet-Adressen und Online-Handles. Diese Daten identifizieren keine Personen und stellen keine Bestätigung von Eigentum oder Kontrolle dar. Verknüpfungen sind nicht verifiziert und können fehlerhaft sein. Für die Löschung von Referral-Codes, zugehörigen Socials oder anderen Daten kontaktieren Sie communityscan-sodex@outlook.com.</p>
                   <p><strong>Security:</strong> Trotz technischer Maßnahmen (HTTPS, Authentifizierung, gesicherte Datenbank) übernehmen wir keine Haftung für unbefugten Zugriff, Hacks, Datenverlust oder Sicherheitsvorfälle.</p>
                   <p><strong>Keine Finanz- oder Anlageberatung:</strong> Alle Informationen dienen nur zu Informationszwecken und stellen keine Finanz-, Anlage- oder Rechtsberatung dar. Kryptowährungen und Token-Handel bergen erhebliche Verlustrisiken und sind nicht für jeden geeignet. Vergangene Performance ist keine Garantie für zukünftige Ergebnisse. Nutzer sollten eigene Recherchen durchführen und ggf. qualifizierte Berater konsultieren. Wir übernehmen keine Verantwortung für Verluste, die aufgrund der bereitgestellten Informationen entstehen. Durch die Nutzung dieser Plattform erkennen Sie diese Bedingungen an und akzeptieren sie.</p>
                   
@@ -77,6 +78,7 @@ export default function StatusBar() {
                   <p><strong>Content & Use:</strong> All content on this website is for informational purposes only. Despite careful review, we do not guarantee the accuracy, completeness, or timeliness of the content.</p>
                   <p><strong>Liability:</strong> Use of this website is <strong>at your own risk</strong>. We accept no liability for direct or indirect damages, data loss, or any disadvantages resulting from the use of this website or its content.</p>
                   <p><strong>External Data & APIs:</strong> Third-party content (e.g., sodex.com) is displayed without guarantee of correctness. We are not liable for errors or outages of these data sources.</p>
+                  <p><strong>Referral Data:</strong> The Referral page displays publicly observable associations between referral codes, wallet addresses, and online handles. This data does not identify individuals or confirm ownership or control. Associations are non-verified and may be incorrect. For removal of referral codes, associated socials, or other data, contact communityscan-sodex@outlook.com.</p>
                   <p><strong>Security:</strong> Despite technical measures (HTTPS, authentication, secured database), we are not liable for unauthorized access, hacks, data loss, or security incidents.</p>
                   <p><strong>No Financial or Investment Advice:</strong> All information provided is for informational purposes only and does not constitute financial, investment, or legal advice. Cryptocurrency and token trading involves substantial risk of loss and is not suitable for every investor. Past performance is not indicative of future results. Users should conduct their own research and consult with qualified advisors. We are not responsible for any losses incurred based on the information provided. By using this platform, you acknowledge and accept these terms.</p>
                 </div>
@@ -110,24 +112,26 @@ export default function StatusBar() {
                   <h3>Deutsch</h3>
                   <p><strong>Verantwortlicher:</strong> Luke Steinfartz (<strong>luke@steinfartz.de</strong>)</p>
                   <p><strong>Technischer Kontakt:</strong> Lutz Steinfartz, <strong>Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
-                  <p><strong>Erhobene personenbezogene Daten:</strong> E-Mail-Adresse, Wallet-Daten, Tags, Gruppen, Profil-Metadaten.</p>
+                  <p><strong>Erhobene personenbezogene Daten:</strong> E-Mail-Adresse, Wallet-Daten, Tags, Gruppen, Profil-Metadaten. Die Referral-Seite zeigt öffentlich beobachtbare Referral-Codes, Wallet-Adressen und Social-Media-Handles.</p>
                   <p><strong>Zweck der Verarbeitung:</strong> Verwaltung von Nutzerprofilen und Wallets, Sicherstellung der Funktionsfähigkeit der Website sowie Versand von projektbezogenen Informationen per E-Mail (z. B. Updates zum aktuellen Projekt oder Ankündigungen neuer Projekte).</p>
                   <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) und Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Information bestehender Nutzer).</p>
                   <p><strong>E-Mail-Kommunikation:</strong> Die hinterlegte E-Mail-Adresse kann für projektbezogene Informationen genutzt werden. Eine separate Verwaltung von Kommunikationspräferenzen ist derzeit nicht vorgesehen. Nutzer können der E-Mail-Kommunikation jederzeit widersprechen.</p>
                   <p><strong>Speicherdauer:</strong> Wallets, Tags und Gruppen werden gelöscht, wenn der User sie löscht. Accounts bleiben bestehen, können aber auf Anfrage manuell gelöscht werden.</p>
                   <p><strong>Datenweitergabe / Drittanbieter:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Öffentliche APIs wie sodex.com greifen nicht auf personenbezogene Daten zu.</p>
+                  <p><strong>Referral-Daten Löschung:</strong> Für die Löschung von Referral-Codes, zugehörigen Social-Media-Handles oder anderen Referral-Daten kontaktieren Sie communityscan-sodex@outlook.com. Löschanfragen werden innerhalb von 30 Tagen bearbeitet.</p>
                   <p><strong>Rechte der Nutzer:</strong> Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit, Widerruf der Einwilligung jederzeit.</p>
 
                   {/* English */}
                   <h3>English</h3>
                   <p><strong>Controller:</strong> Luke Steinfartz (<strong>luke@steinfartz.de</strong>)</p>
                   <p><strong>Technical Contact:</strong> Lutz Steinfartz, <strong>Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
-                  <p><strong>Collected Personal Data:</strong> Email address, wallet data, tags, groups, profile metadata.</p>
+                  <p><strong>Collected Personal Data:</strong> Email address, wallet data, tags, groups, profile metadata. The Referral page displays publicly observable referral codes, wallet addresses, and social media handles.</p>
                   <p><strong>Purpose of Processing:</strong> User profile and wallet management, ensuring website functionality, and sending project-related emails (e.g. updates about the current project or announcements of new projects).</p>
                   <p><strong>Legal Basis:</strong> Art. 6(1)(a) GDPR (consent) and Art. 6(1)(f) GDPR (legitimate interest in informing existing users).</p>
                   <p><strong>Email Communication:</strong> The provided email address may be used for project-related information. Separate communication preferences are currently not available. Users may object to email communication at any time.</p>
                   <p><strong>Data Retention:</strong> Wallets, tags, and groups are deleted when the user deletes them. Accounts remain, but personal data can be manually deleted on request.</p>
                   <p><strong>Data Sharing / Third Parties:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Public APIs like sodex.com do not access personal data.</p>
+                  <p><strong>Referral Data Removal:</strong> For removal of referral codes, associated social media handles, or other referral data, contact communityscan-sodex@outlook.com. Removal requests will be processed within 30 days.</p>
                   <p><strong>User Rights:</strong> Access, correction, deletion, restriction of processing, data portability, withdrawal of consent at any time.</p>
                 </div>
               </div>
