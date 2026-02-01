@@ -221,7 +221,7 @@ export default function WatchlistPage() {
           onSearchChange={setSearchTerm}
           searchValue={searchTerm}
           filterType={filterType}
-          onFilterChange={setFilterType}
+          onFilterChange={(type: FilterType) => setFilterType(type)}
           actionLabel="Add to Watchlist"
         />
 
