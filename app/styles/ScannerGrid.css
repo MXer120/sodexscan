@@ -385,6 +385,10 @@
         max-width: none;
     }
 
+    .path-search-wrapper .search-add-container {
+        margin: 0 !important;
+    }
+
     .tab-buttons {
         width: 100%;
     }

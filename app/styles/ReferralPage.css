@@ -93,26 +93,26 @@
 
 /* Featured Card */
 .referral-card-featured {
-  border-color: #f97316;
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.15), 0 0 24px rgba(249, 115, 22, 0.08);
+  border-color: rgba(255, 118, 72, 0.4);
+  box-shadow: 0 0 12px rgba(255, 118, 72, 0.15), 0 0 24px rgba(255, 118, 72, 0.05);
 }
 
 .referral-card-featured:hover {
-  border-color: #f97316;
-  box-shadow: 0 0 16px rgba(249, 115, 22, 0.2), 0 0 32px rgba(249, 115, 22, 0.1);
+  border-color: rgba(255, 118, 72, 0.6);
+  box-shadow: 0 0 16px rgba(255, 118, 72, 0.2), 0 0 32px rgba(255, 118, 72, 0.1);
 }
 
 /* Make SOSO always orange */
 .referral-card-featured .referral-code {
-  color: #f97316;
+  color: #FF7648;
 }
 
 .referral-card-featured .social-badge:hover {
-  color: #f97316;
+  color: #FF7648;
 }
 
 .referral-card-featured .social-badge:hover .social-svg {
-  color: #f97316;
+  color: #FF7648;
 }
 
 .referral-card-header {
@@ -128,9 +128,9 @@
 }
 
 .featured-tag {
-  background: rgba(249, 115, 22, 0.15);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  color: #f97316;
+  background: rgba(255, 118, 72, 0.2);
+  border: 1px solid rgba(255, 118, 72, 0.4);
+  color: #FF7648;
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -177,7 +177,7 @@
 }
 
 .referral-link-row:hover .referral-link {
-  color: #f97316;
+  color: #FF7648;
 }
 
 .link-icon {
@@ -187,7 +187,7 @@
 }
 
 .referral-link-row:hover .link-icon {
-  color: #f97316;
+  color: #FF7648;
 }
 
 /* Social Badges */

@@ -1,0 +1,96 @@
+.announcement-bar {
+    width: 100%;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    position: relative;
+    z-index: 99;
+    cursor: default;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 48px;
+}
+
+@media (max-width: 900px) {
+    .announcement-bar {
+        margin-top: 52px;
+    }
+}
+
+.announcement-bar.clickable {
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.announcement-bar.clickable:hover {
+    filter: brightness(1.1);
+}
+
+.announcement-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Types */
+.announcement-maintenance {
+    background-color: rgba(234, 179, 8, 0.15);
+    color: #fbbf24;
+    /* Yellow 400 */
+    border-bottom-color: rgba(234, 179, 8, 0.2);
+}
+
+.announcement-info {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    /* Blue 400 */
+    border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.announcement-warning {
+    background-color: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    /* Orange 400 */
+    border-bottom-color: rgba(249, 115, 22, 0.2);
+}
+
+.announcement-error {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    /* Red 400 */
+    border-bottom-color: rgba(239, 68, 68, 0.2);
+}
+
+.announcement-success {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    /* Green 400 */
+    border-bottom-color: rgba(34, 197, 94, 0.2);
+}
+
+.announcement-ad {
+    background-color: rgba(255, 118, 72, 0.15);
+    /* Primary color variable reference manually to ensure opacity */
+    color: #FF7648;
+    /* Primary */
+    border-bottom-color: rgba(255, 118, 72, 0.2);
+}
+
+.announcement-update {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+    /* Light Blue */
+    border-bottom-color: rgba(96, 165, 250, 0.2);
+}
+
+.announcement-icon {
+    margin-right: 6px;
+    font-size: 16px;
+}

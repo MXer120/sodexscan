@@ -436,3 +436,8 @@
     margin-right: -16px;
   }
 }
+
+/* Reduce padding when announcement bar is present */
+body:has(.announcement-bar) .dashboard {
+  padding-top: 8px !important;
+}
