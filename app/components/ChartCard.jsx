@@ -148,6 +148,123 @@ export default function ChartCard({
     return hoveredSeries === seriesKey ? 1 : 0.2
   }
 
+  // Helper to find a "nice" step size (1, 2, 5 * power of 10)
+  const getNiceStep = (range, targetTicks = 5) => {
+    if (range === 0) return 1
+    // Approximate step
+    const roughStep = range / targetTicks
+    const exponent = Math.floor(Math.log10(roughStep))
+    const fraction = roughStep / Math.pow(10, exponent)
+
+    let niceFraction
+    if (fraction <= 1) niceFraction = 1
+    else if (fraction <= 2) niceFraction = 2
+    else if (fraction <= 5) niceFraction = 5
+    else niceFraction = 10
+
+    return niceFraction * Math.pow(10, exponent)
+  }
+
+  // Calculate synchronized domains with "Nice" ticks
+  const getSynchronizedDomains = () => {
+    const defaultDomain = { left: [0, 100], right: [0, 100] }
+    if (!displayData || displayData.length === 0) return defaultDomain
+
+    // 1. Identify active keys
+    const leftKeys = sortedSeries
+      .filter(s => !s.cumulative && selectedSeries.includes(s.key))
+      .map(s => s.key)
+    const rightKeys = sortedSeries
+      .filter(s => s.cumulative && selectedSeries.includes(s.key))
+      .map(s => s.key)
+
+    if (leftKeys.length === 0 && rightKeys.length === 0) return defaultDomain
+
+    // 2. Calculate raw min/max
+    let lMax = -Infinity, lMin = Infinity
+    let rMax = -Infinity, rMin = Infinity
+
+    displayData.forEach(d => {
+      // Left Axis
+      let posStack = 0, negStack = 0
+      leftKeys.forEach(key => {
+        const val = parseFloat(d[key] || 0)
+        const sDef = sortedSeries.find(s => s.key === key)
+        const type = sDef?.type || 'bar'
+
+        if (stacked && type === 'bar') {
+          if (val >= 0) posStack += val
+          else negStack += val
+        } else {
+          lMax = Math.max(lMax, val)
+          lMin = Math.min(lMin, val)
+        }
+      })
+      if (stacked) {
+        lMax = Math.max(lMax, posStack)
+        lMin = Math.min(lMin, negStack)
+      }
+
+      // Right Axis
+      rightKeys.forEach(key => {
+        const val = parseFloat(d[key] || 0)
+        rMax = Math.max(rMax, val)
+        rMin = Math.min(rMin, val)
+      })
+    })
+
+    // Defaults if empty
+    if (leftKeys.length === 0) { lMax = 10; lMin = 0 }
+    if (rightKeys.length === 0) { rMax = 10; rMin = 0 }
+    if (lMax === -Infinity) lMax = 0
+    if (lMin === Infinity) lMin = 0
+    if (rMax === -Infinity) rMax = 0
+    if (rMin === Infinity) rMin = 0
+
+    // Ensure we cross zero matches logic strictly
+    // Actually, for "nice steps", we want 0 to be a tick.
+    // If min > 0, we can extend down to 0? Or just ensure steps align?
+    // User requested "always show 0".
+    lMax = Math.max(lMax, 0)
+    lMin = Math.min(lMin, 0)
+    rMax = Math.max(rMax, 0)
+    rMin = Math.min(rMin, 0)
+
+    // 3. Determine Nice Step sizes
+    const lRange = lMax - lMin || 10
+    const rRange = rMax - rMin || 10
+
+    const lStep = getNiceStep(lRange, 5)
+    const rStep = getNiceStep(rRange, 5)
+
+    // 4. Determine Tick Counts
+    const lUpT = Math.ceil(lMax / lStep)
+    const lDownT = Math.ceil(Math.abs(lMin) / lStep)
+
+    const rUpT = Math.ceil(rMax / rStep)
+    const rDownT = Math.ceil(Math.abs(rMin) / rStep)
+
+    // 5. Harmonize Tick Counts
+    let finalUpT = Math.max(lUpT, rUpT)
+    let finalDownT = Math.max(lDownT, rDownT)
+
+    // Ensure minimal viable graph
+    if (finalUpT === 0 && finalDownT === 0) finalUpT = 1
+
+    // 6. Calculate Final Domains
+    const lTop = finalUpT * lStep
+    const lBottom = -finalDownT * lStep
+    const rTop = finalUpT * rStep
+    const rBottom = -finalDownT * rStep
+
+    return {
+      left: [lBottom, lTop],
+      right: [rBottom, rTop]
+    }
+  }
+
+  const { left: leftDomain, right: rightDomain } = getSynchronizedDomains()
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || payload.length === 0) return null
 
@@ -237,18 +354,26 @@ export default function ChartCard({
   const displayedLegendItems = legendExpanded ? visibleSeries : visibleSeries.slice(0, maxLegendItems)
 
   // Calculate Gradient Offsets for Cumulative Line (Green above 0, Red below)
-  const getGradientOffsets = (dataKey) => {
-    if (!displayData || displayData.length === 0) return { top: '0%', bottom: '100%' }
-    const values = displayData.map(d => parseFloat(d[dataKey] || 0))
-    const max = Math.max(...values, 0.0001)
-    const min = Math.min(...values, -0.0001)
+  // Calculate zero offset based on the Right Axis Domain (Cumulative)
+  const calculateZeroOffset = () => {
+    const [min, max] = rightDomain
+    // If domain isn't numeric, default to 0 (all Red) or 50%? 0 is safe.
+    if (typeof min !== 'number' || typeof max !== 'number') return 0
 
-    // Offset is calculated from the top (0% is max, 100% is min)
-    const zeroPos = (max / (max - min)) * 100
-    return zeroPos
+    const range = max - min
+    if (range <= 0) return 0
+
+    // Formula: Max / (Max - Min)
+    // 100 / (100 - (-100)) = 100/200 = 0.5 -> 50%
+    const ratio = max / range
+
+    // Clamp to 0-100% for CSS stops
+    // If ratio > 1 (all positive), clamp to 1 (100% green)
+    // If ratio < 0 (all negative), clamp to 0 (0% green -> all red)
+    return Math.max(0, Math.min(1, ratio)) * 100
   }
 
-  const zeroOffset = getGradientOffsets('cumulative')
+  const zeroOffset = calculateZeroOffset()
 
   return (
     <div className="chart-card" style={fullHeight ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}}>
@@ -411,10 +536,42 @@ export default function ChartCard({
             margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
           >
             <defs>
-              <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                <stop offset={`${zeroOffset}%`} stopColor="#33AF80" stopOpacity={1} />
-                <stop offset={`${zeroOffset}%`} stopColor="#DB324D" stopOpacity={1} />
-              </linearGradient>
+              {sortedSeries.filter(s => s.cumulative).map(s => {
+                if (!selectedSeries.includes(s.key)) return null
+
+                // Calculate min/max for this specific series
+                let sMax = -Infinity
+                let sMin = Infinity
+
+                if (displayData && displayData.length > 0) {
+                  displayData.forEach(d => {
+                    const val = parseFloat(d[s.key] || 0)
+                    if (val > sMax) sMax = val
+                    if (val < sMin) sMin = val
+                  })
+                }
+
+                // Default if no data
+                if (sMax === -Infinity) sMax = 0
+                if (sMin === Infinity) sMin = 0
+
+                // Calculate offset
+                let offset = 0
+                if (sMin >= 0) {
+                  offset = 100 // All green
+                } else if (sMax <= 0) {
+                  offset = 0 // All red
+                } else {
+                  offset = (sMax / (sMax - sMin)) * 100
+                }
+
+                return (
+                  <linearGradient key={s.key} id={`splitColor-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset={`${offset}%`} stopColor="#33AF80" stopOpacity={1} />
+                    <stop offset={`${offset}%`} stopColor="#DB324D" stopOpacity={1} />
+                  </linearGradient>
+                )
+              })}
             </defs>
             <CartesianGrid
               strokeDasharray="1 10"
@@ -436,7 +593,7 @@ export default function ChartCard({
               tickFormatter={formatValue}
               stroke="rgba(255,255,255,0.4)"
               tick={{ fontSize: 10 }}
-              domain={yAxisDomain || ['auto', 'auto']}
+              domain={leftDomain}
               axisLine={false}
               tickLine={false}
               dx={-5}
@@ -448,6 +605,7 @@ export default function ChartCard({
                 tickFormatter={formatValue}
                 stroke="rgba(255,255,255,0.4)"
                 tick={{ fontSize: 10 }}
+                domain={rightDomain}
                 axisLine={false}
                 tickLine={false}
                 dx={5}
@@ -533,7 +691,7 @@ export default function ChartCard({
                   type="monotone"
                   dataKey={s.key}
                   name={s.label}
-                  stroke="url(#splitColor)"
+                  stroke={`url(#splitColor-${s.key})`}
                   strokeWidth={3}
                   dot={false}
                   yAxisId="right"

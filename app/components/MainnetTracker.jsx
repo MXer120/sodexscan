@@ -931,17 +931,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           }
         })
 
-        // Fix starting point: Anchor the chart at 0 by adding a data point one day before the first trade
-        if (formattedPnl.length > 0) {
-          const firstTs = sortedItems[0].ts_ms
-          const prevTs = firstTs - 86400000 // 24 hours in ms
-          formattedPnl.unshift({
-            date: new Date(prevTs).toISOString().split('T')[0],
-            cumulative: 0,
-            daily: 0
-          })
-        }
-
         processedPnlHistory = formattedPnl
         setPnlHistory(formattedPnl)
       }
