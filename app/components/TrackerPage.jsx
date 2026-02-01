@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import MainnetTracker from './MainnetTracker'
-import { useRecordSearch } from '../lib/searchHistory'
 import { useAddTag, useWalletTags } from '../hooks/useWalletTags'
 import { useSessionContext } from '../lib/SessionContext'
 import SearchAndAddBox from './SearchAndAddBox'
@@ -19,7 +18,7 @@ function TrackerPage() {
   const [showResults, setShowResults] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [showTagInput, setShowTagInput] = useState(false)
-  const recordSearch = useRecordSearch()
+  const [searchKey, setSearchKey] = useState(0)
   const { user } = useSessionContext()
   const addTag = useAddTag()
   const { data: tags } = useWalletTags()
@@ -88,8 +87,8 @@ function TrackerPage() {
     }
 
     setWalletAddress(wallet_address)
+    setSearchKey(k => k + 1)
     setShowResults(true)
-    recordSearch(wallet_address)
   }
 
   return (
@@ -158,6 +157,7 @@ function TrackerPage() {
         {/* Show MainnetTracker when search is triggered */}
         {showResults && walletAddress && (
           <MainnetTracker
+            key={searchKey}
             walletAddress={walletAddress}
             searchBox={
               <SearchAndAddBox

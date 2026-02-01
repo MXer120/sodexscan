@@ -13,10 +13,9 @@ export function useUserProfile() {
       // 1. Get current user
       if (!user) return null;
 
-      // 2. Fetch profile, search history, and wallet tags in parallel
-      const [profile, history, tags] = await Promise.all([
+      // 2. Fetch profile and wallet tags in parallel
+      const [profile, tags] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('search_history').select('*').eq('user_id', user.id).order('searched_at', { ascending: false }).limit(10),
         supabase.from('wallet_tags').select('wallet_address, tag_name').eq('user_id', user.id)
       ]);
 
@@ -40,9 +39,8 @@ export function useUserProfile() {
         leaderboardStats = leaderboard
       }
 
-      return { 
-        profile: profile.data, 
-        history: history.data || [],
+      return {
+        profile: profile.data,
         leaderboardStats,
         tagMap
       };

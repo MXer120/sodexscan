@@ -359,8 +359,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [totalAssets, setTotalAssets] = useState(0)
   const [symbolMap, setSymbolMap] = useState({})
   const [leverageBrackets, setLeverageBrackets] = useState({})
-  const [leaderboardStats, setLeaderboardStats] = useState({ rank: null, volumeRank: null, volume: 0 })
+  const [leaderboardStats, setLeaderboardStats] = useState({ rank: null, volumeRank: null })
+  const [overviewStats, setOverviewStats] = useState({ volume: 0, cumulativePnl: 0 })
   const [markPrices, setMarkPrices] = useState({})
+  const [socialData, setSocialData] = useState({ dc_username: null, tg_username: null, tg_displayname: null, ref_code: null })
+  const [socialTooltip, setSocialTooltip] = useState(null) // 'refcode' | 'discord' | 'telegram' | 'x' | null
 
   // Infinite Scroll Limits
   const [positionsLimit, setPositionsLimit] = useState(20)
@@ -437,7 +440,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       ? positions.reduce((sum, p) => sum + parseFloat(p.leverage), 0) / positions.length
       : 0
     const allTimePnl = pnlHistory.length > 0 ? pnlHistory[pnlHistory.length - 1].cumulative : 0
-    const allTimeVol = leaderboardStats.volume
+    const allTimeVol = overviewStats.volume
 
     // Net Delta & Sentiment (Relative to Futures Equity)
     const futuresEquity = futuresValue + unrealized
@@ -502,7 +505,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       winRate, sharpe,
       sentiment, sentimentColor
     }
-  }, [accountDetails, totalAssets, positions, pnlHistory, leaderboardStats, totalUnrealizedPnl, positionHistory])
+  }, [accountDetails, totalAssets, positions, pnlHistory, overviewStats, totalUnrealizedPnl, positionHistory])
 
   const handleWithdrawSort = (field) => {
     setWithdrawalsLimit(20)
@@ -553,6 +556,20 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           setLoading(false)
         }
       })
+
+      // Fetch social data from publicdns
+      supabase
+        .from('publicdns')
+        .select('dc_username, tg_username, tg_displayname, ref_code')
+        .ilike('wallet_address', walletAddress)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setSocialData(data)
+          } else {
+            setSocialData({ dc_username: null, tg_username: null, tg_displayname: null, ref_code: null })
+          }
+        })
     }
   }, [walletAddress, propAccountId])
 
@@ -649,21 +666,34 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     // Always fetch meta even if cached (fast, global context)
     const fetchMetadata = async () => {
       try {
-        const [lbRes, bracketRes, symbolListRes] = await Promise.all([
+        const [lbRes, bracketRes, symbolListRes, overviewRes] = await Promise.all([
           supabase.from('leaderboard_smart')
-            .select('pnl_rank, volume_rank, cumulative_volume')
+            .select('pnl_rank, volume_rank')
             .eq('account_id', accountId)
             .maybeSingle(),
           fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list'),
-          fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/symbol/list')
+          fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/symbol/list'),
+          fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`)
         ])
 
         if (lbRes.data) {
           setLeaderboardStats({
             rank: lbRes.data.pnl_rank,
-            volumeRank: lbRes.data.volume_rank,
-            volume: lbRes.data.cumulative_volume || 0
+            volumeRank: lbRes.data.volume_rank
           })
+        }
+
+        // Fetch volume from overview API
+        try {
+          const overviewData = await overviewRes.json()
+          if (overviewData.code === 0 && overviewData.data) {
+            setOverviewStats({
+              volume: parseFloat(overviewData.data.cumulative_quote_volume) || 0,
+              cumulativePnl: parseFloat(overviewData.data.cumulative_pnl) || 0
+            })
+          }
+        } catch (e) {
+          console.error('Overview fetch failed:', e)
         }
 
         const bracketData = await bracketRes.json()
@@ -888,18 +918,16 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       // Process PnL history - API returns cumulative PnL per day
       let processedPnlHistory = []
       if (pnlData.code === 0 && pnlData.data?.items) {
-        const rawItems = pnlData.data.items.map(item => ({
-          date: new Date(item.ts_ms).toISOString().split('T')[0],
-          cumulative: parseFloat(item.pnl) // API returns cumulative PnL
-        }))
+        // Sort by timestamp ascending
+        const sortedItems = [...pnlData.data.items].sort((a, b) => a.ts_ms - b.ts_ms)
 
-        // Calculate daily PnL from cumulative (difference from previous day)
-        const formattedPnl = rawItems.map((item, idx) => {
-          const prevCumulative = idx > 0 ? rawItems[idx - 1].cumulative : 0
+        const formattedPnl = sortedItems.map((item, idx) => {
+          const cumulative = parseFloat(item.pnl)
+          const prevCumulative = idx > 0 ? parseFloat(sortedItems[idx - 1].pnl) : 0
           return {
-            date: item.date,
-            cumulative: item.cumulative,
-            daily: item.cumulative - prevCumulative
+            date: new Date(item.ts_ms).toISOString().split('T')[0],
+            cumulative: cumulative,
+            daily: cumulative - prevCumulative
           }
         })
 
@@ -957,6 +985,26 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     if (Math.abs(n) >= 1000000) return `${trimToMaxDecimals(n / 1000000, decimals)}M`
     if (Math.abs(n) >= 1000) return `${trimToMaxDecimals(n / 1000, decimals)}K`
     return trimToMaxDecimals(n, decimals)
+  }
+
+  // Format balance without rounding - show full precision with threshold rules
+  const formatBalance = (num, coin = '') => {
+    if (num === undefined || num === null) return '0'
+    const n = parseFloat(num)
+    if (isNaN(n)) return '0'
+    if (n === 0) return '0'
+
+    const coinUpper = (coin || '').toUpperCase()
+    const isUSDC = coinUpper.includes('USDC')
+    const isBTC = coinUpper.includes('BTC')
+
+    // Threshold rules
+    if (isUSDC && n > 0 && n < 0.01) return '<0.01'
+    if (isBTC && n > 0 && n < 0.0000001) return '<0.0000001'
+    if (!isUSDC && !isBTC && n > 0 && n < 0.000001) return '<0.000001'
+
+    // Remove trailing zeros but keep full precision
+    return n.toString().replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '')
   }
 
   const formatDateTime = (timestamp) => {
@@ -1076,7 +1124,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               value={manualIdInput}
               onChange={(e) => setManualIdInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleManualIdSearch()}
-              placeholder="e.g. 1515"
+              placeholder="e.g. 1234"
               style={{
                 background: 'rgba(30, 30, 30, 0.6)',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -1521,7 +1569,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account value</span>
             <h2 style={{ color: '#fff', fontSize: '24px', fontWeight: '400', margin: 0 }}>
-              ${totalAssets.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              ${totalAssets.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h2>
           </div>
         </div>
@@ -1612,6 +1660,115 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               <span style={{ color: '#fff', fontWeight: '600' }}>
                 {leaderboardStats.volumeRank ? `#${leaderboardStats.volumeRank}` : '-'}
               </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+
+        {/* Section 6: Social */}
+        <div style={{ marginBottom: '0' }}>
+          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Referral Code */}
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', position: 'relative' }}
+              onMouseEnter={() => setSocialTooltip('refcode')}
+              onMouseLeave={() => setSocialTooltip(null)}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Ref Code
+                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+              </span>
+              {socialData.ref_code ? (
+                <a
+                  href={`https://sodex.com/join/${socialData.ref_code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#4ade80', fontWeight: '600', textDecoration: 'none' }}
+                >
+                  {socialData.ref_code}
+                </a>
+              ) : (
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>Unknown</span>
+              )}
+              {socialTooltip === 'refcode' && (
+                <div className="social-tooltip">
+                  {socialData.ref_code
+                    ? `Referral code ${socialData.ref_code} has been publicly observed in connection with this wallet. No claim of ownership or control.`
+                    : `Referral code has not been publicly observed in connection with this wallet. No claim of ownership or control.`}
+                </div>
+              )}
+            </div>
+            {/* Discord */}
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', position: 'relative' }}
+              onMouseEnter={() => setSocialTooltip('discord')}
+              onMouseLeave={() => setSocialTooltip(null)}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '12px', height: '12px' }}>
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                </svg>
+                Discord
+                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+              </span>
+              <span style={{ color: socialData.dc_username ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+                {socialData.dc_username || 'Unknown'}
+              </span>
+              {socialTooltip === 'discord' && (
+                <div className="social-tooltip">
+                  {socialData.dc_username
+                    ? `This wallet has been publicly observed in connection with Discord @${socialData.dc_username}. No claim of ownership or control.`
+                    : `This wallet has not been publicly observed in connection with a Discord @handle. No claim of ownership or control.`}
+                </div>
+              )}
+            </div>
+            {/* Telegram */}
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', position: 'relative' }}
+              onMouseEnter={() => setSocialTooltip('telegram')}
+              onMouseLeave={() => setSocialTooltip(null)}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '12px', height: '12px' }}>
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                Telegram
+                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+              </span>
+              <span style={{ color: (socialData.tg_username || socialData.tg_displayname) ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+                {socialData.tg_username || socialData.tg_displayname || 'Unknown'}
+              </span>
+              {socialTooltip === 'telegram' && (
+                <div className="social-tooltip">
+                  {(socialData.tg_username || socialData.tg_displayname)
+                    ? `This wallet has been publicly observed in connection with Telegram @${socialData.tg_username || socialData.tg_displayname}. No claim of ownership or control.`
+                    : `This wallet has not been publicly observed in connection with a Telegram @handle. No claim of ownership or control.`}
+                </div>
+              )}
+            </div>
+            {/* X/Twitter placeholder */}
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', position: 'relative' }}
+              onMouseEnter={() => setSocialTooltip('x')}
+              onMouseLeave={() => setSocialTooltip(null)}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '12px', height: '12px' }}>
+                  <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
+                </svg>
+                X
+                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+                Unknown
+              </span>
+              {socialTooltip === 'x' && (
+                <div className="social-tooltip">
+                  This wallet has not been publicly observed in connection with an X @handle. No claim of ownership or control.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2023,13 +2180,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                                 </div>
                               </td>
                               <td style={{ textAlign: 'right' }}>
-                                {formatNumber(parseFloat(bal.walletBalance || 0))}
+                                {formatBalance(bal.walletBalance, bal.coin)}
                               </td>
                               <td style={{ textAlign: 'right' }}>
-                                {formatNumber(parseFloat(bal.availableBalance || 0))}
+                                {formatBalance(bal.availableBalance, bal.coin)}
                               </td>
                               <td style={{ textAlign: 'right', color: BEARISH_COLOR }}>
-                                {formatNumber(parseFloat(bal.openOrderMarginFrozen || 0))}
+                                {formatBalance(bal.openOrderMarginFrozen, bal.coin)}
                               </td>
                             </tr>
                           ))}
@@ -2099,13 +2256,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                                 </div>
                               </td>
                               <td style={{ textAlign: 'right' }}>
-                                {formatNumber(parseFloat(bal.balance || 0))}
+                                {formatBalance(bal.balance, bal.coin)}
                               </td>
                               <td style={{ textAlign: 'right' }}>
-                                {formatNumber(parseFloat(bal.available || 0))}
+                                {formatBalance(bal.availableBalance, bal.coin)}
                               </td>
                               <td style={{ textAlign: 'right', color: BEARISH_COLOR }}>
-                                {formatNumber(parseFloat(bal.frozen || 0))}
+                                {formatBalance(bal.freeze, bal.coin)}
                               </td>
                             </tr>
                           ))}
