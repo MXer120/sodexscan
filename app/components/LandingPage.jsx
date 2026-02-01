@@ -40,6 +40,8 @@ function LandingPage() {
         <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
           <SearchAndAddBox
             onAction={({ wallet_address }) => router.push(`/tracker?wallet=${encodeURIComponent(wallet_address)}`)}
+            onSearchChange={setSearchInput}
+            searchValue={searchInput}
             actionLabel="Search"
             filterType={filterType}
             onFilterChange={setFilterType}

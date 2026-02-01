@@ -18,6 +18,62 @@ interface SearchAndAddBoxProps {
     placeholder?: string
 }
 
+// Custom Filter Dropdown Component
+function FilterDropdown({ value, onChange }: { value: FilterType, onChange: (val: FilterType) => void }) {
+    const [isOpen, setIsOpen] = useState(false)
+    const dropdownRef = React.useRef<HTMLDivElement>(null)
+
+    // Option mapping
+    const options: { value: FilterType, label: string }[] = [
+        { value: 'all', label: 'All Filters' },
+        { value: 'address', label: 'Address' },
+        { value: 'tag', label: 'Name Tags' },
+        { value: 'socials', label: 'All Socials' },
+        { value: 'discord', label: 'Discord' },
+        { value: 'telegram', label: 'Telegram' },
+        { value: 'refcode', label: 'Referral Code' },
+        { value: 'pnl_rank', label: 'PnL Rank' },
+        { value: 'volume_rank', label: 'Volume Rank' }
+    ]
+
+    const selectedLabel = options.find(o => o.value === value)?.label || 'All Filters'
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
+
+    return (
+        <div className="custom-dropdown-container" ref={dropdownRef}>
+            <div className="custom-dropdown-toggle" onClick={() => setIsOpen(!isOpen)}>
+                {selectedLabel}
+                <svg className="custom-dropdown-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+            <div className={`custom-dropdown-menu ${isOpen ? 'open' : ''}`}>
+                {options.map((option) => (
+                    <div
+                        key={option.value}
+                        className={`custom-dropdown-option ${value === option.value ? 'selected' : ''}`}
+                        onClick={() => {
+                            onChange(option.value)
+                            setIsOpen(false)
+                        }}
+                    >
+                        {option.label}
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 export default function SearchAndAddBox({
     onAction,
     isActionLoading = false,
@@ -251,21 +307,10 @@ export default function SearchAndAddBox({
         <div className="search-add-container">
             <div className="search-add-box">
                 {onFilterChange && filterType && (
-                    <select
-                        className="filter-dropdown"
+                    <FilterDropdown
                         value={filterType}
-                        onChange={(e) => onFilterChange(e.target.value as FilterType)}
-                    >
-                        <option value="all">All Filters</option>
-                        <option value="address">Address</option>
-                        <option value="tag">Name Tags</option>
-                        <option value="socials">All Socials</option>
-                        <option value="discord">Discord</option>
-                        <option value="telegram">Telegram</option>
-                        <option value="refcode">Referral Code</option>
-                        <option value="pnl_rank">PnL Rank</option>
-                        <option value="volume_rank">Volume Rank</option>
-                    </select>
+                        onChange={(val) => onFilterChange(val)}
+                    />
                 )}
                 <input
                     type="text"

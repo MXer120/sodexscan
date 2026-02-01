@@ -16,27 +16,90 @@
     /* Limit width on large screens */
 }
 
-.filter-dropdown {
-    background: transparent;
-    border: none;
-    padding: 4px 8px;
-    font-size: 12px;
-    color: #fff;
-    cursor: pointer;
-    min-width: 100px;
+.custom-dropdown-container {
+    position: relative;
+    min-width: 130px;
     flex-shrink: 0;
+}
+
+.custom-dropdown-toggle {
+    background-color: rgba(20, 20, 20, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
+    padding: 6px 32px 6px 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    white-space: nowrap;
+    position: relative;
 }
 
-.filter-dropdown:focus {
-    outline: none;
-    background: rgba(30, 30, 30, 0.8);
-}
-
-.filter-dropdown option {
-    background: #1a1a1a;
+.custom-dropdown-toggle:hover {
+    background-color: rgba(30, 30, 30, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
     color: #fff;
-    padding: 8px;
+}
+
+.custom-dropdown-arrow {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 160px;
+    /* Slightly wider than container for text fits */
+    background-color: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: none;
+}
+
+.custom-dropdown-menu.open {
+    display: block;
+    animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.custom-dropdown-option {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.1s;
+}
+
+.custom-dropdown-option:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.custom-dropdown-option.selected {
+    background-color: rgba(255, 118, 72, 0.15);
+    color: #FF7648;
 }
 
 .search-add-input {
@@ -117,7 +180,7 @@
         align-items: center;
     }
 
-    .filter-dropdown {
+    .custom-dropdown-container {
         display: none;
     }
 
