@@ -1915,7 +1915,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       </aside>
 
       {/* 4. Bottom Center - Tabs */}
-      <div className="section-bottom-center">
+      <div className="section-bottom-center" onScroll={handleScroll}>
         {/* Tab Navigation */}
         <div style={{ position: 'relative', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="tab-nav-row" style={{
@@ -2000,7 +2000,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', width: '100%' }} />
         </div>
 
-        <div className="tab-scroll-area" onScroll={handleScroll}>
+        <div className="tab-scroll-area">
           {/* Tab Content */}
           {activeTab === 'Positions' && (
             <div>
