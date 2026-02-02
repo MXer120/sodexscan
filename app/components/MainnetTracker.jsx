@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import ChartCard from './ChartCard'
+import PnlCalendar from './PnlCalendar'
 import { TimeSelector } from './ui/TimeSelector'
 import { getSodexIdFromWallet } from '../lib/accountResolver'
 import { globalCache } from '../lib/globalCache'
@@ -354,6 +355,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     '0x3887A01Af83E53c960469d60908DEB83748f22FB': { symbol: 'MAG7.ssi', decimals: 8 }
   })
   const [pnlHistory, setPnlHistory] = useState([])
+  const [pnlViewMode, setPnlViewMode] = useState('chart') // 'chart' | 'calendar'
+  const [calendarView, setCalendarView] = useState('monthly') // 'weekly' | 'monthly' | 'yearly'
   const [positions, setPositions] = useState([])
   const [positionHistory, setPositionHistory] = useState([])
   const [totalAssets, setTotalAssets] = useState(0)
@@ -397,6 +400,19 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [showEditMenu, setShowEditMenu] = useState(false)
   const [isEditingAlias, setIsEditingAlias] = useState(false)
   const [aliasInput, setAliasInput] = useState('')
+  // Scroll state for sticky header (history tab)
+  const historyHeaderRef = useRef(null)
+  const historyContainerRef = useRef(null)
+
+  // Mobile check
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 900)
+    handleResize() // Init
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   const editMenuRef = useRef(null)
   const aliasInputRef = useRef(null)
 
@@ -1284,10 +1300,12 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center',
-          padding: '40px'
+          padding: '40px 20px',
+          height: '475px',
+          boxSizing: 'border-box'
         }}>
           <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
-          <div className="loading-progress-container">
+          <div className="loading-progress-container" style={{ maxWidth: 'calc(100% - 40px)' }}>
             <div className="loading-progress-bar" style={{ width: `${loadingProgress}%` }}></div>
           </div>
           <p className="loading-step-text" style={{ height: '20px' }}>{loadingStep}</p>
@@ -1775,19 +1793,84 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       </aside>
 
       {/* 5. Top Center - PnL Chart */}
-      <div className="section-top-center">
+      <div
+        className="section-top-center"
+        style={{
+          position: 'relative',
+          height: isMobile && pnlViewMode === 'calendar' ? 'auto' : (pnlViewMode === 'chart' ? '475px' : calendarView === 'weekly' ? '320px' : calendarView === 'yearly' ? '380px' : '750px'),
+          marginBottom: isMobile ? '16px' : '0',
+          transition: 'height 0.3s ease'
+        }}
+      >
+        {/* Chart/Calendar Switch - Top Left */}
+        <div style={{
+          position: 'absolute',
+          left: '12px',
+          top: '12px',
+          zIndex: 10
+        }}>
+          <div style={{
+            display: 'flex',
+            background: 'rgba(0,0,0,0.4)',
+            borderRadius: '4px',
+            padding: '2px',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <button
+              onClick={() => setPnlViewMode('chart')}
+              style={{
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontWeight: '600',
+                background: pnlViewMode === 'chart' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: pnlViewMode === 'chart' ? '#fff' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Chart
+            </button>
+            <button
+              onClick={() => setPnlViewMode('calendar')}
+              style={{
+                padding: '3px 8px',
+                fontSize: '10px',
+                fontWeight: '600',
+                background: pnlViewMode === 'calendar' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: pnlViewMode === 'calendar' ? '#fff' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Calendar
+            </button>
+          </div>
+        </div>
+
         {pnlHistory.length > 0 ? (
-          <ChartCard
-            title=""
-            data={pnlHistory}
-            series={[
-              { key: 'cumulative', label: 'Cumulative PnL', type: 'line', cumulative: true, hideLegend: true },
-              { key: 'daily', label: 'Daily PnL', type: 'bar', hideLegend: true }
-            ]}
-            showCumulative={true}
-            defaultSelected={['cumulative', 'daily']}
-            fullHeight={true}
-          />
+          pnlViewMode === 'chart' ? (
+            <ChartCard
+              title=""
+              data={pnlHistory}
+              series={[
+                { key: 'cumulative', label: 'Cumulative PnL', type: 'line', cumulative: true, hideLegend: true },
+                { key: 'daily', label: 'Daily PnL', type: 'bar', hideLegend: true }
+              ]}
+              showCumulative={true}
+              defaultSelected={['cumulative', 'daily']}
+              fullHeight={true}
+            />
+          ) : (
+            <PnlCalendar
+              pnlHistory={pnlHistory}
+              view={calendarView}
+              onViewChange={setCalendarView}
+            />
+          )
         ) : (
           <div style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '12px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}>
             No PnL data available
@@ -1915,7 +1998,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       </aside>
 
       {/* 4. Bottom Center - Tabs */}
-      <div className="section-bottom-center" onScroll={handleScroll}>
+      <div className="section-bottom-center" onScroll={handleScroll} style={{ transition: 'all 0.3s ease' }}>
         {/* Tab Navigation */}
         <div style={{ position: 'relative', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="tab-nav-row" style={{
@@ -1923,7 +2006,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '0 16px',
-            marginBottom: '0'
+            marginBottom: '0',
+            position: 'relative',
+            zIndex: 20
           }}>
             <div className="tab-buttons" style={{ display: 'flex', gap: '0', position: 'relative' }}>
               {tabs.map((tab, idx) => (
@@ -1972,7 +2057,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 background: 'rgba(255,255,255,0.05)',
                 padding: '2px',
                 borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.08)'
+                border: '1px solid rgba(255,255,255,0.08)',
+                position: 'relative',
+                zIndex: 10
               }}>
                 {['Futures', 'Spot'].map(mode => (
                   <button
@@ -2615,6 +2702,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           )}
         </div>
       </div>
-    </div>
+    </div >
   )
 }

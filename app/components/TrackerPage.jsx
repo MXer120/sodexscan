@@ -135,7 +135,9 @@ function TrackerPage() {
               alignItems: 'center',
               justifyContent: 'center',
               textAlign: 'center',
-              padding: '40px'
+              padding: '40px 20px',
+              height: '475px',
+              boxSizing: 'border-box'
             }}>
               <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>SoDex Mainnet Scan</h3>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>

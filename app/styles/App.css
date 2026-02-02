@@ -140,7 +140,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  padding: 12px 12px 0 12px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -407,10 +408,10 @@
 
   /* Chart header alignment on mobile */
   .chart-header {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    padding: 0;
   }
 
   .chart-title {
@@ -418,8 +419,13 @@
   }
 
   .chart-controls {
-    width: 100%;
-    justify-content: flex-start;
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  /* Hide selector (first child) on mobile */
+  .chart-controls>div:first-of-type {
+    display: none !important;
   }
 
   /* Make tables scrollable on mobile */

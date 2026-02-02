@@ -380,23 +380,27 @@ export default function ChartCard({
       <div className="chart-header">
         <h3 className="chart-title">{title}</h3>
         <div className="chart-controls">
-          <div style={{ position: 'relative' }} ref={dropdownRef}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                height: '32px',
-                borderRadius: '6px',
-                background: 'rgba(30, 30, 30, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                padding: '0 12px',
-                color: '#fff',
-                fontSize: '12px',
-                fontWeight: '500',
+                justifyContent: 'center',
+                height: '24px',
+                borderRadius: '4px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '0 10px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '10px',
+                fontWeight: '600',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                gap: '6px'
+                gap: '6px',
+                outline: 'none',
+                WebkitTapHighlightColor: 'transparent',
+                boxSizing: 'border-box'
               }}
             >
               {selectedSeries.length} Selected ▼

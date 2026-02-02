@@ -57,10 +57,9 @@ export function TimeSelector({
         `}</style>
         <div style={{
           display: 'inline-flex',
-          height: '28px',
-          borderRadius: '6px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(8px)',
+          height: '24px',
+          borderRadius: '4px',
+          background: 'rgba(0,0,0,0.3)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           padding: '2px',
           boxSizing: 'border-box'
@@ -73,9 +72,9 @@ export function TimeSelector({
                   position: 'absolute',
                   top: '0',
                   bottom: '0',
-                  borderRadius: '4px',
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '3px',
+                  background: 'rgba(255, 118, 72, 0.2)',
+                  border: '1px solid rgba(255, 118, 72, 0.3)',
                   zIndex: 0,
                 }}
                 initial={false}
@@ -95,12 +94,12 @@ export function TimeSelector({
                   position: 'relative',
                   zIndex: 1,
                   padding: '0 8px',
-                  minWidth: '36px',
+                  minWidth: '32px',
                   height: '100%',
                   background: 'transparent',
                   border: 'none',
-                  color: value === option ? '#fff' : 'rgba(255, 255, 255, 0.4)',
-                  fontSize: '11px',
+                  color: value === option ? '#FF7648' : 'rgba(255, 255, 255, 0.4)',
+                  fontSize: '10px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'color 0.2s',
@@ -108,7 +107,9 @@ export function TimeSelector({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flex: 1
+                  flex: 1,
+                  outline: 'none',
+                  WebkitTapHighlightColor: 'transparent'
                 }}
               >
                 {option}
