@@ -1869,6 +1869,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               pnlHistory={pnlHistory}
               view={calendarView}
               onViewChange={setCalendarView}
+              trades={positionHistory}
+              symbolMap={symbolMap}
             />
           )
         ) : (

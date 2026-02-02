@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 const BULLISH_COLOR = '#33AF80'
 const BEARISH_COLOR = '#DB324D'
@@ -38,9 +39,11 @@ const getPnlTextColor = (pnl, isBestDay) => {
 // Get start of week (Monday)
 const getWeekStart = (date) => {
   const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  return new Date(d.setDate(diff))
+  const day = d.getUTCDay()
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1)
+  const res = new Date(d)
+  res.setUTCDate(diff)
+  return res
 }
 
 // Format number with K/M suffixes
@@ -74,8 +77,22 @@ const getLongestStreak = (dailyData) => {
   return maxStreak
 }
 
-export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewChange }) {
+export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewChange, trades = [], symbolMap = {} }) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState(null)
+
+  // Map trades to dates based on created_at
+  const tradesByDate = useMemo(() => {
+    const map = {}
+    trades.forEach(trade => {
+      if (!trade.created_at) return
+      const date = new Date(trade.created_at)
+      const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+      if (!map[dateStr]) map[dateStr] = []
+      map[dateStr].push(trade)
+    })
+    return map
+  }, [trades])
 
   // Build daily PNL map from history
   const dailyPnlMap = useMemo(() => {
@@ -186,27 +203,33 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStart)
-      date.setDate(date.getDate() + i)
-      const dateStr = date.toISOString().split('T')[0]
+      date.setUTCDate(date.getUTCDate() + i)
+      const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
       const pnl = dailyPnlMap[dateStr] || 0
       const isBestDay = dateStr === stats.bestDay
       const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
       const textColor = getPnlTextColor(pnl, isBestDay)
 
       days.push(
-        <div key={i} className="calendar-day-cell" style={{
-          flex: 1,
-          aspectRatio: '1',
-          display: 'flex',
-          flexDirection: 'column',
-          background: bgColor,
-          borderRadius: 'clamp(3px, 0.5vw, 6px)',
-          padding: 'clamp(4px, 0.8vw, 8px)',
-          border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : '1px solid rgba(255,255,255,0.05)',
-          boxSizing: 'border-box',
-          minWidth: '40px',
-          maxWidth: 'min(80px, 12vw)'
-        }}>
+        <div key={i}
+          className="calendar-day-cell"
+          onClick={() => setSelectedDate(dateStr)}
+          style={{
+            flex: 1,
+            aspectRatio: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            background: bgColor,
+            borderRadius: 'clamp(3px, 0.5vw, 6px)',
+            padding: 'clamp(4px, 0.8vw, 8px)',
+            border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : '1px solid rgba(255,255,255,0.05)',
+            boxSizing: 'border-box',
+            minWidth: '40px',
+            maxWidth: 'min(80px, 12vw)',
+            cursor: 'pointer',
+            transition: 'transform 0.1s ease',
+            position: 'relative'
+          }}>
           <div style={{ fontSize: 'clamp(7px, 1.2vw, 9px)', color: isBestDay ? PRIMARY_COLOR : 'rgba(255,255,255,0.4)', lineHeight: 1 }}>
             {dayNames[i]}
           </div>
@@ -240,11 +263,11 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
 
   // Render monthly calendar
   const renderMonthlyCalendar = () => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const startOffset = (firstDay.getDay() + 6) % 7
+    const year = currentDate.getUTCFullYear()
+    const month = currentDate.getUTCMonth()
+    const firstDay = new Date(Date.UTC(year, month, 1))
+    const lastDay = new Date(Date.UTC(year, month + 1, 0))
+    const startOffset = (firstDay.getUTCDay() + 6) % 7
 
     const cells = []
 
@@ -262,18 +285,23 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       const textColor = getPnlTextColor(pnl, isBestDay)
 
       cells.push(
-        <div key={d} className="calendar-day-cell" style={{
-          aspectRatio: '1',
-          display: 'flex',
-          flexDirection: 'column',
-          background: bgColor,
-          borderRadius: 'clamp(2px, 0.4vw, 4px)',
-          padding: 'clamp(2px, 0.4vw, 4px)',
-          border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent',
-          boxSizing: 'border-box',
-          minWidth: '30px',
-          maxWidth: 'min(100px, 14vw)'
-        }}>
+        <div key={d}
+          className="calendar-day-cell"
+          onClick={() => setSelectedDate(dateStr)}
+          style={{
+            aspectRatio: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            background: bgColor,
+            borderRadius: 'clamp(2px, 0.4vw, 4px)',
+            padding: 'clamp(2px, 0.4vw, 4px)',
+            border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : '1px solid transparent',
+            boxSizing: 'border-box',
+            minWidth: '30px',
+            maxWidth: 'min(100px, 14vw)',
+            cursor: 'pointer',
+            transition: 'transform 0.1s ease'
+          }}>
           <div style={{ fontSize: 'clamp(7px, 1.2vw, 9px)', color: isBestDay ? PRIMARY_COLOR : 'rgba(255,255,255,0.5)', lineHeight: 1 }}>{d}</div>
           <div style={{
             flex: 1,
@@ -351,11 +379,11 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
     const monthPositions = Array(12).fill(0)
 
     // Start from first day of year
-    const startYear = new Date(year, 0, 1)
-    const endYear = new Date(year, 11, 31)
+    const startYear = new Date(Date.UTC(year, 0, 1))
+    const endYear = new Date(Date.UTC(year, 11, 31))
 
     // Find day of week for Jan 1 (Monday=0, Sunday=6)
-    const jan1DayOfWeek = (startYear.getDay() + 6) % 7
+    const jan1DayOfWeek = (startYear.getUTCDay() + 6) % 7
 
     // Setup date range
     const current = new Date(startYear)
@@ -380,11 +408,11 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
             }} />
           )
         } else {
-          const dateStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`
+          const dateStr = `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, '0')}-${String(current.getUTCDate()).padStart(2, '0')}`
 
           // Track month start position (first week that contains the 1st of the month)
-          if (current.getDate() === 1) {
-            monthPositions[current.getMonth()] = weekIndex
+          if (current.getUTCDate() === 1) {
+            monthPositions[current.getUTCMonth()] = weekIndex
           }
 
           const pnl = dailyPnlMap[dateStr] || 0
@@ -396,18 +424,21 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
           }
 
           week.push(
-            <div key={dateStr} style={{
-              width: `${cellWidth}px`,
-              height: `${cellWidth}px`,
-              background: bgColor,
-              borderRadius: '1px',
-              border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : 'none',
-              boxSizing: 'border-box'
-            }} title={`${dateStr}: ${formatPnl(pnl)}`} />
+            <div key={dateStr}
+              onClick={() => setSelectedDate(dateStr)}
+              style={{
+                width: `${cellWidth}px`,
+                height: `${cellWidth}px`,
+                background: bgColor,
+                borderRadius: '1px',
+                border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : 'none',
+                boxSizing: 'border-box',
+                cursor: 'pointer'
+              }} title={`${dateStr}: ${formatPnl(pnl)}`} />
           )
 
           // Increment day
-          current.setDate(current.getDate() + 1)
+          current.setUTCDate(current.getUTCDate() + 1)
         }
       }
 
@@ -626,6 +657,175 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       }}>
         Best streak: <span style={{ color: BULLISH_COLOR, fontWeight: '600' }}>{stats.streak} days</span>
       </div>
+
+      {selectedDate && (
+        <DayDetailModal
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          tradesByDate={tradesByDate}
+          dailyPnlMap={dailyPnlMap}
+          symbolMap={symbolMap}
+          BULLISH_COLOR={BULLISH_COLOR}
+          BEARISH_COLOR={BEARISH_COLOR}
+          getPnlTextColor={getPnlTextColor}
+          formatPnl={formatPnl}
+        />
+      )}
+
     </div>
+  )
+}
+
+function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlMap, symbolMap, BULLISH_COLOR, BEARISH_COLOR, getPnlTextColor, formatPnl }) {
+  // Prevent scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = 'unset' }
+  }, [])
+
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
+    <div
+      onClick={() => setSelectedDate(null)}
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#141414',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '16px',
+          width: '100%',
+          maxWidth: '400px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+          overflow: 'hidden',
+          animation: 'modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+        {/* Modal Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>
+              {new Date(selectedDate + 'T00:00:00Z').toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })}
+            </div>
+            <div style={{ fontSize: '18px', color: '#fff', fontWeight: '700' }}>
+              {new Date(selectedDate + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginBottom: '2px' }}>Net PnL</div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: getPnlTextColor(dailyPnlMap[selectedDate] || 0) }}>
+              {formatPnl(dailyPnlMap[selectedDate] || 0)}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Content */}
+        <div style={{ padding: '20px' }}>
+          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+            Trades Opened ({tradesByDate[selectedDate]?.length || 0})
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {tradesByDate[selectedDate]?.length > 0 ? (
+              <>
+                {tradesByDate[selectedDate].slice(0, 3).map((trade, idx) => {
+                  const sym = symbolMap[trade.symbol_id] || trade.symbol_id
+                  const isLong = parseInt(trade.position_side) === 2
+                  const pnl = parseFloat(trade.realized_pnl) || 0
+                  return (
+                    <div key={idx} style={{
+                      background: 'rgba(255,118,72,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      padding: '12px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: '700', color: '#fff', fontSize: '14px' }}>{sym}</span>
+                          <span style={{
+                            fontSize: '10px',
+                            background: isLong ? 'rgba(51, 175, 128, 0.15)' : 'rgba(219, 50, 77, 0.15)',
+                            color: isLong ? BULLISH_COLOR : BEARISH_COLOR,
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontWeight: '700'
+                          }}>
+                            {isLong ? 'LONG' : 'SHORT'} {trade.leverage}x
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: '700', color: pnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR, fontSize: '14px' }}>
+                          {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '2px' }}>Entry</div>
+                          <div style={{ fontSize: '12px', color: '#fff', fontWeight: '500' }}>${parseFloat(trade.avg_entry_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '2px' }}>Exit</div>
+                          <div style={{ fontSize: '12px', color: '#fff', fontWeight: '500' }}>${parseFloat(trade.avg_close_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '2px' }}>Size</div>
+                          <div style={{ fontSize: '12px', color: '#fff', fontWeight: '500' }}>{trade.max_size}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                {tradesByDate[selectedDate].length > 3 && (
+                  <div style={{ textAlign: 'center', padding: '10px', fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
+                    + {tradesByDate[selectedDate].length - 3} more trades. View trade history for more info.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '10px' }}>
+                <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px' }}>No trades opened on this day</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <button
+          onClick={() => setSelectedDate(null)}
+          style={{
+            width: '100%',
+            padding: '16px',
+            background: 'rgba(255,255,255,0.05)',
+            border: 'none',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            color: '#fff',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+        >
+          Close
+        </button>
+      </div>
+
+      <style jsx>{`
+        @keyframes modalFadeIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+    </div>,
+    document.body
   )
 }
