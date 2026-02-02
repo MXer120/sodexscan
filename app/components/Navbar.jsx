@@ -9,9 +9,15 @@ import '../styles/Navbar.css'
 
 function Navbar() {
   const pathname = usePathname()
-  const { user } = useSessionContext()
+  const { user, setAuthModalCallback } = useSessionContext()
   const [showAuth, setShowAuth] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Register the auth modal callback with the context
+  useEffect(() => {
+    setAuthModalCallback(() => () => setShowAuth(true))
+    return () => setAuthModalCallback(null)
+  }, [setAuthModalCallback])
 
   // Close mobile menu on route change
   useEffect(() => {

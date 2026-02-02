@@ -2,7 +2,7 @@
 
 .mainnet-page {
   padding: 40px;
-  padding-top: 100px;
+  padding-top: 80px;
   max-width: 1600px;
   margin: 0 auto;
 }
@@ -578,7 +578,7 @@
   border-color: rgba(255, 255, 255, 0.5);
 }
 
-.leaderboard-checkbox input[type="checkbox"]:checked + .custom-check {
+.leaderboard-checkbox input[type="checkbox"]:checked+.custom-check {
   background: #667eea;
   border-color: #667eea;
 }
@@ -593,7 +593,7 @@
   transition: all 0.15s;
 }
 
-.leaderboard-checkbox input[type="checkbox"]:checked + .custom-check svg {
+.leaderboard-checkbox input[type="checkbox"]:checked+.custom-check svg {
   opacity: 1;
   transform: scale(1);
 }
@@ -869,5 +869,134 @@
 
   .stat-value {
     font-size: 18px;
+  }
+}
+
+/* Sign Up CTA Section */
+.signup-cta-section {
+  margin-top: 60px;
+  padding: 60px 40px;
+  background: linear-gradient(180deg, rgba(30, 30, 30, 0.4) 0%, rgba(20, 20, 20, 0.6) 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.signup-cta-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 118, 72, 0.5), transparent);
+}
+
+.signup-cta-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.signup-cta-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.signup-cta-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 48px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.signup-cta-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.signup-cta-feature-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 32px 24px;
+  transition: all 0.3s ease;
+}
+
+.signup-cta-feature-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 118, 72, 0.2);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 118, 72, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: #ff7648;
+}
+
+.feature-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.feature-description {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+}
+
+.signup-cta-button {
+  background: linear-gradient(135deg, #ff7648 0%, #ff5d2b 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 16px 40px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(255, 93, 43, 0.3);
+}
+
+.signup-cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 25px rgba(255, 93, 43, 0.4);
+}
+
+@media (max-width: 768px) {
+  .signup-cta-section {
+    padding: 40px 20px;
+  }
+
+  .signup-cta-features {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .signup-cta-title {
+    font-size: 24px;
   }
 }

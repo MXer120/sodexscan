@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import TopPairs from './TopPairs'
 import SearchAndAddBox from './SearchAndAddBox'
+import SignUpCTA from './SignUpCTA'
 import '../styles/MainnetPage.css'
 
 function LandingPage() {
@@ -23,7 +24,7 @@ function LandingPage() {
   }
 
   return (
-    <div className="landing-page" style={{ padding: '40px', paddingTop: '100px', maxWidth: '1600px', margin: '0 auto' }}>
+    <div className="landing-page" style={{ padding: '40px', paddingTop: '80px', maxWidth: '1600px', margin: '0 auto' }}>
       {/* Wallet Search Box */}
       <div className="landing-search-box" style={{
         marginBottom: '40px',
@@ -50,6 +51,8 @@ function LandingPage() {
       </div>
 
       <TopPairs />
+
+      <SignUpCTA />
     </div>
   )
 }
