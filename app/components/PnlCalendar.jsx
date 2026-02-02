@@ -80,6 +80,7 @@ const getLongestStreak = (dailyData) => {
 export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewChange, trades = [], symbolMap = {} }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
+  const [hoveredDay, setHoveredDay] = useState(null)
 
   // Map trades to dates based on created_at
   const tradesByDate = useMemo(() => {
@@ -426,6 +427,16 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
           week.push(
             <div key={dateStr}
               onClick={() => setSelectedDate(dateStr)}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                setHoveredDay({
+                  date: dateStr,
+                  pnl: pnl,
+                  x: rect.left + rect.width / 2,
+                  y: rect.top
+                })
+              }}
+              onMouseLeave={() => setHoveredDay(null)}
               style={{
                 width: `${cellWidth}px`,
                 height: `${cellWidth}px`,
@@ -434,7 +445,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
                 border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : 'none',
                 boxSizing: 'border-box',
                 cursor: 'pointer'
-              }} title={`${dateStr}: ${formatPnl(pnl)}`} />
+              }} />
           )
 
           // Increment day
@@ -672,6 +683,51 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
         />
       )}
 
+      {/* Mini Hover Tooltip UI */}
+      {hoveredDay && typeof document !== 'undefined' && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: hoveredDay.y - 10,
+          left: hoveredDay.x,
+          transform: 'translate(-50%, -100%)',
+          background: 'rgba(20, 20, 20, 0.95)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '6px',
+          padding: '6px 10px',
+          zIndex: 99999,
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          animation: 'tooltipFadeIn 0.15s ease-out'
+        }}>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '500', marginBottom: '2px' }}>
+            {new Date(hoveredDay.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: '700', color: getPnlTextColor(hoveredDay.pnl) }}>
+            {formatPnl(hoveredDay.pnl)}
+          </div>
+          <div style={{
+            position: 'absolute',
+            bottom: '-4px',
+            left: '50%',
+            transform: 'translateX(-50%) rotate(45deg)',
+            width: '8px',
+            height: '8px',
+            background: 'rgba(20, 20, 20, 0.95)',
+            borderRight: '1px solid rgba(255,255,255,0.1)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)'
+          }} />
+        </div>,
+        document.body
+      )}
+
+      <style jsx>{`
+        @keyframes tooltipFadeIn {
+          from { opacity: 0; transform: translate(-50%, -90%); }
+          to { opacity: 1; transform: translate(-50%, -100%); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -818,7 +874,6 @@ function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlM
           Close
         </button>
       </div>
-
       <style jsx>{`
         @keyframes modalFadeIn {
           from { opacity: 0; transform: scale(0.95) translateY(10px); }

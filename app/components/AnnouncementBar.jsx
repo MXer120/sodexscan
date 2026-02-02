@@ -6,9 +6,20 @@ import '../styles/AnnouncementBar.css'
 
 const AnnouncementBar = () => {
     const [announcements, setAnnouncements] = useState([])
+    const [dismissedData, setDismissedData] = useState({})
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+        // Load dismissed data from local storage
+        const saved = localStorage.getItem('dismissed_announcements_v2')
+        if (saved) {
+            try {
+                setDismissedData(JSON.parse(saved))
+            } catch (e) {
+                console.error('Error parsing dismissed announcements:', e)
+            }
+        }
+
         const fetchAnnouncements = async () => {
             try {
                 const { data, error } = await supabase
@@ -42,7 +53,38 @@ const AnnouncementBar = () => {
         }
     }, [])
 
-    if (loading || announcements.length === 0) {
+    const handleDismiss = (e, announcement) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const newDismissed = {
+            ...dismissedData,
+            [announcement.id]: {
+                timestamp: Date.now(),
+                content: announcement.content
+            }
+        }
+        setDismissedData(newDismissed)
+        localStorage.setItem('dismissed_announcements_v2', JSON.stringify(newDismissed))
+    }
+
+    // Filter out dismissed announcements logic
+    const visibleAnnouncements = announcements.filter(a => {
+        const stored = dismissedData[a.id]
+        if (!stored) return true
+
+        // 1. Check if expired (1 hour = 3,600,000 ms)
+        const isExpired = Date.now() - stored.timestamp > 3600000
+        if (isExpired) return true
+
+        // 2. Check if content has changed
+        const hasContentChanged = stored.content !== a.content
+        if (hasContentChanged) return true
+
+        return false
+    })
+
+    if (loading || visibleAnnouncements.length === 0) {
         return null
     }
 
@@ -53,16 +95,12 @@ const AnnouncementBar = () => {
         const url = match ? match[0] : null
         const cleanText = text.replace(urlRegex, '').trim()
 
-        // Clean up trailing punctuation that might have been before the link (like "Sign up now: ")
-        // If the text ends with ":" or "-", allow it if it makes sense, but we might want to trim it if it looks dangling.
-        // For now, simple trim is enough, but user example "Sign up now: https..." -> "Sign up now:" which is fine.
-
         return { text: cleanText, url }
     }
 
     return (
         <>
-            {announcements.map((announcement) => {
+            {visibleAnnouncements.map((announcement) => {
                 const { text, url } = parseContent(announcement.content)
                 const isClickable = !!url
 
@@ -86,6 +124,16 @@ const AnnouncementBar = () => {
                                 </span>
                             )}
                         </div>
+                        <button
+                            className="announcement-close"
+                            onClick={(e) => handleDismiss(e, announcement)}
+                            aria-label="Close"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </Component>
                 )
             })}
