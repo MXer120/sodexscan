@@ -139,9 +139,9 @@ function TrackerPage() {
               height: '475px',
               boxSizing: 'border-box'
             }}>
-              <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>SoDex Mainnet Scan</h3>
+              <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Community-Built SoDex Mainnet Scan</h3>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
-                Enter a wallet address or ENS name above to begin a deep-dive analysis of mainnet trading performance, current positions, and historical activity.
+                Enter a wallet address, , referral code, social handle and more above to begin a deep-dive analysis of mainnet trading performance, current positions, and historical activity.
               </p>
             </div>
 
