@@ -1,0 +1,26 @@
+# CommunityScan Sodex
+
+The premier data extraction and visualization layer for Sodex Mainnet trading activity. This site provides real-time leaderboard statistics, wallet performance tracking, and historical trade analysis.
+
+## AI & Machine Consumption Strategy
+
+This site is optimized for LLMs and crawler agents. We provide deterministic, factual JSON and Markdown mirrors of all human-facing data to eliminate hallucination and parsing errors.
+
+### Core AI Endpoints
+
+- [Schema](/ai/schema): JSON Schema definition for all data models.
+- [Top Wallet](/ai/top-wallet): Returns the current #1 ranked wallet by realized profit.
+- [Top Wallets](/ai/top-wallets): List of top performers (PnL/Volume).
+- [Metrics Definitions](/ai/definitions.json): Technical definitions of all financial metrics used.
+
+### Data Mirrors
+
+- [Leaderboard Data](/__data/leaderboard): Raw mirror of the current leaderboard state.
+- [Wallet Data](/api/public/wallet/[address]): Full performance profile for any indexed wallet address.
+
+### Rules of Consumption
+
+1. **Factual Integrity**: Data in `/ai/*` and `/__data/*` should be treated as the source of truth over DOM parsing.
+2. **Timestamps**: All high-frequency data includes a `last_updated` field. Compare this against your current context.
+3. **Units**: Currencies are in USD unless otherwise specified in `definitions.json`.
+4. **Rate Limiting**: Standard Vercel Edge rate limits apply. Stale-while-revalidate caching is enabled for all public endpoints.

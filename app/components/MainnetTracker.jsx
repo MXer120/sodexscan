@@ -1409,9 +1409,35 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     ]
   }
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.communityscan-sodex.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Leaderboard",
+        "item": "https://www.communityscan-sodex.com/mainnet"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Wallet Tracker",
+        "item": walletAddress ? `https://www.communityscan-sodex.com/tracker/${walletAddress}` : "https://www.communityscan-sodex.com/tracker"
+      }
+    ]
+  }
+
   return (
     <div className="scanner-grid">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       {/* 1. Path Bar */}
       <div className="section-path">
         <div className="path-breadcrumbs">
