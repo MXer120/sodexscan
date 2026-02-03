@@ -121,21 +121,21 @@ class GlobalCache {
   }
 
   // Top 10 cache
-  getTop10(showZero) {
-    const key = `top10_${showZero}`
+  getTop10(showZero, excludeSodex) {
+    const key = `top10_${showZero}_${excludeSodex}`
     const cached = this.caches.top10[key]
     if (!cached || !cached.timestamp) return null
 
     const age = Date.now() - cached.timestamp
     if (age >= this.TTL.mainnetPage) {
-      this.caches.top10 = { gainers: [], losers: [], timestamp: 0 }
+      delete this.caches.top10[key]
       return null
     }
     return { gainers: cached.gainers, losers: cached.losers }
   }
 
-  setTop10(gainers, losers, showZero) {
-    const key = `top10_${showZero}`
+  setTop10(gainers, losers, showZero, excludeSodex) {
+    const key = `top10_${showZero}_${excludeSodex}`
     this.caches.top10[key] = {
       gainers,
       losers,

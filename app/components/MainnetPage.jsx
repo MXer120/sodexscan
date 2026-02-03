@@ -92,7 +92,7 @@ export default function MainnetPage() {
   useEffect(() => {
     setLeaderboardPage(1)
     loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData)
-    loadTop10(showZeroData)
+    loadTop10(showZeroData, excludeSodexOwned)
   }, [excludeSodexOwned, showZeroData, leaderboardType])
 
   // Load single page of leaderboard (20 users)
@@ -126,8 +126,8 @@ export default function MainnetPage() {
           .select('*', { count: 'exact', head: true })
 
         if (excludeSodex) {
-          // Robust filter for "Not Sodex Owned": Includes NULL and FALSE
-          countQuery = countQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+          // Exclude Sodex-owned: IS NOT TRUE handles both NULL and FALSE
+          countQuery = countQuery.not('is_sodex_owned', 'is', true)
         }
 
         if (!showZero) {
@@ -148,8 +148,8 @@ export default function MainnetPage() {
         .order(orderColumn, { ascending: true, nullsFirst: false })
 
       if (excludeSodex) {
-        // Robust filter for "Not Sodex Owned": Includes NULL and FALSE
-        dataQuery = dataQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+        // Exclude Sodex-owned: IS NOT TRUE handles both NULL and FALSE
+        dataQuery = dataQuery.not('is_sodex_owned', 'is', true)
       }
 
       if (!showZero) {
@@ -188,10 +188,10 @@ export default function MainnetPage() {
     setLeaderboardLoading(false)
   }
 
-  // Load top 10 gainers/losers (PnL only) - always excludes Sodex-owned
-  const loadTop10 = async (showZero = false) => {
+  // Load top 10 gainers/losers (PnL only)
+  const loadTop10 = async (showZero = false, excludeSodex = true) => {
     // Check global cache first
-    const cached = globalCache.getTop10(showZero)
+    const cached = globalCache.getTop10(showZero, excludeSodex)
     if (cached) {
       setTopGainersData(cached.gainers)
       setTopLosersData(cached.losers)
@@ -201,13 +201,16 @@ export default function MainnetPage() {
 
     setTop10Loading(true)
     try {
-      // Top 10 gainers (exclude Sodex-owned)
+      // Top 10 gainers
       let gainersQuery = supabase
         .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume')
-        .not('is_sodex_owned', 'is', true)
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned')
         .order('cumulative_pnl', { ascending: false, nullsFirst: false })
         .limit(10)
+
+      if (excludeSodex) {
+        gainersQuery = gainersQuery.not('is_sodex_owned', 'is', true)
+      }
 
       if (!showZero) {
         gainersQuery = gainersQuery.gt('cumulative_pnl', 0)
@@ -221,13 +224,16 @@ export default function MainnetPage() {
 
       if (gainersError) throw gainersError
 
-      // Top 10 losers (exclude Sodex-owned)
+      // Top 10 losers
       let losersQuery = supabase
         .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume')
-        .not('is_sodex_owned', 'is', true)
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned')
         .order('cumulative_pnl', { ascending: true, nullsFirst: false })
         .limit(10)
+
+      if (excludeSodex) {
+        losersQuery = losersQuery.not('is_sodex_owned', 'is', true)
+      }
 
       if (!showZero) {
         losersQuery = losersQuery.lt('cumulative_pnl', 0)
@@ -250,7 +256,7 @@ export default function MainnetPage() {
       const formattedLosers = (losers || []).map(formatUser)
 
       // Update global cache
-      globalCache.setTop10(formattedGainers, formattedLosers, showZero)
+      globalCache.setTop10(formattedGainers, formattedLosers, showZero, excludeSodex)
 
       setTopGainersData(formattedGainers)
       setTopLosersData(formattedLosers)
@@ -361,7 +367,7 @@ export default function MainnetPage() {
           .order(orderColumn, { ascending: true, nullsFirst: false })
 
         if (excludeSodexOwned) {
-          query = query.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+          query = query.not('is_sodex_owned', 'is', true)
         }
 
         const { data, error } = await query.range(currentPage * pageSize, (currentPage + 1) * pageSize - 1)

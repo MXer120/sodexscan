@@ -29,6 +29,7 @@ function Navbar() {
   const navLinks = [
     { path: '/tracker', label: 'Scan', protected: false },
     { path: '/mainnet', label: 'Leaderboard', protected: true },
+    { path: '/sopoints', label: 'SoPoints', protected: true, isNew: true },
     {
       path: '/social',
       label: 'Social',
@@ -45,6 +46,29 @@ function Navbar() {
   ]
 
   const isLandingPage = pathname === '/'
+
+  const renderLabel = (link) => {
+    if (link.isNew) {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', verticalAlign: 'middle' }}>
+          {link.label}
+          <span style={{
+            fontSize: '9px',
+            fontWeight: 800,
+            color: 'var(--color-primary)',
+            background: 'rgba(var(--color-primary-rgb), 0.15)',
+            border: '1px solid var(--color-primary)',
+            borderRadius: '4px',
+            padding: '2px 4px',
+            lineHeight: '1',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>V1</span>
+        </span>
+      )
+    }
+    return link.label
+  }
 
   return (
     <>
@@ -70,7 +94,7 @@ function Navbar() {
                 return (
                   <div key={link.label} className="nav-item-dropdown">
                     <button className={`nav-link ${pathname.startsWith(link.path) ? 'active' : ''}`}>
-                      {link.label} ▾
+                      {renderLabel(link)} ▾
                     </button>
                     <div className="nav-dropdown-menu">
                       {link.children.map(child => (
@@ -101,7 +125,7 @@ function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {link.label}
+                  {renderLabel(link)}
                 </a>
               ) : (
                 <Link
@@ -110,7 +134,8 @@ function Navbar() {
                   className={`nav-link ${pathname === link.path ? 'active' : ''}`}
                   onClick={checkAuth}
                 >
-                  {link.label}
+
+                  {renderLabel(link)}
                 </Link>
               )
             })}
@@ -197,7 +222,8 @@ function Navbar() {
                     }
                   }}
                 >
-                  {link.label}
+
+                  {renderLabel(link)}
                 </Link>
               )
             })}
