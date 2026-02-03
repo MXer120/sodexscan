@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { globalCache } from '../lib/globalCache'
@@ -273,7 +274,9 @@ export default function MainnetPage() {
 
   // User stats loaded separately (aggregate query would be better for production)
   const [userStats, setUserStats] = React.useState({
-    totalUsers: 0
+    totalUsers: 0,
+    gt2kVol: 0,
+    gt1kVol: 0
   })
 
   // Load aggregate stats
@@ -284,7 +287,7 @@ export default function MainnetPage() {
   }, [])
 
   const loadUserStats = async () => {
-    // Check global cache first
+    // Check in-memory global cache first
     const cached = globalCache.getUserStats()
     if (cached) {
       setUserStats(cached)
@@ -292,17 +295,14 @@ export default function MainnetPage() {
     }
 
     try {
-      // Could use Supabase RPC for aggregates, but using count for now
-      const { count } = await supabase
-        .from('leaderboard_smart')
-        .select('*', { count: 'exact', head: true })
+      // Call RPC directly to get stats
+      const { data, error } = await supabase.rpc('get_leaderboard_stats')
+      if (error) throw error
 
-      const stats = { totalUsers: count || 0 }
-
-      // Update global cache
-      globalCache.setUserStats(stats)
-
-      setUserStats(stats)
+      if (data) {
+        globalCache.setUserStats(data)
+        setUserStats(data)
+      }
     } catch (err) {
       console.error('Failed to load user stats:', err)
     }
@@ -417,6 +417,14 @@ export default function MainnetPage() {
         <div className="stat-item">
           <span className="stat-label">Total Users</span>
           <span className="stat-value">{userStats.totalUsers.toLocaleString()}</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">&gt; 2k Vol</span>
+          <span className="stat-value">{userStats.gt2kVol.toLocaleString()}</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">&gt; 1k Vol</span>
+          <span className="stat-value">{userStats.gt1kVol.toLocaleString()}</span>
         </div>
       </div>
 

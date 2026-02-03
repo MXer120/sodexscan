@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import ChartCard from './ChartCard'
