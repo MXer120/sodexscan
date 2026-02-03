@@ -56,12 +56,12 @@ const CopyableAddress = ({ address }) => {
       >
         {copied ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12"/>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
         )}
       </button>
@@ -375,8 +375,21 @@ export default function MainnetPage() {
     }
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Sodex Leaderboard",
+    "itemListElement": paginatedLeaderboard.map((user, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://www.communityscan-sodex.com/tracker/${user.walletAddress}`,
+      "name": user.walletAddress
+    }))
+  }
+
   return (
     <div className="mainnet-page dashboard">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <h1 className="dashboard-title">Leaderboard</h1>
 
       {/* User Overview Stats */}
@@ -394,8 +407,8 @@ export default function MainnetPage() {
           <div className="top-10-card gainers">
             <div className="top-10-header">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-                <polyline points="16 7 22 7 22 13"/>
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                <polyline points="16 7 22 7 22 13" />
               </svg>
               <span>Top 10 Gainers</span>
             </div>
@@ -425,8 +438,8 @@ export default function MainnetPage() {
           <div className="top-10-card losers">
             <div className="top-10-header">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/>
-                <polyline points="16 17 22 17 22 11"/>
+                <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+                <polyline points="16 17 22 17 22 11" />
               </svg>
               <span>Top 10 Losers</span>
             </div>
@@ -546,19 +559,19 @@ export default function MainnetPage() {
               </thead>
               <tbody>
                 {paginatedLeaderboard.map((user) => (
-                    <tr key={user.walletAddress}>
-                      <td className="rank-cell">#{user.displayRank}</td>
-                      <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
-                      <td className={`pnl-cell text-right ${getPnLClassName(user.pnl)}`}>
-                        ${formatPnL(user.pnl)}
+                  <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl}>
+                    <td className="rank-cell" aria-label={`Rank ${user.displayRank}`}>#{user.displayRank}</td>
+                    <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
+                    <td className={`pnl-cell text-right ${getPnLClassName(user.pnl)}`} aria-label={`PnL: ${user.pnl}`}>
+                      ${formatPnL(user.pnl)}
+                    </td>
+                    <td className="volume-cell text-right" aria-label={`Volume: ${user.volume}`}>${formatFullNumber(user.volume)}</td>
+                    {showSyncStatus && (
+                      <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
+                        {formatSyncTime(user.lastSyncedAt)}
                       </td>
-                      <td className="volume-cell text-right">${formatFullNumber(user.volume)}</td>
-                      {showSyncStatus && (
-                        <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                          {formatSyncTime(user.lastSyncedAt)}
-                        </td>
-                      )}
-                    </tr>
+                    )}
+                  </tr>
                 ))}
               </tbody>
             </table>

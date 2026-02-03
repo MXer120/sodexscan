@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /ai/
+Allow: /api/public/
+Allow: /__data/
+
+Sitemap: https://www.communityscan-sodex.com/sitemap.xml

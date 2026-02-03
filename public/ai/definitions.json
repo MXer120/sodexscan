@@ -1,0 +1,46 @@
+{
+    "metrics": {
+        "realized_profit": {
+            "id": "realized_profit",
+            "name": "Realized Profit",
+            "description": "Total profit or loss from closed positions.",
+            "unit": "USD",
+            "source": "Sodex Futures",
+            "calculation": "Sum of (Exit Price - Entry Price) * Quantity for all closed trades."
+        },
+        "unrealized_profit": {
+            "id": "unrealized_profit",
+            "name": "Unrealized Profit",
+            "description": "Current profit or loss from open positions.",
+            "unit": "USD",
+            "source": "Sodex Futures",
+            "calculation": "Sum of (Mark Price - Entry Price) * Quantity for all open positions."
+        },
+        "volume": {
+            "id": "volume",
+            "name": "Volume",
+            "description": "Total trading volume (notional value).",
+            "unit": "USD",
+            "source": "Sodex Futures"
+        },
+        "win_rate": {
+            "id": "win_rate",
+            "name": "Win Rate",
+            "description": "Percentage of closed trades that resulted in a profit > 0.",
+            "unit": "Percentage",
+            "formula": "(Winning Trades / Total Trades) * 100"
+        },
+        "sharpe_ratio": {
+            "id": "sharpe_ratio",
+            "name": "Sharpe Ratio",
+            "description": "Measure of risk-adjusted return.",
+            "formula": "(Mean Daily PnL / StdDev Daily PnL) * Sqrt(365)"
+        }
+    },
+    "objects": {
+        "wallet": {
+            "id": "wallet",
+            "description": "A blockchain wallet address interacting with the Sodex protocol."
+        }
+    }
+}

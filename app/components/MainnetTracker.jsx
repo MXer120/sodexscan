@@ -1395,8 +1395,23 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
   const INTERNAL_COLOR = '#3b82f6' // Blue for internal transfers
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": `Wallet Data: ${walletAddress || accountId}`,
+    "description": "Financial metrics and trading history for the specified wallet address on Sodex.",
+    "url": walletAddress ? `https://www.communityscan-sodex.com/tracker/${walletAddress}` : undefined,
+    "temporalCoverage": new Date().toISOString(),
+    "variableMeasured": [
+      { "@type": "PropertyValue", "name": "Total Assets", "value": totalAssets, "unitText": "USD" },
+      { "@type": "PropertyValue", "name": "Unrealized Profit", "value": statsSummary.unrealized, "unitText": "USD" },
+      { "@type": "PropertyValue", "name": "Win Rate", "value": statsSummary.winRate, "unitText": "Percent" }
+    ]
+  }
+
   return (
     <div className="scanner-grid">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* 1. Path Bar */}
       <div className="section-path">
         <div className="path-breadcrumbs">
@@ -1600,15 +1615,15 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: '#fff', fontWeight: '600' }}>Futures</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(statsSummary.futuresValue)}</span>
+              <span style={{ color: '#fff', fontWeight: '600' }} data-testid="stat-futures-value" aria-label={`Futures Value: ${statsSummary.futuresValue}`}>${formatNumber(statsSummary.futuresValue)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: 'rgba(255,255,255,0.5)' }}>Spot</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(statsSummary.spotValue)}</span>
+              <span style={{ color: '#fff', fontWeight: '600' }} data-testid="stat-spot-value" aria-label={`Spot Value: ${statsSummary.spotValue}`}>${formatNumber(statsSummary.spotValue)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
               <span style={{ color: 'rgba(255,255,255,0.5)' }}>Vault</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(statsSummary.vaultValue)}</span>
+              <span style={{ color: '#fff', fontWeight: '600' }} data-testid="stat-vault-value" aria-label={`Vault Value: ${statsSummary.vaultValue}`}>${formatNumber(statsSummary.vaultValue)}</span>
             </div>
           </div>
         </div>

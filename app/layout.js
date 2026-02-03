@@ -30,6 +30,18 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/favicon.png" type="image/png" />
       </head>
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "CommunityScan Sodex",
+            "url": "https://www.communityscan-sodex.com",
+            "logo": "https://www.communityscan-sodex.com/logo.svg",
+            "sameAs": [
+              "https://twitter.com/sodex"
+            ]
+          })
+        }} />
         <SessionContextProvider supabaseClient={supabase}>
           <QueryClientProvider client={queryClient}>
             <Navbar />
