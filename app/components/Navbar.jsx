@@ -40,9 +40,17 @@ function Navbar() {
         { path: '/referral', label: 'Referral' }
       ]
     },
-    { path: '/platform', label: 'Platform', protected: false },
     { path: '/watchlist', label: 'Watchlist', protected: true },
-    { path: '/incoming', label: 'Incoming', protected: true }
+    {
+      path: '/more',
+      label: 'More',
+      protected: false,
+      children: [
+        { path: '/platform', label: 'Platform', protected: false },
+        { path: '/incoming', label: 'Incoming', protected: true },
+        { path: '/reverse-search', label: 'Reverse Search', protected: true }
+      ]
+    }
   ]
 
   const isLandingPage = pathname === '/'
@@ -103,7 +111,8 @@ function Navbar() {
                           href={child.path}
                           className="dropdown-link"
                           onClick={(e) => {
-                            if (link.protected && !user) {
+                            const isProtected = child.protected !== undefined ? child.protected : link.protected
+                            if (isProtected && !user) {
                               e.preventDefault()
                               setShowAuth(true)
                             }
@@ -194,7 +203,8 @@ function Navbar() {
                     href={child.path}
                     className={`mobile-menu-link ${pathname === child.path ? 'active' : ''}`}
                     onClick={(e) => {
-                      if (link.protected && !user) {
+                      const isProtected = child.protected !== undefined ? child.protected : link.protected
+                      if (isProtected && !user) {
                         e.preventDefault()
                         setMobileMenuOpen(false);
                         setShowAuth(true);
