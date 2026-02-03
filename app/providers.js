@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SessionContextProvider } from './lib/SessionContext'
+import { ThemeProvider } from './lib/ThemeContext'
 import { supabase } from './lib/supabaseClient'
 
 const queryClient = new QueryClient({
@@ -17,7 +18,9 @@ export function Providers({ children }) {
     return (
         <SessionContextProvider supabaseClient={supabase}>
             <QueryClientProvider client={queryClient}>
-                {children}
+                <ThemeProvider>
+                    {children}
+                </ThemeProvider>
             </QueryClientProvider>
         </SessionContextProvider>
     )

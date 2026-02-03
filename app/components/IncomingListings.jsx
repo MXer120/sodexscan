@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { TimeSelector } from './ui/TimeSelector'
 import { globalCache } from '../lib/globalCache'
+import { THEME_COLORS } from '../lib/themeColors'
 
 // Set document title
 if (typeof document !== 'undefined') {
@@ -123,15 +124,15 @@ export default function IncomingListings() {
         </div>
 
         {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>
             Loading listings...
           </div>
         ) : error ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#f44336' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.error }}>
             {error}
           </div>
         ) : listings.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>
             No upcoming listings
           </div>
         ) : (
@@ -164,8 +165,8 @@ export default function IncomingListings() {
                           borderRadius: '4px',
                           fontSize: '12px',
                           fontWeight: '500',
-                          background: isSpot ? 'rgba(218, 102, 49, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                          color: isSpot ? 'var(--color-spot)' : '#3b82f6'
+                          background: isSpot ? 'rgba(49, 179, 218, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                          color: isSpot ? 'var(--color-spot)' : THEME_COLORS.blue
                         }}>
                           {isSpot ? 'Spot' : 'Futures'}
                         </span>

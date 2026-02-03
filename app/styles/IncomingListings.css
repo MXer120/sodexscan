@@ -1,7 +1,7 @@
 .incoming-container {
   min-height: 100vh;
   padding-top: 80px;
-  background: #0A0A0A;
+  background: var(--color-bg-main);
   padding-bottom: 60px;
 }
 
@@ -23,7 +23,7 @@
 .incoming-header h1 {
   font-size: 32px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-main);
   margin: 0;
   background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
   -webkit-background-clip: text;
@@ -32,8 +32,8 @@
 }
 
 .incoming-table-wrapper {
-  background: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 12px;
   padding: 24px;
   overflow-x: auto;
@@ -61,7 +61,7 @@
 .incoming-table td {
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .incoming-table tbody tr:hover {
@@ -73,7 +73,7 @@
 }
 
 .incoming-table .rank {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   width: 50px;
 }
 

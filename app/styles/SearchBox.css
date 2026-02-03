@@ -23,7 +23,7 @@
 }
 
 .custom-dropdown-toggle {
-    background-color: rgba(20, 20, 20, 0.6);
+    background-color: var(--color-bg-card);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     padding: 6px 32px 6px 12px;
@@ -57,7 +57,7 @@
     left: 0;
     width: 160px;
     /* Slightly wider than container for text fits */
-    background-color: #1a1a1a;
+    background-color: var(--color-bg-tertiary);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 4px;
@@ -98,8 +98,8 @@
 }
 
 .custom-dropdown-option.selected {
-    background-color: rgba(255, 118, 72, 0.15);
-    color: #FF7648;
+    background-color: rgba(var(--color-primary-rgb), 0.15);
+    color: var(--color-primary);
 }
 
 .search-add-input {
@@ -108,7 +108,7 @@
     border: none;
     padding: 4px 8px;
     font-size: 12px;
-    color: #fff;
+    color: var(--color-text-main);
     min-width: 50px;
 }
 
@@ -126,9 +126,9 @@
 }
 
 .add-button-inline {
-    background: #FF7648;
+    background: var(--color-primary);
     border: none;
-    color: #fff;
+    color: var(--color-text-main);
     padding: 4px 12px;
     border-radius: 4px;
     font-size: 12px;
@@ -141,7 +141,7 @@
 }
 
 .add-button-inline:hover:not(:disabled) {
-    background: #D23714;
+    background: var(--color-primary-dark);
     transform: translateY(-1px);
 }
 
@@ -156,7 +156,7 @@
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 6px;
-    color: #ef4444;
+    color: var(--color-error);
     font-size: 13px;
 }
 

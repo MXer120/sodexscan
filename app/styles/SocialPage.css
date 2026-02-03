@@ -8,7 +8,7 @@
 }
 
 .social-leaderboard {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--color-bg-card);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 24px;
@@ -40,7 +40,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #ffa726;
+  color: var(--color-warning);
   padding: 4px 8px;
   background: rgba(255, 167, 38, 0.1);
   border: 1px solid rgba(255, 167, 38, 0.3);
@@ -70,13 +70,13 @@
 .social-loading {
   padding: 40px;
   text-align: center;
-  color: #666;
+  color: var(--color-text-dark);
 }
 
 /* User cell styling */
 .user-cell {
   font-weight: 500;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Value cell styling */
@@ -86,15 +86,15 @@
 }
 
 .value-cell.positive {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .value-cell.negative {
-  color: #f44336;
+  color: var(--color-error);
 }
 
 .value-cell.neutral {
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 /* Footer */
@@ -122,7 +122,7 @@
 /* Tooltip */
 .social-chart-tooltip {
   background: rgba(26, 26, 26, 0.95);
-  border: 1px solid #333;
+  border: 1px solid var(--color-border-dark);
   border-radius: 8px;
   padding: 12px 16px;
   min-width: 160px;
@@ -130,11 +130,11 @@
 }
 
 .social-chart-tooltip-label {
-  color: #fff;
+  color: var(--color-text-main);
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--color-border-dark);
   padding-bottom: 6px;
 }
 
@@ -154,11 +154,11 @@
 }
 
 .social-chart-tooltip-name {
-  color: #999;
+  color: var(--color-text-medium-gray);
 }
 
 .social-chart-tooltip-value {
-  color: #fff;
+  color: var(--color-text-main);
   font-weight: 500;
   margin-left: auto;
 }
@@ -171,11 +171,11 @@
 }
 
 .social-stats-table .sortable-th:hover {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .social-stats-table .sortable-th.active-sort {
-  color: #0081A6;
+  color: var(--color-info);
 }
 
 .social-table-expand {

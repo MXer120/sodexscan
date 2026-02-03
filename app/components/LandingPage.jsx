@@ -24,26 +24,33 @@ function LandingPage() {
   }
 
   return (
-    <div className="landing-page" style={{ padding: '40px', paddingTop: '80px', maxWidth: '1600px', margin: '0 auto' }}>
+    <div className="landing-page dashboard">
       {/* Wallet Search Box */}
       <div className="landing-search-box" style={{
         marginBottom: '40px',
-        padding: '40px',
-        background: 'rgba(255, 118, 72, 0.05)',
-        borderRadius: '12px',
-        border: '1px solid rgba(255, 118, 72, 0.2)',
-        textAlign: 'center'
+        padding: '40px 20px',
+        background: 'rgba(var(--color-primary-rgb), 0.05)',
+        borderRadius: '8px',
+        border: '1px dashed rgba(var(--color-primary-rgb), 0.3)',
+        textAlign: 'center',
+        position: 'relative',
+        height: '475px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxSizing: 'border-box'
       }}>
-        <h2 style={{ color: '#fff', marginBottom: '16px', fontSize: '24px' }}>Community-Built SoDex Mainnet Scan</h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '24px', fontSize: '14px' }}>
-          Search any wallet to view trading activity, positions, and performance metrics
+        <h2 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Community-Built SoDex Mainnet Scan</h2>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
+          Enter any wallet address, referral code, or social handle above to begin a deep-dive analysis of mainnet trading performance, current positions, and historical activity.
         </p>
-        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', justifyContent: 'center', width: '100%' }}>
           <SearchAndAddBox
-            onAction={({ wallet_address }) => router.push(`/tracker?wallet=${encodeURIComponent(wallet_address)}`)}
+            onAction={({ wallet_address }) => router.push(`/tracker/${wallet_address}`)}
             onSearchChange={setSearchInput}
             searchValue={searchInput}
-            actionLabel="Search"
+            actionLabel="Scan"
             filterType={filterType}
             onFilterChange={setFilterType}
           />

@@ -1,7 +1,7 @@
 .referral-container {
   min-height: 100vh;
   padding-top: 80px;
-  background: #0A0A0A;
+  background: var(--color-bg-main);
   padding-bottom: 60px;
 }
 
@@ -14,7 +14,7 @@
 .referral-title {
   font-size: 36px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-main);
   margin-bottom: 16px;
   background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
   -webkit-background-clip: text;
@@ -93,26 +93,26 @@
 
 /* Featured Card */
 .referral-card-featured {
-  border-color: rgba(255, 118, 72, 0.4);
-  box-shadow: 0 0 12px rgba(255, 118, 72, 0.15), 0 0 24px rgba(255, 118, 72, 0.05);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+  box-shadow: 0 0 12px rgba(var(--color-primary-rgb), 0.15), 0 0 24px rgba(var(--color-primary-rgb), 0.05);
 }
 
 .referral-card-featured:hover {
-  border-color: rgba(255, 118, 72, 0.6);
-  box-shadow: 0 0 16px rgba(255, 118, 72, 0.2), 0 0 32px rgba(255, 118, 72, 0.1);
+  border-color: rgba(var(--color-primary-rgb), 0.6);
+  box-shadow: 0 0 16px rgba(var(--color-primary-rgb), 0.2), 0 0 32px rgba(var(--color-primary-rgb), 0.1);
 }
 
 /* Make SOSO always orange */
 .referral-card-featured .referral-code {
-  color: #FF7648;
+  color: var(--color-primary);
 }
 
 .referral-card-featured .social-badge:hover {
-  color: #FF7648;
+  color: var(--color-primary);
 }
 
 .referral-card-featured .social-badge:hover .social-svg {
-  color: #FF7648;
+  color: var(--color-primary);
 }
 
 .referral-card-header {
@@ -128,9 +128,9 @@
 }
 
 .featured-tag {
-  background: rgba(255, 118, 72, 0.2);
-  border: 1px solid rgba(255, 118, 72, 0.4);
-  color: #FF7648;
+  background: rgba(var(--color-primary-rgb), 0.2);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.4);
+  color: var(--color-primary);
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -142,7 +142,7 @@
 .referral-code {
   font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-main);
   margin: 0 0 16px 0;
   letter-spacing: 0.5px;
 }
@@ -177,7 +177,7 @@
 }
 
 .referral-link-row:hover .referral-link {
-  color: #FF7648;
+  color: var(--color-primary);
 }
 
 .link-icon {
@@ -187,7 +187,7 @@
 }
 
 .referral-link-row:hover .link-icon {
-  color: #FF7648;
+  color: var(--color-primary);
 }
 
 /* Social Badges */
@@ -304,7 +304,7 @@
   border-radius: 12px;
   padding: 40px 20px;
   text-align: center;
-  color: #ef4444;
+  color: var(--color-error);
   font-size: 14px;
 }
 

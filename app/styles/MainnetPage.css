@@ -20,7 +20,7 @@
   padding: 12px 32px;
   background: transparent;
   border: 1px solid transparent;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -36,7 +36,7 @@
 }
 
 .tab-switch-btn:hover:not(.active) {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Top 10 Grid */
@@ -63,21 +63,23 @@
 }
 
 .top-10-card.gainers {
-  border: 1px solid rgba(74, 222, 128, 0.3);
+  border: 1px solid rgba(var(--color-success-rgb), 0.3);
+  background: rgba(var(--color-success-rgb), 0.02);
 }
 
 .top-10-card.gainers:hover {
-  border-color: rgba(74, 222, 128, 0.6);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
+  border-color: rgba(var(--color-success-rgb), 0.6);
+  box-shadow: 0 0 20px rgba(var(--color-success-rgb), 0.2);
 }
 
 .top-10-card.losers {
-  border: 1px solid rgba(244, 67, 54, 0.3);
+  border: 1px solid rgba(var(--color-error-rgb), 0.3);
+  background: rgba(var(--color-error-rgb), 0.02);
 }
 
 .top-10-card.losers:hover {
-  border-color: rgba(244, 67, 54, 0.6);
-  box-shadow: 0 0 20px rgba(244, 67, 54, 0.2);
+  border-color: rgba(var(--color-error-rgb), 0.6);
+  box-shadow: 0 0 20px rgba(var(--color-error-rgb), 0.2);
 }
 
 .top-10-header {
@@ -90,11 +92,11 @@
 }
 
 .top-10-card.gainers .top-10-header {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .top-10-card.losers .top-10-header {
-  color: #f44336;
+  color: var(--color-error);
 }
 
 .top-10-table-wrapper {
@@ -110,11 +112,11 @@
 }
 
 .top-10-card.gainers .top-10-table {
-  border-color: rgba(74, 222, 128, 0.3);
+  border-color: rgba(var(--color-success-rgb), 0.3);
 }
 
 .top-10-card.losers .top-10-table {
-  border-color: rgba(244, 67, 54, 0.2);
+  border-color: rgba(var(--color-error-rgb), 0.2);
 }
 
 .top-10-table thead tr {
@@ -122,12 +124,12 @@
 }
 
 .top-10-card.gainers .top-10-table thead tr {
-  background: rgba(74, 222, 128, 0.15);
-  border-bottom: 1px solid rgba(74, 222, 128, 0.3);
+  background: rgba(var(--color-success-rgb), 0.15);
+  border-bottom: 1px solid rgba(var(--color-success-rgb), 0.3);
 }
 
 .top-10-card.losers .top-10-table thead tr {
-  background: rgba(244, 67, 54, 0.05);
+  background: rgba(var(--color-error-rgb), 0.05);
 }
 
 .top-10-table th {
@@ -135,17 +137,17 @@
   text-align: left;
   font-weight: 500;
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 .top-10-card.gainers .top-10-table th:first-child,
 .top-10-card.gainers .top-10-table th:last-child {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .top-10-card.losers .top-10-table th:first-child,
 .top-10-card.losers .top-10-table th:last-child {
-  color: #f44336;
+  color: var(--color-error);
 }
 
 .top-10-table th:first-child {
@@ -157,25 +159,25 @@
 }
 
 .top-10-card.gainers .top-10-table tbody tr {
-  border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+  border-bottom: 1px solid rgba(var(--color-success-rgb), 0.2);
 }
 
 .top-10-card.gainers .top-10-table tbody tr:hover {
-  background: rgba(74, 222, 128, 0.1);
+  background: rgba(var(--color-success-rgb), 0.1);
 }
 
 .top-10-card.losers .top-10-table tbody tr {
-  border-bottom: 1px solid rgba(244, 67, 54, 0.1);
+  border-bottom: 1px solid rgba(var(--color-error-rgb), 0.15);
 }
 
 .top-10-card.losers .top-10-table tbody tr:hover {
-  background: rgba(244, 67, 54, 0.1);
+  background: rgba(var(--color-error-rgb), 0.1);
 }
 
 .top-10-table td {
   padding: 8px;
   font-size: 13px;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .top-10-table td.rank {
@@ -184,12 +186,12 @@
 
 .top-10-card.gainers .top-10-table td.rank,
 .top-10-card.gainers .top-10-table td.pnl {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .top-10-card.losers .top-10-table td.rank,
 .top-10-card.losers .top-10-table td.pnl {
-  color: #f44336;
+  color: var(--color-error);
 }
 
 .top-10-table td.pnl {
@@ -219,7 +221,7 @@
 }
 
 .leaderboard-header h2 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 20px;
   font-weight: 600;
   margin: 0;
@@ -251,11 +253,11 @@
 }
 
 .leaderboard-search:focus {
-  border-color: rgba(60, 200, 240, 0.4);
+  border-color: var(--color-primary);
 }
 
 .leaderboard-search::placeholder {
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .leaderboard-toggle {
@@ -330,21 +332,21 @@
 .leaderboard-table td {
   padding: 14px 12px;
   font-size: 14px;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .leaderboard-table td.rank-cell {
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .leaderboard-table td.pnl-cell.positive {
-  color: #4ade80;
+  color: var(--color-success);
   font-weight: 600;
 }
 
 .leaderboard-table td.pnl-cell.negative {
-  color: #f44336;
+  color: var(--color-error);
   font-weight: 600;
 }
 
@@ -354,7 +356,7 @@
 }
 
 .leaderboard-table td.volume-cell {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .leaderboard-table td.text-right {
@@ -377,7 +379,7 @@
   background: rgba(30, 30, 30, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
@@ -477,12 +479,12 @@
 }
 
 .top-pairs-table td.price {
-  color: #fff;
+  color: var(--color-text-main);
   font-weight: 500;
 }
 
 .top-pairs-table td.price.futures-price {
-  color: #ff9800;
+  color: var(--color-primary);
 }
 
 .top-pairs-table td.volume {
@@ -579,8 +581,8 @@
 }
 
 .leaderboard-checkbox input[type="checkbox"]:checked+.custom-check {
-  background: #667eea;
-  border-color: #667eea;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .leaderboard-checkbox .custom-check svg {
@@ -891,7 +893,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 118, 72, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
 }
 
 .signup-cta-content {
@@ -939,20 +941,20 @@
 .signup-cta-feature-card:hover {
   transform: translateY(-5px);
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 118, 72, 0.2);
+  border-color: rgba(var(--color-primary-rgb), 0.2);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
 .feature-icon {
   width: 48px;
   height: 48px;
-  background: rgba(255, 118, 72, 0.1);
+  background: rgba(var(--color-primary-rgb), 0.1);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  color: #ff7648;
+  color: var(--color-primary);
 }
 
 .feature-title {
@@ -969,7 +971,7 @@
 }
 
 .signup-cta-button {
-  background: linear-gradient(135deg, #ff7648 0%, #ff5d2b 100%);
+  background: var(--color-primary);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -978,12 +980,12 @@
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 20px rgba(255, 93, 43, 0.3);
+  box-shadow: 0 4px 20px rgba(var(--color-primary-rgb), 0.3);
 }
 
 .signup-cta-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 25px rgba(255, 93, 43, 0.4);
+  box-shadow: 0 6px 25px rgba(var(--color-primary-rgb), 0.4);
 }
 
 @media (max-width: 768px) {
@@ -1076,9 +1078,9 @@
 }
 
 .op-btn.active {
-  background: #ff7648;
+  background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 0 10px rgba(255, 118, 72, 0.4);
+  box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.4);
 }
 
 .filter-input {
@@ -1185,8 +1187,8 @@
 
 .combined-result-section {
   width: 140px;
-  background: rgba(255, 118, 72, 0.08);
-  border: 1px solid rgba(255, 118, 72, 0.2);
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -1198,7 +1200,7 @@
 
 .combined-label {
   font-size: 10px;
-  color: #ff7648;
+  color: var(--color-primary);
   font-weight: 600;
   letter-spacing: 1px;
   margin-bottom: 8px;
@@ -1215,9 +1217,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 118, 72, 0.1);
-  border: 1px solid rgba(255, 118, 72, 0.3);
-  color: #ff7648;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+  color: var(--color-primary);
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 14px;
@@ -1229,8 +1231,8 @@
 }
 
 .calculator-toggle-btn:hover {
-  background: rgba(255, 118, 72, 0.2);
-  border-color: #ff7648;
+  background: rgba(var(--color-primary-rgb), 0.2);
+  border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 
@@ -1257,8 +1259,8 @@
 }
 
 .platform-modal-content {
-  background: #141414;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-visible);
   border-radius: 20px;
   width: 100%;
   max-width: 500px;
@@ -1292,7 +1294,7 @@
 
 .modal-header {
   padding: 24px 32px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;

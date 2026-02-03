@@ -17,19 +17,16 @@
     box-sizing: border-box;
 }
 
-/* Generic Section Styling */
 .section-path,
 .section-sidebar,
 .section-top-center,
 .section-bottom-center,
 .section-activity {
-    background: rgba(20, 20, 20, 0.4);
+    background: var(--color-bg-card);
     backdrop-filter: blur(12px);
-    border: none;
+    border: 1px solid var(--color-border-subtle);
     border-radius: 8px;
-    /* Reduced from 12px */
     padding: 20px 24px;
-    /* Increased horizontal padding */
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -198,7 +195,7 @@
 .section-sidebar h3,
 .section-activity h3,
 .section-bottom-center h3 {
-    color: #fff;
+    color: var(--color-text-main);
     font-size: 14px;
     font-weight: 600;
     margin-bottom: 8px;
@@ -238,8 +235,8 @@
 
 .loading-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #FF7648, #D23714);
-    box-shadow: 0 0 10px rgba(255, 118, 72, 0.4);
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+    box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.4);
     border-radius: 2px;
     transition: width 0.5s ease-out;
 }
@@ -299,7 +296,7 @@
 }
 
 .section-bottom-center th.active {
-    color: #FF7648 !important;
+    color: var(--color-primary) !important;
 }
 
 /* Sort Arrows */
@@ -313,13 +310,13 @@
 
 .sort-arrow {
     font-size: 7px;
-    color: rgba(255, 118, 72, 0.3);
+    color: rgba(var(--color-primary-rgb), 0.3);
     /* Inactive darker orange */
     transition: color 0.2s ease;
 }
 
 .sort-arrow.active {
-    color: #FF7648;
+    color: var(--color-primary);
     /* Active orange */
 }
 
@@ -327,7 +324,7 @@
     padding: 8px 12px !important;
     /* Reduced padding for smaller rows */
     font-size: 11px;
-    color: #fff;
+    color: var(--color-text-main);
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 

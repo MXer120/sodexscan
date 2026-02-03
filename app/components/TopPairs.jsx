@@ -261,11 +261,11 @@ export default function TopPairs() {
                             padding: '2px 6px',
                             background: 'var(--color-spot-bg)',
                             color: 'var(--color-spot)',
-                            fontSize: '12px',
+                            fontSize: '10px',
                             fontWeight: 'bold',
                             borderRadius: '4px',
                             textTransform: 'uppercase',
-                            border: 'none'
+                            border: '1px solid rgba(var(--color-primary-rgb), 0.2)'
                           }}
                         >
                           spot

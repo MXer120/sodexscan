@@ -1,18 +1,11 @@
-'use client'
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabaseClient'
+import { useUserProfile } from '../hooks/useProfile'
 import { globalCache } from '../lib/globalCache'
+import { THEME_COLORS } from '../lib/themeColors'
+import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import '../styles/MainnetPage.css'
-
-// Set document title
-if (typeof document !== 'undefined') {
-  document.title = 'Mainnet | CommunityScan SoDEX'
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
 
 
 // Truncate address for mobile: 0x + first 4 ... last 4
@@ -56,11 +49,11 @@ const CopyableAddress = ({ address }) => {
         }}
       >
         {copied ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={THEME_COLORS.success} strokeWidth="2">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={THEME_COLORS.textSubtle} strokeWidth="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
@@ -68,7 +61,7 @@ const CopyableAddress = ({ address }) => {
       </button>
       <style>{`
         .copyable-address:hover .copy-btn { opacity: 1 !important; }
-        .copy-btn:hover svg { stroke: #4ade80; }
+        .copy-btn:hover svg { stroke: var(--color-success); }
       `}</style>
     </span>
   )
@@ -92,27 +85,26 @@ export default function MainnetPage() {
   const [topLosersData, setTopLosersData] = useState([])
   const [top10Loading, setTop10Loading] = useState(false)
 
-  useEffect(() => {
-    loadLeaderboardPage(1, leaderboardType, excludeSodexOwned)
-    loadTop10()
-  }, [])
+  const { data: profileData } = useUserProfile()
+  const showZeroData = false // Temporarily disabled for optimization
 
-  // Reload when exclude filter changes (cache remains - different filter states cached separately)
+  // Reload when filters change
   useEffect(() => {
     setLeaderboardPage(1)
-    loadLeaderboardPage(1, leaderboardType, excludeSodexOwned)
-  }, [excludeSodexOwned])
+    loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData)
+    loadTop10(showZeroData)
+  }, [excludeSodexOwned, showZeroData, leaderboardType])
 
   // Load single page of leaderboard (20 users)
-  const loadLeaderboardPage = async (page, type, excludeSodex = true) => {
+  const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false) => {
     // Check global cache first
-    const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex)
+    const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex, showZero)
     if (cachedData) {
       // Cache hit - use cached data
       setLeaderboardData(cachedData)
 
       // Use cached total count if available
-      const cachedCount = globalCache.getTotalCount(type, excludeSodex)
+      const cachedCount = globalCache.getTotalCount(type, excludeSodex, showZero)
       if (cachedCount !== null) {
         setTotalLeaderboardCount(cachedCount)
       }
@@ -127,19 +119,25 @@ export default function MainnetPage() {
       const orderColumn = type === 'volume' ? 'volume_rank' : 'pnl_rank'
 
       // Get total count (cached separately)
-      let totalCount = globalCache.getTotalCount(type, excludeSodex)
+      let totalCount = globalCache.getTotalCount(type, excludeSodex, showZero)
       if (totalCount === null) {
         let countQuery = supabase
           .from('leaderboard_smart')
           .select('*', { count: 'exact', head: true })
 
         if (excludeSodex) {
+          // Robust filter for "Not Sodex Owned": Includes NULL and FALSE
           countQuery = countQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+        }
+
+        if (!showZero) {
+          // Hide NULL and 0 when showZero is false
+          countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
         }
 
         const { count } = await countQuery
         totalCount = count || 0
-        globalCache.setTotalCount(type, excludeSodex, totalCount)
+        globalCache.setTotalCount(type, excludeSodex, showZero, totalCount)
       }
       setTotalLeaderboardCount(totalCount)
 
@@ -150,7 +148,14 @@ export default function MainnetPage() {
         .order(orderColumn, { ascending: true, nullsFirst: false })
 
       if (excludeSodex) {
+        // Robust filter for "Not Sodex Owned": Includes NULL and FALSE
         dataQuery = dataQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+      }
+
+      if (!showZero) {
+        // Hide NULL and 0 when showZero is false
+        // PostgREST .or excludes NULL automatically for gt and neq
+        dataQuery = dataQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
       }
 
       const { data, error } = await dataQuery.range((page - 1) * pageSize, page * pageSize - 1)
@@ -165,9 +170,9 @@ export default function MainnetPage() {
         return {
           accountId: row.account_id,
           walletAddress: row.wallet_address,
-          pnl: isNaN(pnl) ? 0 : pnl,
-          volume: isNaN(volume) ? 0 : volume,
-          unrealizedPnl: isNaN(unrealizedPnl) ? 0 : unrealizedPnl,
+          pnl: pnl || 0,
+          volume: volume || 0,
+          unrealizedPnl: unrealizedPnl || 0,
           pnlRank: parseInt(row.pnl_rank, 10) || null,
           volumeRank: parseInt(row.volume_rank, 10) || null,
           lastSyncedAt: row.last_synced_at
@@ -175,7 +180,7 @@ export default function MainnetPage() {
       })
 
       // Store in global cache
-      globalCache.setLeaderboardPage(page, type, excludeSodex, formattedData)
+      globalCache.setLeaderboardPage(page, type, excludeSodex, showZero, formattedData)
       setLeaderboardData(formattedData)
     } catch (err) {
       console.error('Failed to load leaderboard page:', err)
@@ -184,9 +189,9 @@ export default function MainnetPage() {
   }
 
   // Load top 10 gainers/losers (PnL only) - always excludes Sodex-owned
-  const loadTop10 = async () => {
+  const loadTop10 = async (showZero = false) => {
     // Check global cache first
-    const cached = globalCache.getTop10()
+    const cached = globalCache.getTop10(showZero)
     if (cached) {
       setTopGainersData(cached.gainers)
       setTopLosersData(cached.losers)
@@ -197,22 +202,41 @@ export default function MainnetPage() {
     setTop10Loading(true)
     try {
       // Top 10 gainers (exclude Sodex-owned)
-      const { data: gainers, error: gainersError } = await supabase
+      let gainersQuery = supabase
         .from('leaderboard_smart')
         .select('account_id, wallet_address, cumulative_pnl, cumulative_volume')
-        .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-        .order('cumulative_pnl', { ascending: false })
+        .not('is_sodex_owned', 'is', true)
+        .order('cumulative_pnl', { ascending: false, nullsFirst: false })
         .limit(10)
+
+      if (!showZero) {
+        gainersQuery = gainersQuery.gt('cumulative_pnl', 0)
+      } else {
+        // When showZero is true, include wallets with 0 (NULL) profit 
+        // but still exclude actual losers from the gainers side.
+        gainersQuery = gainersQuery.or('cumulative_pnl.gt.0,cumulative_pnl.is.null')
+      }
+
+      const { data: gainers, error: gainersError } = await gainersQuery
 
       if (gainersError) throw gainersError
 
       // Top 10 losers (exclude Sodex-owned)
-      const { data: losers, error: losersError } = await supabase
+      let losersQuery = supabase
         .from('leaderboard_smart')
         .select('account_id, wallet_address, cumulative_pnl, cumulative_volume')
-        .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-        .order('cumulative_pnl', { ascending: true })
+        .not('is_sodex_owned', 'is', true)
+        .order('cumulative_pnl', { ascending: true, nullsFirst: false })
         .limit(10)
+
+      if (!showZero) {
+        losersQuery = losersQuery.lt('cumulative_pnl', 0)
+      } else {
+        // Include wallets with 0 (NULL) profit if showZero is true
+        losersQuery = losersQuery.or('cumulative_pnl.lt.0,cumulative_pnl.is.null')
+      }
+
+      const { data: losers, error: losersError } = await losersQuery
 
       if (losersError) throw losersError
 
@@ -222,11 +246,11 @@ export default function MainnetPage() {
         volume: parseFloat(row.cumulative_volume) || 0
       })
 
-      const formattedGainers = (gainers || []).map(formatUser).filter(u => u.pnl > 0)
-      const formattedLosers = (losers || []).map(formatUser).filter(u => u.pnl < 0)
+      const formattedGainers = (gainers || []).map(formatUser)
+      const formattedLosers = (losers || []).map(formatUser)
 
       // Update global cache
-      globalCache.setTop10(formattedGainers, formattedLosers)
+      globalCache.setTop10(formattedGainers, formattedLosers, showZero)
 
       setTopGainersData(formattedGainers)
       setTopLosersData(formattedLosers)
@@ -507,7 +531,7 @@ export default function MainnetPage() {
                   onClick={() => {
                     setLeaderboardType('volume')
                     setLeaderboardPage(1)
-                    loadLeaderboardPage(1, 'volume', excludeSodexOwned)
+                    loadLeaderboardPage(1, 'volume', excludeSodexOwned, showZeroData)
                   }}
                 >
                   Volume
@@ -517,7 +541,7 @@ export default function MainnetPage() {
                   onClick={() => {
                     setLeaderboardType('pnl')
                     setLeaderboardPage(1)
-                    loadLeaderboardPage(1, 'pnl', excludeSodexOwned)
+                    loadLeaderboardPage(1, 'pnl', excludeSodexOwned, showZeroData)
                   }}
                 >
                   PnL
@@ -556,17 +580,17 @@ export default function MainnetPage() {
                   title="Export as CSV"
                   style={{
                     padding: '8px 16px',
-                    background: '#667eea',
+                    background: 'var(--color-accent)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontSize: '13px',
                     fontWeight: '500',
-                    transition: 'background 0.2s'
+                    transition: 'opacity 0.2s'
                   }}
-                  onMouseEnter={(e) => e.target.style.background = '#5568d3'}
-                  onMouseLeave={(e) => e.target.style.background = '#667eea'}
+                  onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                  onMouseLeave={(e) => e.target.style.opacity = '1'}
                 >
                   Export CSV
                 </button>
@@ -610,7 +634,7 @@ export default function MainnetPage() {
               onClick={() => {
                 const newPage = Math.max(1, leaderboardPage - 1)
                 setLeaderboardPage(newPage)
-                loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned)
+                loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData)
               }}
               disabled={leaderboardPage === 1}
               className="page-btn"
@@ -624,7 +648,7 @@ export default function MainnetPage() {
               onClick={() => {
                 const newPage = Math.min(totalLeaderboardPages, leaderboardPage + 1)
                 setLeaderboardPage(newPage)
-                loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned)
+                loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData)
               }}
               disabled={leaderboardPage === totalLeaderboardPages}
               className="page-btn"
@@ -636,7 +660,7 @@ export default function MainnetPage() {
       )}
 
       {leaderboardLoading && (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Loading leaderboard...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>Loading leaderboard...</div>
       )}
     </div>
   )

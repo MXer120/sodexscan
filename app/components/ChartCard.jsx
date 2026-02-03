@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useTheme } from '../lib/ThemeContext'
 import {
   ComposedChart,
   Line,
@@ -12,11 +13,21 @@ import {
   Cell
 } from 'recharts'
 import { TimeSelector } from './ui/TimeSelector'
+import { THEME_COLORS, getThemeHexColors } from '../lib/themeColors'
 
-const COLORS = [
-  '#0081A6', '#4ade80', '#3b82f6', '#f59e0b', '#8b5cf6',
-  '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
-]
+// Chart colors will be computed from CSS variables at runtime
+const getChartColors = () => {
+  if (typeof window === 'undefined') {
+    // Fallback for SSR
+    return [
+      '#0081A6', '#4ade80', '#3b82f6', '#f59e0b', '#8b5cf6',
+      '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+    ]
+  }
+  return getThemeHexColors().chart
+}
+
+const COLORS = getChartColors()
 
 const TIMEFRAMES = ['1W', '1M', '3M', '1Y', 'ALL']
 const TIMEFRAME_DAYS = {
@@ -42,6 +53,9 @@ export default function ChartCard({
   onTimeframeChange = null,
   fullHeight = false
 }) {
+  const { theme } = useTheme()
+  const successColor = theme.bullishColor
+  const errorColor = theme.bearishColor
   const [selectedSeries, setSelectedSeries] = useState([])
   const [timeframe, setTimeframe] = useState('ALL')
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -138,7 +152,7 @@ export default function ChartCard({
   }
 
   const getSeriesColor = (s, i) => {
-    if (s.cumulative) return '#ffffff'
+    if (s.cumulative) return getThemeHexColors().textMain || '#ffffff'
     if (customColors && customColors[s.label]) return customColors[s.label]
     return COLORS[i % COLORS.length]
   }
@@ -309,14 +323,14 @@ export default function ChartCard({
                 height: '6px',
                 borderRadius: '50%',
                 background: entry.dataKey === 'daily'
-                  ? (entry.value >= 0 ? '#33AF80' : '#DB324D')
+                  ? (entry.value >= 0 ? successColor : errorColor)
                   : entry.color
               }} />
               <span style={{ color: 'rgba(255,255,255,0.7)' }}>{entry.name}:</span>
             </div>
             <span style={{
               color: entry.dataKey === 'daily'
-                ? (entry.value >= 0 ? '#33AF80' : '#DB324D')
+                ? (entry.value >= 0 ? successColor : errorColor)
                 : entry.color,
               fontWeight: '700'
             }}>
@@ -336,7 +350,7 @@ export default function ChartCard({
           }}>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>Total:</span>
             <span style={{
-              color: (cumulativeItem.value >= 0 ? '#33AF80' : '#DB324D'),
+              color: (cumulativeItem.value >= 0 ? successColor : errorColor),
               fontWeight: '800'
             }}>
               {cumulativeItem.value >= 0 ? '+' : ''}${formatValue(cumulativeItem.value)}
@@ -571,8 +585,8 @@ export default function ChartCard({
 
                 return (
                   <linearGradient key={s.key} id={`splitColor-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset={`${offset}%`} stopColor="#33AF80" stopOpacity={1} />
-                    <stop offset={`${offset}%`} stopColor="#DB324D" stopOpacity={1} />
+                    <stop offset={`${offset}%`} stopColor={successColor} stopOpacity={1} />
+                    <stop offset={`${offset}%`} stopColor={errorColor} stopOpacity={1} />
                   </linearGradient>
                 )
               })}
@@ -676,7 +690,7 @@ export default function ChartCard({
                   {s.key === 'daily' && Array.isArray(displayData) && displayData.map((entry, idx) => (
                     <Cell
                       key={idx}
-                      fill={(entry[s.key] ?? 0) >= 0 ? '#33AF80' : '#DB324D'}
+                      fill={(entry[s.key] ?? 0) >= 0 ? successColor : errorColor}
                       fillOpacity={0.25 * opacity}
                     />
                   ))}
@@ -729,7 +743,7 @@ export default function ChartCard({
                 className="legend-color"
                 style={{
                   background: s.cumulative
-                    ? (displayData.length > 0 && displayData[displayData.length - 1][s.key] >= 0 ? '#33AF80' : '#DB324D')
+                    ? (displayData.length > 0 && displayData[displayData.length - 1][s.key] >= 0 ? successColor : errorColor)
                     : getSeriesColor(s, originalIndex),
                   width: '6px',
                   height: '6px'

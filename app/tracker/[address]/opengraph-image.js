@@ -45,7 +45,7 @@ export default async function Image({ params }) {
             >
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: 40 }}>
                     {/* Simulate Logo */}
-                    <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#FF7648', marginRight: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 'bold' }}>S</div>
+                    <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#48cbff', marginRight: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 'bold' }}>S</div>
                     <div style={{ fontSize: 40, fontWeight: 'bold', color: '#fff' }}>CommunityScan Sodex</div>
                 </div>
 

@@ -1,38 +1,40 @@
 'use client'
-
 import React, { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useTheme } from '../lib/ThemeContext'
+import { hexToRgb } from '../lib/themes'
 
-const BULLISH_COLOR = '#33AF80'
-const BEARISH_COLOR = '#DB324D'
-const PRIMARY_COLOR = '#FF7648'
 const NEUTRAL_COLOR = 'rgba(255,255,255,0.35)'
 
 // Helper to get background color based on relative PNL
-const getPnlBgColor = (pnl, minPnl, maxPnl, isBestDay) => {
+const getPnlBgColor = (pnl, minPnl, maxPnl, isBestDay, theme) => {
+  const primaryRgb = hexToRgb(theme.accentColor)
+  const bullishRgb = hexToRgb(theme.bullishColor)
+  const bearishRgb = hexToRgb(theme.bearishColor)
+
   if (isBestDay && pnl > 0.01) {
-    return `rgba(255, 118, 72, 0.25)` // Primary orange bg
+    return `rgba(${primaryRgb}, 0.25)`
   }
   if (Math.abs(pnl) < 0.01) return 'rgba(255,255,255,0.04)'
 
   if (pnl >= 0.01) {
-    // Subtle green - max alpha 0.25
+    // Subtle bullish color - max alpha 0.25
     const intensity = maxPnl > 0 ? Math.min(pnl / maxPnl, 1) : 0
     const alpha = 0.08 + intensity * 0.17
-    return `rgba(51, 175, 128, ${alpha})`
+    return `rgba(${bullishRgb}, ${alpha})`
   } else {
-    // Subtle red - max alpha 0.25
+    // Subtle bearish color - max alpha 0.25
     const intensity = minPnl < 0 ? Math.min(Math.abs(pnl) / Math.abs(minPnl), 1) : 0
     const alpha = 0.08 + intensity * 0.17
-    return `rgba(219, 50, 77, ${alpha})`
+    return `rgba(${bearishRgb}, ${alpha})`
   }
 }
 
 // Get text color for PNL value
-const getPnlTextColor = (pnl, isBestDay) => {
-  if (isBestDay && pnl > 0.01) return PRIMARY_COLOR
-  if (pnl >= 0.01) return BULLISH_COLOR
-  if (pnl <= -0.01) return BEARISH_COLOR
+const getPnlTextColor = (pnl, isBestDay, theme) => {
+  if (isBestDay && pnl > 0.01) return theme.accentColor
+  if (pnl >= 0.01) return theme.bullishColor
+  if (pnl <= -0.01) return theme.bearishColor
   return NEUTRAL_COLOR
 }
 
@@ -78,6 +80,11 @@ const getLongestStreak = (dailyData) => {
 }
 
 export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewChange, trades = [], symbolMap = {} }) {
+  const { theme } = useTheme()
+  const BULLISH_COLOR = theme.bullishColor
+  const BEARISH_COLOR = theme.bearishColor
+  const PRIMARY_COLOR = theme.accentColor
+
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
   const [hoveredDay, setHoveredDay] = useState(null)
@@ -208,8 +215,8 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
       const pnl = dailyPnlMap[dateStr] || 0
       const isBestDay = dateStr === stats.bestDay
-      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
-      const textColor = getPnlTextColor(pnl, isBestDay)
+      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+      const textColor = getPnlTextColor(pnl, isBestDay, theme)
 
       days.push(
         <div key={i}
@@ -282,8 +289,8 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       const pnl = dailyPnlMap[dateStr] || 0
       const isBestDay = dateStr === stats.bestDay
-      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
-      const textColor = getPnlTextColor(pnl, isBestDay)
+      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+      const textColor = getPnlTextColor(pnl, isBestDay, theme)
 
       cells.push(
         <div key={d}
@@ -421,7 +428,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
           let bgColor = 'rgba(255,255,255,0.06)' // Slightly more visible placeholders
           // Use 0.01 threshold as established in other views
           if (Math.abs(pnl) >= 0.01 || dailyPnlMap[dateStr] !== undefined) {
-            bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
+            bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
           }
 
           week.push(
@@ -551,7 +558,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
               cursor: 'pointer',
               fontSize: '10px',
               outline: 'none',
-              WebkitTapHighlightColor: 'rgba(255, 118, 72, 0.3)'
+              WebkitTapHighlightColor: 'rgba(72, 203, 255, 0.3)'
             }}
           >
             ←
@@ -570,7 +577,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
               cursor: 'pointer',
               fontSize: '10px',
               outline: 'none',
-              WebkitTapHighlightColor: 'rgba(255, 118, 72, 0.3)'
+              WebkitTapHighlightColor: 'rgba(72, 203, 255, 0.3)'
             }}
           >
             →
@@ -593,14 +600,14 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
                 padding: '3px 8px',
                 fontSize: '10px',
                 fontWeight: '600',
-                background: view === v.key ? 'rgba(255, 118, 72, 0.2)' : 'transparent',
+                background: view === v.key ? 'rgba(72, 203, 255, 0.2)' : 'transparent',
                 color: view === v.key ? PRIMARY_COLOR : 'rgba(255,255,255,0.4)',
                 border: 'none',
                 borderRadius: '3px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 outline: 'none',
-                WebkitTapHighlightColor: 'rgba(255, 118, 72, 0.3)'
+                WebkitTapHighlightColor: 'rgba(72, 203, 255, 0.3)'
               }}
             >
               {v.label}
@@ -680,6 +687,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
           BEARISH_COLOR={BEARISH_COLOR}
           getPnlTextColor={getPnlTextColor}
           formatPnl={formatPnl}
+          theme={theme}
         />
       )}
 
@@ -704,7 +712,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
           <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '500', marginBottom: '2px' }}>
             {new Date(hoveredDay.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
           </div>
-          <div style={{ fontSize: '12px', fontWeight: '700', color: getPnlTextColor(hoveredDay.pnl) }}>
+          <div style={{ fontSize: '12px', fontWeight: '700', color: getPnlTextColor(hoveredDay.pnl, false, theme) }}>
             {formatPnl(hoveredDay.pnl)}
           </div>
           <div style={{
@@ -732,7 +740,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
   )
 }
 
-function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlMap, symbolMap, BULLISH_COLOR, BEARISH_COLOR, getPnlTextColor, formatPnl }) {
+function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlMap, symbolMap, BULLISH_COLOR, BEARISH_COLOR, getPnlTextColor, formatPnl, theme }) {
   // Prevent scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -779,7 +787,7 @@ function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlM
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginBottom: '2px' }}>Net PnL</div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: getPnlTextColor(dailyPnlMap[selectedDate] || 0) }}>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: getPnlTextColor(dailyPnlMap[selectedDate] || 0, false, theme) }}>
               {formatPnl(dailyPnlMap[selectedDate] || 0)}
             </div>
           </div>
@@ -800,7 +808,7 @@ function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlM
                   const pnl = parseFloat(trade.realized_pnl) || 0
                   return (
                     <div key={idx} style={{
-                      background: 'rgba(255,118,72,0.03)',
+                      background: `rgba(${hexToRgb(theme.accentColor)}, 0.03)`,
                       border: '1px solid rgba(255,255,255,0.06)',
                       borderRadius: '10px',
                       padding: '12px'
@@ -810,7 +818,7 @@ function DayDetailModal({ selectedDate, setSelectedDate, tradesByDate, dailyPnlM
                           <span style={{ fontWeight: '700', color: '#fff', fontSize: '14px' }}>{sym}</span>
                           <span style={{
                             fontSize: '10px',
-                            background: isLong ? 'rgba(51, 175, 128, 0.15)' : 'rgba(219, 50, 77, 0.15)',
+                            background: isLong ? `rgba(${hexToRgb(theme.bullishColor)}, 0.15)` : `rgba(${hexToRgb(theme.bearishColor)}, 0.15)`,
                             color: isLong ? BULLISH_COLOR : BEARISH_COLOR,
                             padding: '1px 6px',
                             borderRadius: '4px',

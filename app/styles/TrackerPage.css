@@ -1,7 +1,7 @@
 .testnet-page {
   min-height: 100vh;
   padding-top: 80px;
-  background: #0A0A0A;
+  background: var(--color-bg-main);
 }
 
 .testnet-container {
@@ -18,9 +18,9 @@
 .finder-title {
   font-size: 32px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-main);
   margin-bottom: 8px;
-  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -45,7 +45,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   padding: 14px 18px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   transition: all 0.2s;
 }
@@ -63,7 +63,7 @@
 .search-btn {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  color: var(--color-text-main);
   padding: 14px 28px;
   border-radius: 8px;
   font-size: 14px;
@@ -109,7 +109,7 @@
 .method-btn.active {
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.4);
-  color: #ffffff;
+  color: var(--color-text-main);
 }
 
 /* Wallet Details */
@@ -155,7 +155,7 @@
 }
 
 .wallet-address .value {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   font-family: monospace;
   word-break: break-all;
@@ -164,7 +164,7 @@
 .tg-tag {
   background: rgba(0, 136, 204, 0.2);
   border: 1px solid rgba(0, 136, 204, 0.4);
-  color: #00aaff;
+  color: var(--color-telegram);
   padding: 6px 14px;
   border-radius: 16px;
   font-size: 13px;
@@ -183,7 +183,7 @@
 
 .add-tg-btn:hover {
   border-color: rgba(255, 255, 255, 0.5);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .metrics-grid {
@@ -211,7 +211,7 @@
 }
 
 .metric-value {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 24px;
   font-weight: 600;
 }
@@ -230,7 +230,7 @@
 .history-btn:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Claim History */
@@ -241,7 +241,7 @@
 }
 
 .claim-history h3 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 16px;
@@ -307,7 +307,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 6px 10px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 13px;
   cursor: pointer;
   outline: none;
@@ -328,7 +328,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 6px 12px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
@@ -356,7 +356,7 @@
 }
 
 .account-details h3 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 16px;
@@ -370,7 +370,7 @@
 }
 
 .task-status-section h3 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 16px;
@@ -409,12 +409,12 @@
 }
 
 .task-status-table .task-reward {
-  color: #fbbf24;
+  color: var(--color-warning);
   font-weight: 500;
 }
 
 .task-status-table .task-status.completed {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .task-status-table .task-status.pending {
@@ -435,7 +435,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4ade80, #4ade80);
+  background: linear-gradient(90deg, var(--color-success), var(--color-success));
   border-radius: 2px;
   transition: width 0.3s;
 }
@@ -444,7 +444,7 @@
 .refetch-btn {
   background: rgba(60, 200, 240, 0.1);
   border: 1px solid rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
@@ -472,7 +472,7 @@
 
 .refetch-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4ade80, #4ade80);
+  background: linear-gradient(90deg, var(--color-success), var(--color-success));
   border-radius: 2px;
   transition: width 0.1s;
 }
@@ -524,8 +524,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Refetch Status */
@@ -541,7 +546,7 @@
 }
 
 .refetch-pct {
-  color: #4ade80;
+  color: var(--color-success);
   font-size: 13px;
   font-weight: 500;
 }
@@ -587,7 +592,7 @@
 .view-btn.active {
   background: rgba(60, 200, 240, 0.15);
   border-color: rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .task-count {
@@ -614,7 +619,7 @@
 .tab-btn.active {
   background: rgba(60, 200, 240, 0.15);
   border-color: rgba(60, 200, 240, 0.4);
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 /* Season Performance Section */
@@ -649,7 +654,7 @@
 }
 
 .table-header h2 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 20px;
   font-weight: 600;
 }
@@ -719,7 +724,7 @@
 }
 
 .address-cell {
-  color: #fff;
+  color: var(--color-text-main);
   font-family: monospace;
   font-size: 13px;
 }
@@ -736,19 +741,20 @@
   .full-addr {
     display: inline;
   }
+
   .short-addr {
     display: none;
   }
 }
 
 .points-cell {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   font-weight: 500;
 }
 
 .tg-cell {
-  color: #00aaff;
+  color: var(--color-telegram);
   font-size: 14px;
 }
 
@@ -761,15 +767,15 @@
 }
 
 .s4-table .pnl-cell.positive {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .s4-table .pnl-cell.negative {
-  color: #f87171;
+  color: var(--color-error);
 }
 
 .s4-table .campaign-points {
-  color: #fbbf24;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
@@ -813,7 +819,7 @@
 .page-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .page-btn:disabled {
@@ -833,7 +839,7 @@
   right: 24px;
   background: rgba(60, 200, 240, 0.15);
   border: 1px solid rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
   padding: 12px 20px;
   border-radius: 8px;
   font-size: 14px;
@@ -918,7 +924,7 @@
 
 .calc-modal-close:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .calc-header {
@@ -929,7 +935,7 @@
 }
 
 .calc-title {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -971,13 +977,13 @@
 }
 
 .calc-info-tooltip strong {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .close-tooltip-btn {
   background: rgba(60, 200, 240, 0.15);
   border: 1px solid rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
   padding: 6px 14px;
   border-radius: 6px;
   font-size: 12px;
@@ -1014,7 +1020,7 @@
 
 .points-mode-toggle button.active {
   background: rgba(60, 200, 240, 0.15);
-  color: #4ade80;
+  color: var(--color-success);
   border: 1px solid rgba(60, 200, 240, 0.3);
 }
 
@@ -1057,7 +1063,7 @@
 
 .effective-display {
   margin-top: 6px;
-  color: #4ade80;
+  color: var(--color-success);
   font-size: 12px;
   font-weight: 500;
 }
@@ -1087,7 +1093,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 10px 12px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   transition: all 0.2s;
 }
@@ -1143,13 +1149,13 @@
 .display-toggle button.active {
   background: rgba(60, 200, 240, 0.15);
   border-color: rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .calc-result-value {
   font-size: 24px;
   font-weight: 600;
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .price-selector {
@@ -1172,13 +1178,14 @@
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .price-selector input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
-  background: #4ade80;
+  background: var(--color-success);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -1186,7 +1193,7 @@
 .price-selector input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  background: #4ade80;
+  background: var(--color-success);
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -1234,7 +1241,7 @@
 }
 
 .airdrop-value {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .info-btn {
@@ -1256,7 +1263,7 @@
 .info-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.5);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Calculation Info Popup */
@@ -1275,7 +1282,7 @@
 }
 
 .calc-info-popup h4 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -1299,7 +1306,7 @@
 }
 
 .calc-info-popup li strong {
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 .close-info-btn {
@@ -1315,7 +1322,7 @@
 
 .close-info-btn:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Responsive */
@@ -1416,7 +1423,7 @@
   }
 
 
-  .mainnet-tracker > div[style*="overflowX"] {
+  .mainnet-tracker>div[style*="overflowX"] {
     margin-left: -8px;
     margin-right: -8px;
     padding-left: 8px;
@@ -1439,7 +1446,7 @@
 }
 
 .batch-selector h3 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 16px;
@@ -1450,7 +1457,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   padding: 12px 16px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   width: 100%;
   max-width: 400px;
@@ -1471,7 +1478,7 @@
 .delete-batch-btn {
   background: rgba(220, 53, 69, 0.15);
   border: 1px solid rgba(220, 53, 69, 0.3);
-  color: #dc3545;
+  color: var(--color-error);
   padding: 10px 18px;
   border-radius: 6px;
   font-size: 13px;
@@ -1493,7 +1500,7 @@
 }
 
 .batch-stats-section h2 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 24px;
@@ -1515,14 +1522,14 @@
 
 .batch-stats-summary .stat-card .stat-label {
   font-size: 14px;
-  color: #888;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   display: block;
 }
 
 .batch-stats-summary .stat-card .stat-value {
   font-size: 20px;
-  color: #fff;
+  color: var(--color-text-main);
   font-weight: 600;
 }
 
@@ -1531,16 +1538,17 @@
 }
 
 .batch-wallets-list h3 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 16px;
 }
 
-.view-wallet-btn, .remove-wallet-btn {
+.view-wallet-btn,
+.remove-wallet-btn {
   background: rgba(60, 200, 240, 0.15);
   border: 1px solid rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 12px;
@@ -1556,7 +1564,7 @@
 .remove-wallet-btn {
   background: rgba(220, 53, 69, 0.15);
   border-color: rgba(220, 53, 69, 0.3);
-  color: #dc3545;
+  color: var(--color-error);
 }
 
 .remove-wallet-btn:hover {
@@ -1573,7 +1581,7 @@
 }
 
 .batch-management h3 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
@@ -1585,10 +1593,11 @@
   gap: 8px;
 }
 
-.create-batch-btn, .batch-btn {
+.create-batch-btn,
+.batch-btn {
   background: rgba(60, 200, 240, 0.15);
   border: 1px solid rgba(60, 200, 240, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
   padding: 8px 14px;
   border-radius: 6px;
   font-size: 13px;
@@ -1603,7 +1612,7 @@
 .batch-btn.active {
   background: rgba(40, 167, 69, 0.2);
   border-color: rgba(40, 167, 69, 0.4);
-  color: #28a745;
+  color: var(--color-success);
   cursor: default;
 }
 

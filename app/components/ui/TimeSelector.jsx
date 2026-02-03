@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { THEME_COLORS } from '../../lib/themeColors'
 
 export function TimeSelector({
   value,
@@ -73,8 +74,8 @@ export function TimeSelector({
                   top: '0',
                   bottom: '0',
                   borderRadius: '3px',
-                  background: 'rgba(255, 118, 72, 0.2)',
-                  border: '1px solid rgba(255, 118, 72, 0.3)',
+                  background: 'rgba(var(--color-primary-rgb), 0.2)',
+                  border: '1px solid rgba(var(--color-primary-rgb), 0.3)',
                   zIndex: 0,
                 }}
                 initial={false}
@@ -98,7 +99,7 @@ export function TimeSelector({
                   height: '100%',
                   background: 'transparent',
                   border: 'none',
-                  color: value === option ? '#FF7648' : 'rgba(255, 255, 255, 0.4)',
+                  color: value === option ? 'var(--color-primary)' : 'var(--color-text-secondary)',
                   fontSize: '10px',
                   fontWeight: '600',
                   cursor: 'pointer',

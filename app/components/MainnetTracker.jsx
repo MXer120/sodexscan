@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { useTheme } from '../lib/ThemeContext'
 import Link from 'next/link'
 import ChartCard from './ChartCard'
 import PnlCalendar from './PnlCalendar'
@@ -7,6 +8,8 @@ import { TimeSelector } from './ui/TimeSelector'
 import { getSodexIdFromWallet } from '../lib/accountResolver'
 import { globalCache } from '../lib/globalCache'
 import { supabase } from '../lib/supabaseClient'
+import { useRouter } from 'next/navigation'
+import SearchAndAddBox from './SearchAndAddBox'
 import '../styles/ScannerGrid.css'
 
 
@@ -14,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useWatchlist } from '../hooks/useWatchlist'
 import { useWalletTags, useAddTag, useRenameTag, useDeleteTag, useAssignToGroup, useWalletGroups } from '../hooks/useWalletTags'
 import { useSessionContext } from '../lib/SessionContext'
+import { THEME_COLORS, getThemeHexColors } from '../lib/themeColors'
 const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/object/public/coin-logos/'
 
 const LOGO_EXTENSIONS = {
@@ -112,9 +116,9 @@ const CoinLogo = ({ symbol, size = '18px' }) => {
   if (!logoUrl || !show) {
     return (
       <div style={{
-        width: size, height: size, borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+        width: size, height: size, borderRadius: '50%', background: 'var(--color-bg-card)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px',
-        color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0
+        color: 'var(--color-text-muted)', border: '1px solid var(--color-border-visible)', flexShrink: 0
       }}>
         {symbol?.slice(0, 1).toUpperCase()}
       </div>
@@ -167,11 +171,11 @@ const CopyableAddress = ({ address, truncated = true }) => {
         }}
       >
         {copied ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
@@ -179,7 +183,7 @@ const CopyableAddress = ({ address, truncated = true }) => {
       </button>
       <style>{`
         .copyable-address .copy-btn { opacity: 1 !important; }
-        .copy-btn:hover svg { stroke: #4ade80; }
+        .copy-btn:hover svg { stroke: var(--color-success); }
       `}</style>
     </span>
   )
@@ -204,7 +208,7 @@ const TransactionTypeBadge = ({ type }) => {
   if (t.includes('transfer')) {
     return (
       <TransactionBadge
-        type="Transfer" color="#3B82F6" bgColor="rgba(59, 130, 246, 0.15)"
+        type="Transfer" color="var(--color-accent)" bgColor="rgba(var(--color-accent-rgb), 0.15)"
         icon={<><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></>}
       />
     )
@@ -212,7 +216,7 @@ const TransactionTypeBadge = ({ type }) => {
   if (t.includes('deposit')) {
     return (
       <TransactionBadge
-        type="Deposit" color="#33AF80" bgColor="rgba(51, 175, 128, 0.15)"
+        type="Deposit" color="var(--color-success)" bgColor="rgba(var(--color-success-rgb), 0.15)"
         icon={<><path d="M7 13l5 5 5-5" /><path d="M12 18V6" /></>}
       />
     )
@@ -220,7 +224,7 @@ const TransactionTypeBadge = ({ type }) => {
   if (t.includes('withdraw')) {
     return (
       <TransactionBadge
-        type="Withdrawal" color="#DB324D" bgColor="rgba(219, 50, 77, 0.15)"
+        type="Withdrawal" color="var(--color-error)" bgColor="rgba(var(--color-error-rgb), 0.15)"
         icon={<><path d="M7 11l5-5 5 5" /><path d="M12 18V6" /></>}
       />
     )
@@ -232,7 +236,7 @@ const SideBadge = ({ side, leverage, BULLISH_COLOR, BEARISH_COLOR }) => {
   const s = (side || '').toString().toUpperCase()
   const isLong = s === 'LONG' || s === '2'
   const color = isLong ? BULLISH_COLOR : BEARISH_COLOR
-  const bgColor = isLong ? 'rgba(51, 175, 128, 0.15)' : 'rgba(219, 50, 77, 0.15)'
+  const bgColor = isLong ? 'rgba(var(--color-success-rgb), 0.15)' : 'rgba(var(--color-error-rgb), 0.15)'
   const label = isLong ? 'Long' : 'Short'
 
   return (
@@ -340,6 +344,22 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [manualIdInput, setManualIdInput] = useState('')
   const [balanceView, setBalanceView] = useState('Spot')
   const [notFound, setNotFound] = useState(false)
+  const router = useRouter()
+  const [searchInput, setSearchInput] = useState('')
+
+  const [filterType, setFilterType] = useState('all')
+
+  const internalSearchBox = searchBox || (
+    <SearchAndAddBox
+      onAction={({ wallet_address }) => router.push(`/tracker/${wallet_address}`)}
+      onSearchChange={setSearchInput}
+      searchValue={searchInput}
+      placeholder="Search Wallet / ID..."
+      actionLabel="Scan"
+      filterType={filterType}
+      onFilterChange={setFilterType}
+    />
+  )
 
   // Using global cache that persists across component mounts (navigation)
 
@@ -437,9 +457,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [isEditingAlias])
 
+  const { theme } = useTheme()
   // Universal colors
-  const BULLISH_COLOR = '#33AF80'
-  const BEARISH_COLOR = '#DB324D'
+  const BULLISH_COLOR = theme.bullishColor
+  const BEARISH_COLOR = theme.bearishColor
+  const INTERNAL_COLOR = theme.accentColor
 
   const totalUnrealizedPnl = positions.reduce((sum, pos) =>
     sum + parseFloat(pos.unrealizedProfit || 0), 0)
@@ -505,7 +527,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     const sideLabel = deltaRatio > 0.02 ? 'LONG' : (deltaRatio < -0.02 ? 'SHORT' : '')
 
     let rating = 'Neutral'
-    let sentimentColor = 'rgba(255,255,255,0.4)'
+    let sentimentColor = 'var(--color-text-muted)'
 
     if (absRatio > 5.0) rating = 'Extremely'
     else if (absRatio > 2.0) rating = 'Very'
@@ -1105,77 +1127,82 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <b>Dashboard</b>
           </div>
           <div className="path-search-wrapper">
-            {searchBox}
+            {internalSearchBox}
           </div>
         </div>
 
-        <aside className="section-sidebar">
+        <aside className="section-sidebar" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
           {tagSection}
           <div style={{ padding: '20px', textAlign: 'center' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
-            <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '8px' }}>Profile Search</h3>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
+            <h3 style={{ color: 'var(--color-text-main)', fontSize: '14px', marginBottom: '8px' }}>Profile Search</h3>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
               Enter an Account ID or search for another wallet.
             </p>
           </div>
         </aside>
 
         <div className="section-top-center" style={{
+          background: 'rgba(var(--color-primary-rgb), 0.05)',
+          borderRadius: '8px',
+          border: '1px dashed rgba(var(--color-primary-rgb), 0.3)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center',
-          padding: '40px',
-          background: 'rgba(20,20,20,0.4)',
-          borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.08)'
+          padding: '40px 20px',
+          height: '475px',
+          boxSizing: 'border-box'
         }}>
-          <h3 style={{ color: '#fff', marginBottom: '16px', fontSize: '18px' }}>Wallet Not Found</h3>
-          <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '24px', maxWidth: '400px' }}>
-            This wallet address is not currently indexed in the leaderboard. You can try searching by its numerical Account ID instead:
+          <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Wallet Not Found</h3>
+          <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
+            This wallet address is not currently indexed. Search by SoDex Account ID or another address above.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <input
-              type="text"
-              value={manualIdInput}
-              onChange={(e) => setManualIdInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleManualIdSearch()}
-              placeholder="e.g. 1234"
-              style={{
-                background: 'rgba(30, 30, 30, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '8px',
-                padding: '10px 16px',
-                color: '#fff',
-                fontSize: '14px',
-                width: '160px'
-              }}
-            />
-            <button
-              onClick={handleManualIdSearch}
-              style={{
-                background: 'rgba(255, 118, 72, 0.15)',
-                border: '1px solid rgba(255, 118, 72, 0.3)',
-                color: '#FF7648',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
-            >
-              Scan ID
-            </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+            <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Or scan numerical ID:</span>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <input
+                type="text"
+                value={manualIdInput}
+                onChange={(e) => setManualIdInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualIdSearch()}
+                placeholder="e.g. 1234"
+                style={{
+                  background: 'rgba(30, 30, 30, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  color: 'var(--color-text-main)',
+                  fontSize: '14px',
+                  width: '160px'
+                }}
+              />
+              <button
+                onClick={handleManualIdSearch}
+                style={{
+                  background: 'rgba(var(--color-primary-rgb), 0.15)',
+                  border: '1px solid rgba(var(--color-primary-rgb), 0.3)',
+                  color: 'var(--color-primary)',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Scan ID
+              </button>
+            </div>
           </div>
         </div>
 
-        <aside className="section-activity" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}></aside>
+        <aside className="section-activity" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}></aside>
 
         <div className="section-bottom-center" style={{
-          background: 'rgba(20,20,20,0.4)',
+          background: 'var(--color-bg-card)',
           borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.08)'
+          border: '1px solid var(--color-border-subtle)'
         }}>
         </div>
       </div>
@@ -1194,12 +1221,12 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <b>Dashboard</b>
           </div>
           <div className="path-search-wrapper">
-            {searchBox}
+            {internalSearchBox}
           </div>
         </div>
 
         {/* Highly Accurate Sidebar Skeleton */}
-        <aside className="section-sidebar" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <aside className="section-sidebar" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
           {tagSection}
           <div style={{ padding: '20px' }}>
             {/* Section 1: Alias & Address info (Accurate positions) */}
@@ -1225,7 +1252,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               </div>
             </div>
 
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
 
             {/* Section 2: Account Equity */}
             <div style={{ marginBottom: '0' }}>
@@ -1240,7 +1267,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               </div>
             </div>
 
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
 
             {/* Section 3: Futures */}
             <div style={{ marginBottom: '0' }}>
@@ -1255,7 +1282,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               </div>
             </div>
 
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
 
             {/* Section 4: Performance */}
             <div style={{ marginBottom: '0' }}>
@@ -1272,7 +1299,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               </div>
             </div>
 
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '14px 0' }} />
+            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
 
             {/* Section 5: Rankings */}
             <div style={{ marginBottom: '0' }}>
@@ -1293,9 +1320,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
         {/* Central Area: Chart Loading View */}
         <div className="section-top-center" style={{
-          background: 'rgba(255, 118, 72, 0.05)',
+          background: 'rgba(var(--color-primary-rgb), 0.05)',
           borderRadius: '8px',
-          border: '1px dashed rgba(255, 118, 72, 0.3)',
+          border: '1px dashed rgba(var(--color-primary-rgb), 0.3)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -1313,7 +1340,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         </div>
 
         {/* Improved Accurate Activity Skeleton */}
-        <aside className="section-activity" style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', padding: '20px' }}>
+        <aside className="section-activity" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', padding: '20px' }}>
           <div className="skeleton" style={{ width: '130px', height: '18px', marginBottom: '24px' }}></div>
           <div className="timeline" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -1336,13 +1363,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
         {/* Improved Accurate Bottom Table Skeleton */}
         <div className="section-bottom-center" style={{
-          background: 'rgba(20,20,20,0.4)',
+          background: 'var(--color-bg-card)',
           borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--color-border-subtle)',
           padding: '0'
         }}>
           {/* Tab Nav Skeleton */}
-          <div style={{ padding: '16px 16px 0 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ padding: '16px 16px 0 16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
             <div style={{ display: 'flex', gap: '24px', marginBottom: '0' }}>
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="skeleton" style={{ height: '32px', width: '70px', borderRadius: '4px 4px 0 0' }}></div>
@@ -1351,7 +1378,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
 
           {/* Table Header Skeleton */}
-          <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div className="skeleton" style={{ width: '120px', height: '14px' }}></div>
               <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
@@ -1366,7 +1393,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           {/* Table Body Skeleton */}
           <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--color-border-subtle)', opacity: 0.6 }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
                   <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
@@ -1394,7 +1421,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }
 
-  const INTERNAL_COLOR = '#3b82f6' // Blue for internal transfers
+
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -1451,7 +1478,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </b>
         </div>
         <div className="path-search-wrapper">
-          {searchBox}
+          {internalSearchBox}
         </div>
       </div>
 
@@ -1546,7 +1573,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               disabled={isAdding || isRemoving}
               style={{
                 flex: 1,
-                background: isInWatchlist ? 'rgba(255,255,255,0.05)' : '#FF7648',
+                background: isInWatchlist ? 'rgba(255,255,255,0.05)' : THEME_COLORS.primary,
                 border: isInWatchlist ? '1px solid rgba(255,255,255,0.1)' : 'none',
                 color: '#fff',
                 padding: '6px 12px',
@@ -1916,7 +1943,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             />
           )
         ) : (
-          <div style={{ background: 'rgba(20,20,20,0.4)', borderRadius: '12px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ background: 'var(--color-bg-card)', borderRadius: '12px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', border: '1px solid var(--color-border-visible)' }}>
             No PnL data available
           </div>
         )}
@@ -1971,7 +1998,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: item.type === 'Deposit' ? 'rgba(51, 175, 128, 0.15)' : 'rgba(219, 50, 77, 0.15)'
+                        background: item.type === 'Deposit' ? 'rgba(var(--color-success-rgb), 0.15)' : 'rgba(var(--color-error-rgb), 0.15)'
                       }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
                           stroke={item.type === 'Deposit' ? BULLISH_COLOR : BEARISH_COLOR} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -2084,7 +2111,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         left: 0,
                         right: 0,
                         height: '2px',
-                        background: '#FF7648',
+                        background: THEME_COLORS.primary,
                         zIndex: 2,
                         borderRadius: '2px 2px 0 0'
                       }}
@@ -2116,8 +2143,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       borderRadius: '4px',
                       border: 'none',
                       cursor: 'pointer',
-                      background: balanceView === mode ? 'rgba(255, 118, 72, 0.15)' : 'rgba(255,255,255,0.03)',
-                      color: balanceView === mode ? '#FF7648' : 'rgba(255,255,255,0.4)',
+                      background: balanceView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'rgba(255,255,255,0.03)',
+                      color: balanceView === mode ? THEME_COLORS.primary : 'rgba(255,255,255,0.4)',
                       transition: 'all 0.2s ease',
                       margin: '0 1px'
                     }}
@@ -2614,8 +2641,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           .map((w, i) => {
                             const amount = formatCoin(w.amount, w.decimals)
                             const coin = (w.token || w.coin || '').trim()
-                            const { isDeposit, isWithdraw, typeLabel } = getWithdrawalTypeMeta(w)
-                            const flowColor = isDeposit ? BULLISH_COLOR : isWithdraw ? BEARISH_COLOR : '#fff'
+                            const { isDeposit, isWithdraw, isInternal, typeLabel } = getWithdrawalTypeMeta(w)
+                            const flowColor = isDeposit ? BULLISH_COLOR : isWithdraw ? BEARISH_COLOR : isInternal ? INTERNAL_COLOR : '#fff'
                             const sign = isDeposit ? '+' : isWithdraw ? '-' : ''
 
                             // Determine From/To/Hash

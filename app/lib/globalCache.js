@@ -77,8 +77,8 @@ class GlobalCache {
   }
 
   // Leaderboard page cache
-  getLeaderboardPage(page, type, excludeSodex) {
-    const key = `${page}_${type}_${excludeSodex}`
+  getLeaderboardPage(page, type, excludeSodex, showZero) {
+    const key = `${page}_${type}_${excludeSodex}_${showZero}`
     const cached = this.caches.leaderboardPages.get(key)
     if (!cached) return null
 
@@ -90,8 +90,8 @@ class GlobalCache {
     return cached.data
   }
 
-  setLeaderboardPage(page, type, excludeSodex, data) {
-    const key = `${page}_${type}_${excludeSodex}`
+  setLeaderboardPage(page, type, excludeSodex, showZero, data) {
+    const key = `${page}_${type}_${excludeSodex}_${showZero}`
     this.caches.leaderboardPages.set(key, {
       data,
       timestamp: Date.now()
@@ -99,8 +99,8 @@ class GlobalCache {
   }
 
   // Total count cache
-  getTotalCount(type, excludeSodex) {
-    const key = `${type}_${excludeSodex}`
+  getTotalCount(type, excludeSodex, showZero) {
+    const key = `${type}_${excludeSodex}_${showZero}`
     const cached = this.caches.totalCounts.get(key)
     if (!cached) return null
 
@@ -112,8 +112,8 @@ class GlobalCache {
     return cached.count
   }
 
-  setTotalCount(type, excludeSodex, count) {
-    const key = `${type}_${excludeSodex}`
+  setTotalCount(type, excludeSodex, showZero, count) {
+    const key = `${type}_${excludeSodex}_${showZero}`
     this.caches.totalCounts.set(key, {
       count,
       timestamp: Date.now()
@@ -121,9 +121,10 @@ class GlobalCache {
   }
 
   // Top 10 cache
-  getTop10() {
-    const cached = this.caches.top10
-    if (!cached.timestamp) return null
+  getTop10(showZero) {
+    const key = `top10_${showZero}`
+    const cached = this.caches.top10[key]
+    if (!cached || !cached.timestamp) return null
 
     const age = Date.now() - cached.timestamp
     if (age >= this.TTL.mainnetPage) {
@@ -133,8 +134,9 @@ class GlobalCache {
     return { gainers: cached.gainers, losers: cached.losers }
   }
 
-  setTop10(gainers, losers) {
-    this.caches.top10 = {
+  setTop10(gainers, losers, showZero) {
+    const key = `top10_${showZero}`
+    this.caches.top10[key] = {
       gainers,
       losers,
       timestamp: Date.now()
@@ -336,7 +338,7 @@ class GlobalCache {
     this.caches.socialPages.clear()
     this.caches.socialStats = { data: null, timestamp: 0 }
     if (typeof window !== 'undefined') {
-      try { localStorage.removeItem('socialLeaderboardCache') } catch (e) {}
+      try { localStorage.removeItem('socialLeaderboardCache') } catch (e) { }
     }
   }
 }

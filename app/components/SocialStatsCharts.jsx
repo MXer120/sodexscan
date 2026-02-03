@@ -24,7 +24,7 @@ const TIMEFRAME_DAYS = {
 
 const METRICS = ['Messages', 'Characters', 'Active Users']
 const METRIC_KEYS = { 'Messages': 'messages', 'Characters': 'characters', 'Active Users': 'active_users' }
-const METRIC_COLORS = { 'Messages': '#0081A6', 'Characters': '#4ade80', 'Active Users': '#f59e0b' }
+const METRIC_COLORS = { 'Messages': 'var(--color-primary)', 'Characters': 'var(--color-success)', 'Active Users': 'var(--color-warning)' }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -261,7 +261,7 @@ export default function SocialStatsCharts() {
         <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chart1Data} barCategoryGap="20%">
-              <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" />
               <XAxis dataKey="date" tickFormatter={formatDate} stroke="#666" tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={formatValue} stroke="#666" tick={{ fontSize: 11 }} />
               <Tooltip content={<CustomTooltip />} />
@@ -291,7 +291,7 @@ export default function SocialStatsCharts() {
         <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={heatData} barCategoryGap="15%">
-              <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" />
               <XAxis
                 dataKey="label"
                 stroke="#666"

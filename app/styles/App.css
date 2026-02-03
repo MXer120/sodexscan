@@ -76,11 +76,11 @@
 }
 
 .tab.active {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .tab.active::after {
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--color-primary);
 }
 
 .stats-row {
@@ -103,7 +103,7 @@
 
 .stat-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: color 0.2s;
@@ -113,7 +113,7 @@
   font-size: 28px;
   font-weight: 600;
   transition: color 0.2s;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .charts-grid {
@@ -149,7 +149,7 @@
 .chart-title {
   font-size: 16px;
   font-weight: 500;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .chart-controls {
@@ -201,7 +201,7 @@
 .timeframe-btn.active {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .selector-dropdown {
@@ -209,9 +209,9 @@
 }
 
 .selector-btn {
-  background: rgba(20, 20, 20, 0.8);
+  background: var(--color-bg-card);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  color: var(--color-text-main);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 12px;
@@ -229,7 +229,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background: rgba(20, 20, 20, 0.95);
+  background: var(--color-bg-card);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   min-width: 460px;
@@ -371,7 +371,7 @@
 }
 
 .error {
-  color: #ff6b6b;
+  color: var(--color-error);
 }
 
 @media (max-width: 1200px) {

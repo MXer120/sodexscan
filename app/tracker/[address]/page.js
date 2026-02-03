@@ -41,7 +41,14 @@ export async function generateMetadata({ params }) {
 
 export default function WalletPage({ params }) {
     return (
-        <div className="dashboard scanner-dashboard" style={{ paddingTop: '44px', minHeight: '100vh', boxSizing: 'border-box' }}>
+        <div className="dashboard scanner-dashboard" style={{
+            padding: '0',
+            paddingTop: '44px',
+            minHeight: '100vh',
+            maxWidth: '100%',
+            margin: '0',
+            boxSizing: 'border-box'
+        }}>
             <MainnetTracker walletAddress={params.address} />
         </div>
     )

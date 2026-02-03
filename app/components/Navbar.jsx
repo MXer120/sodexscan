@@ -4,12 +4,14 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSessionContext } from '../lib/SessionContext'
+import { useTheme } from '../lib/ThemeContext'
 import { Auth } from './Auth'
 import '../styles/Navbar.css'
 
 function Navbar() {
   const pathname = usePathname()
   const { user, setAuthModalCallback } = useSessionContext()
+  const { logo } = useTheme()
   const [showAuth, setShowAuth] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -52,7 +54,7 @@ function Navbar() {
 
         <div className="navbar-container">
           <Link href="/" className="navbar-logo">
-            <img src="/logo.svg" alt="Pukai" className="logo-icon" />
+            <img src={logo} alt="Pukai" className="logo-icon" />
           </Link>
 
           <div className="navbar-links">

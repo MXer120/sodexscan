@@ -4,8 +4,8 @@
   left: 0;
   right: 0;
   height: 32px;
-  background: #0A0A0A;
-  border-top: 1px solid #333;
+  background: var(--color-bg-main);
+  border-top: 1px solid var(--color-border-visible);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -21,12 +21,12 @@
 }
 
 .status-link {
-  color: #888;
+  color: var(--color-text-muted);
   transition: color 0.2s;
 }
 
 .status-link:hover {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .status-btn {
@@ -38,7 +38,7 @@
 }
 
 .status-divider-text {
-  color: #444;
+  color: var(--color-text-darker);
 }
 
 .status-bar-right {
@@ -50,18 +50,18 @@
 .status-divider-vertical {
   width: 1px;
   height: 16px;
-  background: #333;
+  background: var(--color-border-visible);
 }
 
 .status-icon-link {
-  color: #888;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   transition: color 0.2s;
 }
 
 .status-icon-link:hover {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Disclaimer Modal */
@@ -76,8 +76,8 @@
 }
 
 .disclaimer-modal {
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-visible);
   border-radius: 12px;
   padding: 24px;
   max-width: 500px;
@@ -91,24 +91,24 @@
   right: 16px;
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 24px;
   cursor: pointer;
   line-height: 1;
 }
 
 .disclaimer-close:hover {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .disclaimer-modal h2 {
   margin-bottom: 16px;
   font-size: 18px;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .disclaimer-content {
-  color: #aaa;
+  color: var(--color-text-light-gray);
   font-size: 13px;
   line-height: 1.6;
 }

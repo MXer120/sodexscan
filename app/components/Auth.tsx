@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { THEME_COLORS } from '../lib/themeColors'
 import { supabase } from '../lib/supabaseClient'
 
 export const Auth = () => {
@@ -86,7 +87,7 @@ export const Auth = () => {
         disabled={loading}
         style={{
           padding: '10px 16px',
-          background: '#FF7648',
+          background: THEME_COLORS.primary,
           border: 'none',
           borderRadius: '6px',
           color: '#fff',
