@@ -70,7 +70,7 @@ function Navbar() {
                     <button className={`nav-link ${pathname.startsWith(link.path) ? 'active' : ''}`}>
                       {link.label} ▾
                     </button>
-                    <div className="dropdown-menu">
+                    <div className="nav-dropdown-menu">
                       {link.children.map(child => (
                         <Link
                           key={child.path}

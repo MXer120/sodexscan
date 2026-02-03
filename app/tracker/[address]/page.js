@@ -1,0 +1,48 @@
+
+import { createClient } from '@supabase/supabase-js'
+import MainnetTracker from '../../components/MainnetTracker'
+
+export const revalidate = 60 // Revalidate metadata every minute
+
+export async function generateMetadata({ params }) {
+    const { address } = params
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    // Fetch basic stats for meta tags
+    const { data } = await supabase
+        .from('leaderboard_smart')
+        .select('pnl_rank, cumulative_pnl, cumulative_volume')
+        .ilike('wallet_address', address)
+        .maybeSingle()
+
+    if (!data) {
+        return {
+            title: `Wallet ${address.slice(0, 6)}... | CommunityScan Sodex`,
+            description: 'Analyze this wallet\'s Mainnet trading performance on Sodex.'
+        }
+    }
+
+    const pnl = parseFloat(data.cumulative_pnl || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    const rank = data.pnl_rank ? `#${data.pnl_rank}` : 'Unranked'
+
+    return {
+        title: `Wallet ${address.slice(0, 6)}... | Rank ${rank} | PnL ${pnl}`,
+        description: `Analyze Wallet ${address} on Sodex Mainnet. Total PnL: ${pnl}, Volume: $${parseFloat(data.cumulative_volume || 0).toLocaleString()}. View open positions and trade history.`,
+        openGraph: {
+            title: `Wallet ${address.slice(0, 6)}... | Rank ${rank}`,
+            description: `PnL: ${pnl} | Volume: $${parseFloat(data.cumulative_volume || 0).toLocaleString()}`,
+            images: [`/tracker/${address}/opengraph-image`] // Link to dynamic OG image
+        }
+    }
+}
+
+export default function WalletPage({ params }) {
+    return (
+        <div className="dashboard scanner-dashboard" style={{ paddingTop: '44px', minHeight: '100vh', boxSizing: 'border-box' }}>
+            <MainnetTracker walletAddress={params.address} />
+        </div>
+    )
+}
