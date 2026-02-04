@@ -20,7 +20,8 @@ const LOGO_EXTENSIONS = {
 
 // Map symbol aliases to their logo file names
 const LOGO_ALIASES = {
-  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk'
+  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk',
+  arbitrum: 'arb'
 }
 
 const getCoinLogoUrl = (symbol) => {
@@ -34,7 +35,7 @@ const getCoinLogoUrl = (symbol) => {
 
 const getBaseCoin = (formattedSymbol) => {
   if (!formattedSymbol) return null
-  const parts = formattedSymbol.split(/[\/\-]/)
+  const parts = formattedSymbol.split(/[\/\-\.]/)
   return parts[0] || null
 }
 

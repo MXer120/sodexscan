@@ -1,7 +1,7 @@
 .sopoints-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 24px;
+    padding: 80px 24px 24px;
     color: var(--color-text-main);
 }
 
@@ -225,6 +225,21 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
+}
+
+/* Logic to handle fixed navbar offset when announcement bar is present/absent */
+body:has(.announcement-bar) .sopoints-container {
+    padding-top: 24px;
+}
+
+@media (max-width: 768px) {
+    .sopoints-container {
+        padding-top: 100px;
+    }
+
+    body:has(.announcement-bar) .sopoints-container {
+        padding-top: 24px;
+    }
 }
 
 /* Section title removed */

@@ -26,7 +26,8 @@ const LOGO_EXTENSIONS = {
 }
 
 const LOGO_ALIASES = {
-  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk'
+  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk',
+  arbitrum: 'arb'
 }
 
 const getCoinLogoUrl = (symbol) => {
