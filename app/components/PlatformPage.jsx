@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import TopPairs from './TopPairs'
+import TotalUsersChart from './TotalUsersChart'
 import '../styles/MainnetPage.css'
 import { supabase } from '../lib/supabaseClient'
 
@@ -213,6 +214,8 @@ export default function PlatformPage() {
           Details / Calculator
         </button>
       </div>
+
+      <TotalUsersChart />
 
       {isModalOpen && (
         <div className="platform-modal-overlay" onClick={() => setIsModalOpen(false)}>
