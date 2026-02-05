@@ -19,10 +19,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeSettings>(DEFAULT_THEME)
   const [isLoading, setIsLoading] = useState(true)
 
+  // Track if we should sync to DB (to avoid redundant updates on load)
+  const shouldSyncRef = React.useRef(false)
+
   // Load theme from profile on mount / user change
   useEffect(() => {
     async function loadTheme() {
       setIsLoading(true)
+      shouldSyncRef.current = false // Reset sync flag on user change
 
       // Try localStorage first for instant load
       const cached = localStorage.getItem('theme')
@@ -59,6 +63,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
 
       setIsLoading(false)
+      // After load, allow syncing
+      setTimeout(() => {
+        shouldSyncRef.current = true
+      }, 500)
     }
 
     loadTheme()
@@ -69,25 +77,37 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(theme)
   }, [])
 
-  const setTheme = async (updates: Partial<ThemeSettings>) => {
-    const newTheme = { ...theme, ...updates }
-    setThemeState(newTheme)
-    applyTheme(newTheme)
-    localStorage.setItem('theme', JSON.stringify(newTheme))
+  // Debounced effect to save theme to DB
+  useEffect(() => {
+    if (!user || !shouldSyncRef.current || isLoading) return
 
-    // Save to DB if logged in
-    if (user) {
+    const timer = setTimeout(async () => {
+      console.log('Syncing theme to database...')
       await supabase
         .from('profiles')
         .update({
-          color_scheme: newTheme.colorScheme,
-          theme_mode: newTheme.mode,
-          bullish_color: newTheme.bullishColor,
-          bearish_color: newTheme.bearishColor,
-          accent_color: newTheme.accentColor
+          color_scheme: theme.colorScheme,
+          theme_mode: theme.mode,
+          bullish_color: theme.bullishColor,
+          bearish_color: theme.bearishColor,
+          accent_color: theme.accentColor
         })
         .eq('id', user.id)
-    }
+    }, 2000) // 2 second debounce for color pickers
+
+    return () => clearTimeout(timer)
+  }, [theme, user, isLoading])
+
+  const setTheme = (updates: Partial<ThemeSettings>) => {
+    const newTheme = { ...theme, ...updates }
+
+    // Check if anything actually changed
+    if (JSON.stringify(newTheme) === JSON.stringify(theme)) return
+
+    setThemeState(newTheme)
+    applyTheme(newTheme)
+    localStorage.setItem('theme', JSON.stringify(newTheme))
+    shouldSyncRef.current = true
   }
 
   const logo = getThemeLogo(theme.colorScheme)

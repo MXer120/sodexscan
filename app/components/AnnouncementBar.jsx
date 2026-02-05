@@ -41,16 +41,6 @@ const AnnouncementBar = () => {
         }
 
         fetchAnnouncements()
-
-        // Optional: Real-time subscription to updates
-        const subscription = supabase
-            .channel('announcement_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'announcement_status' }, fetchAnnouncements)
-            .subscribe()
-
-        return () => {
-            subscription.unsubscribe()
-        }
     }, [])
 
     const handleDismiss = (e, announcement) => {
