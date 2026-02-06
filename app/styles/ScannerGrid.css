@@ -128,11 +128,13 @@
 /* Tab scrollable area - this is the scroll container */
 .section-bottom-center .tab-scroll-area {
     flex: 1;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
+    scrollbar-gutter: stable;
 }
 
 /* Sticky table headers inside tab-scroll-area */
@@ -303,6 +305,7 @@
     width: 100%;
     border-collapse: collapse;
     min-width: 500px;
+    table-layout: fixed;
 }
 
 .section-bottom-center th {
