@@ -32,19 +32,8 @@ function TrackerPage() {
     }
   }, [])
 
-  // This part of the code related to `existingTag` and `handleAddTag`
-  // seems to be for the `tagSection` which is no longer rendered directly here.
-  // It might be moved to the dynamic route component.
-  // For now, I'll keep `handleAddTag` but remove `existingTag` as `walletAddress` is not state here.
+
   const handleAddTag = async () => {
-    // This function would need `walletAddress` to be passed or derived from the URL
-    // if it were to be used in the dynamic route component.
-    // As per the instruction, `walletAddress` state is removed from this component.
-    // This function will likely be refactored or moved.
-    // For now, I'll keep it as is, but it won't function correctly without `walletAddress`.
-    // Assuming `walletAddress` would be available in the context where this is used.
-    // For the purpose of this edit, I'll assume `walletAddress` is implicitly available
-    // if this function were to be called, but it's not directly used in this component's render.
     if (!tagInput.trim()) return // Removed !walletAddress check as walletAddress state is gone
     // await addTag.mutateAsync({ wallet: walletAddress, name: tagInput.trim() }) // walletAddress is undefined here
     setTagInput('')

@@ -5,8 +5,6 @@ import '../styles/StatusBar.css'
 
 export default function StatusBar() {
   const [showDisclaimer, setShowDisclaimer] = useState(false)
-  const [showImpressum, setShowImpressum] = useState(false)
-  const [showDSGVO, setShowDSGVO] = useState(false)
 
   return (
     <>
@@ -20,13 +18,13 @@ export default function StatusBar() {
             Disclaimer
           </button>
           <span className="status-divider-text">|</span>
-          <button onClick={() => setShowImpressum(true)} className="status-link status-btn">
+          <a href="/impressum" className="status-link">
             Impressum
-          </button>
+          </a>
           <span className="status-divider-text">|</span>
-          <button onClick={() => setShowDSGVO(true)} className="status-link status-btn">
+          <a href="/datenschutz" className="status-link">
             Datenschutz
-          </button>
+          </a>
           <style>{`
             .disclaimer-content {
               max-height: 70vh;           /* oder welchen Wert du schon hast */
@@ -81,58 +79,6 @@ export default function StatusBar() {
                   <p><strong>Referral Data:</strong> The Referral page displays publicly observable associations between referral codes, wallet addresses, and online handles. This data does not identify individuals or confirm ownership or control. Associations are non-verified and may be incorrect. For removal of referral codes, associated socials, or other data, contact communityscan-sodex@outlook.com.</p>
                   <p><strong>Security:</strong> Despite technical measures (HTTPS, authentication, secured database), we are not liable for unauthorized access, hacks, data loss, or security incidents.</p>
                   <p><strong>No Financial or Investment Advice:</strong> All information provided is for informational purposes only and does not constitute financial, investment, or legal advice. Cryptocurrency and token trading involves substantial risk of loss and is not suitable for every investor. Past performance is not indicative of future results. Users should conduct their own research and consult with qualified advisors. We are not responsible for any losses incurred based on the information provided. By using this platform, you acknowledge and accept these terms.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Impressum Modal */}
-          {showImpressum && (
-            <div className="disclaimer-overlay" onClick={() => setShowImpressum(false)}>
-              <div className="disclaimer-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="disclaimer-close" onClick={() => setShowImpressum(false)}>×</button>
-                <h2>Impressum</h2>
-                <div className="disclaimer-content scrollable-content">
-                  <p>Luke Steinfartz</p>
-                  <p>Zum Schiersteiner Grund 7</p>
-                  <p>55127 Mainz-Drais</p>
-                  <p>E-Mail: luke@steinfartz.de</p>
-                </div>
-              </div>
-            </div>
-          )}
-          {/* DSGVO Modal */}
-          {showDSGVO && (
-            <div className="disclaimer-overlay" onClick={() => setShowDSGVO(false)}>
-              <div className="disclaimer-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="disclaimer-close" onClick={() => setShowDSGVO(false)}>×</button>
-                <h2>Datenschutz / Privacy</h2>
-                <div className="disclaimer-content scrollable-content">
-                  {/* Deutsch */}
-                  <h3>Deutsch</h3>
-                  <p><strong>Verantwortlicher:</strong> Luke Steinfartz (<strong>luke@steinfartz.de</strong>)</p>
-                  <p><strong>Technischer Kontakt:</strong> Lutz Steinfartz, <strong>Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
-                  <p><strong>Erhobene personenbezogene Daten:</strong> E-Mail-Adresse, Wallet-Daten, Tags, Gruppen, Profil-Metadaten. Die Referral-Seite zeigt öffentlich beobachtbare Referral-Codes, Wallet-Adressen und Social-Media-Handles.</p>
-                  <p><strong>Zweck der Verarbeitung:</strong> Verwaltung von Nutzerprofilen und Wallets, Sicherstellung der Funktionsfähigkeit der Website sowie Versand von projektbezogenen Informationen per E-Mail (z. B. Updates zum aktuellen Projekt oder Ankündigungen neuer Projekte).</p>
-                  <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) und Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Information bestehender Nutzer).</p>
-                  <p><strong>E-Mail-Kommunikation:</strong> Die hinterlegte E-Mail-Adresse kann für projektbezogene Informationen genutzt werden. Eine separate Verwaltung von Kommunikationspräferenzen ist derzeit nicht vorgesehen. Nutzer können der E-Mail-Kommunikation jederzeit widersprechen.</p>
-                  <p><strong>Speicherdauer:</strong> Wallets, Tags und Gruppen werden gelöscht, wenn der User sie löscht. Accounts bleiben bestehen, können aber auf Anfrage manuell gelöscht werden.</p>
-                  <p><strong>Datenweitergabe / Drittanbieter:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Öffentliche APIs wie sodex.com greifen nicht auf personenbezogene Daten zu.</p>
-                  <p><strong>Referral-Daten Löschung:</strong> Für die Löschung von Referral-Codes, zugehörigen Social-Media-Handles oder anderen Referral-Daten kontaktieren Sie communityscan-sodex@outlook.com. Löschanfragen werden innerhalb von 30 Tagen bearbeitet.</p>
-                  <p><strong>Rechte der Nutzer:</strong> Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit, Widerruf der Einwilligung jederzeit.</p>
-
-                  {/* English */}
-                  <h3>English</h3>
-                  <p><strong>Controller:</strong> Luke Steinfartz (<strong>luke@steinfartz.de</strong>)</p>
-                  <p><strong>Technical Contact:</strong> Lutz Steinfartz, <strong>Email: lutz@steinfartz.de</strong>, Telegram: <a href="https://t.me/lutzs120" target="_blank" rel="noopener noreferrer">t.me/lutzs120</a></p>
-                  <p><strong>Collected Personal Data:</strong> Email address, wallet data, tags, groups, profile metadata. The Referral page displays publicly observable referral codes, wallet addresses, and social media handles.</p>
-                  <p><strong>Purpose of Processing:</strong> User profile and wallet management, ensuring website functionality, and sending project-related emails (e.g. updates about the current project or announcements of new projects).</p>
-                  <p><strong>Legal Basis:</strong> Art. 6(1)(a) GDPR (consent) and Art. 6(1)(f) GDPR (legitimate interest in informing existing users).</p>
-                  <p><strong>Email Communication:</strong> The provided email address may be used for project-related information. Separate communication preferences are currently not available. Users may object to email communication at any time.</p>
-                  <p><strong>Data Retention:</strong> Wallets, tags, and groups are deleted when the user deletes them. Accounts remain, but personal data can be manually deleted on request.</p>
-                  <p><strong>Data Sharing / Third Parties:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Public APIs like sodex.com do not access personal data.</p>
-                  <p><strong>Referral Data Removal:</strong> For removal of referral codes, associated social media handles, or other referral data, contact communityscan-sodex@outlook.com. Removal requests will be processed within 30 days.</p>
-                  <p><strong>User Rights:</strong> Access, correction, deletion, restriction of processing, data portability, withdrawal of consent at any time.</p>
                 </div>
               </div>
             </div>
