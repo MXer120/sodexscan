@@ -137,7 +137,7 @@ const CoinLogo = ({ symbol, size = '18px' }) => {
 }
 
 // Copyable address component
-const CopyableAddress = ({ address, truncated = true }) => {
+const CopyableAddress = ({ address, truncated = true, onCopy }) => {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async (e) => {
@@ -146,6 +146,7 @@ const CopyableAddress = ({ address, truncated = true }) => {
       await navigator.clipboard.writeText(address)
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
+      if (onCopy) onCopy()
     } catch (err) {
       console.error('Copy failed:', err)
     }
@@ -344,6 +345,25 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [activeTab, setActiveTab] = useState('Positions')
   const [manualIdInput, setManualIdInput] = useState('')
   const [balanceView, setBalanceView] = useState('Spot')
+  const [toastMessage, setToastMessage] = useState(null)
+  const [toastExiting, setToastExiting] = useState(false)
+  const toastTimerRef = useRef(null)
+
+  const showToast = (msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToastExiting(false)
+    setToastMessage(msg)
+    toastTimerRef.current = setTimeout(() => {
+      setToastExiting(true)
+      setTimeout(() => { setToastMessage(null); setToastExiting(false) }, 300)
+    }, 3000)
+  }
+
+  const dismissToast = () => {
+    setToastExiting(true)
+    setTimeout(() => { setToastMessage(null); setToastExiting(false) }, 300)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+  }
   const [performanceView, setPerformanceView] = useState('Trade')
   const [notFound, setNotFound] = useState(false)
   const router = useRouter()
@@ -1466,6 +1486,55 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
   return (
     <div className="scanner-grid">
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '56px',
+          right: '20px',
+          zIndex: 999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'rgba(25, 25, 25, 0.98)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+          animation: toastExiting ? 'toastOut 0.3s ease forwards' : 'toastIn 0.25s ease',
+          pointerEvents: 'auto'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span style={{ fontSize: '12px', fontWeight: '600', color: '#fff' }}>{toastMessage}</span>
+          <button
+            onClick={dismissToast}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '2px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              marginLeft: '4px'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+      <style>{`
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastOut {
+          from { opacity: 1; transform: translateY(0); }
+          to { opacity: 0; transform: translateY(-8px); }
+        }
+      `}</style>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       {/* 1. Path Bar */}
@@ -1523,8 +1592,32 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   {activeTag ? activeTag.tag_name : 'No Alias'}
                 </h3>
               )}
-              <div style={{ fontSize: '13px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', opacity: 0.8 }}>
-                <CopyableAddress address={walletAddress || '-'} truncated={true} />
+              <div style={{ fontSize: '13px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', opacity: 0.8, gap: '4px' }}>
+                <CopyableAddress address={walletAddress || '-'} truncated={true} onCopy={() => showToast('Address copied to clipboard')} />
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    try {
+                      await navigator.clipboard.writeText(window.location.href)
+                      showToast('Link copied to clipboard')
+                    } catch (err) { console.error('Share failed:', err) }
+                  }}
+                  title="Copy link"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '2px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                </button>
               </div>
             </div>
 
