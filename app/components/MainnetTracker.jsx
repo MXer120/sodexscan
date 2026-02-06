@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react'
 import { useTheme } from '../lib/ThemeContext'
 import Link from 'next/link'
 import ChartCard from './ChartCard'
@@ -106,7 +106,7 @@ const getBaseCoin = (symbol, registry = coinRegistry) => {
   return 'USDC'
 }
 
-const CoinLogo = ({ symbol, size = '18px' }) => {
+const CoinLogo = memo(({ symbol, size = '18px' }) => {
   const logoUrl = getCoinLogoUrl(symbol)
   const [show, setShow] = useState(() => {
     if (!logoUrl) return false
@@ -134,10 +134,10 @@ const CoinLogo = ({ symbol, size = '18px' }) => {
       onError={() => { globalCache.setCoinLogoStatus(logoUrl, false); setShow(false) }}
     />
   )
-}
+})
 
 // Copyable address component
-const CopyableAddress = ({ address, truncated = true, onCopy }) => {
+const CopyableAddress = memo(({ address, truncated = true, onCopy }) => {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async (e) => {
@@ -189,9 +189,9 @@ const CopyableAddress = ({ address, truncated = true, onCopy }) => {
       `}</style>
     </span>
   )
-}
+})
 
-const TransactionBadge = ({ type, color, bgColor, icon }) => (
+const TransactionBadge = memo(({ type, color, bgColor, icon }) => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '2px 4px', gap: '2px', whiteSpace: 'nowrap', borderRadius: '2px',
@@ -203,9 +203,9 @@ const TransactionBadge = ({ type, color, bgColor, icon }) => (
     </svg>
     <span style={{ fontSize: '10px', fontWeight: '500' }}>{type}</span>
   </div>
-)
+))
 
-const TransactionTypeBadge = ({ type }) => {
+const TransactionTypeBadge = memo(({ type }) => {
   const t = type.toLowerCase()
   if (t.includes('transfer')) {
     return (
@@ -232,9 +232,9 @@ const TransactionTypeBadge = ({ type }) => {
     )
   }
   return <span style={{ fontSize: '11px' }}>{type}</span>
-}
+})
 
-const SideBadge = ({ side, leverage, BULLISH_COLOR, BEARISH_COLOR }) => {
+const SideBadge = memo(({ side, leverage, BULLISH_COLOR, BEARISH_COLOR }) => {
   const s = (side || '').toString().toUpperCase()
   const isLong = s === 'LONG' || s === '2'
   const color = isLong ? BULLISH_COLOR : BEARISH_COLOR
@@ -255,7 +255,7 @@ const SideBadge = ({ side, leverage, BULLISH_COLOR, BEARISH_COLOR }) => {
       )}
     </div>
   )
-}
+})
 
 const getWithdrawalTypeMeta = (w) => {
   const t = (w.type || '').toLowerCase()
@@ -336,6 +336,13 @@ const calculateLiquidationPrice = (pos, brackets) => {
     return entryPrice * (1 + 1 / leverage - mmr)
   }
 }
+
+const SortArrows = memo(({ active, dir }) => (
+  <div className="sort-arrows">
+    <span className={`sort-arrow ${active && dir === 'asc' ? 'active' : ''}`}>▲</span>
+    <span className={`sort-arrow ${active && dir === 'desc' ? 'active' : ''}`}>▼</span>
+  </div>
+))
 
 export default function MainnetTracker({ walletAddress, accountId: propAccountId, searchBox, tagSection }) {
   const [accountId, setAccountId] = useState(propAccountId || null)
@@ -568,34 +575,29 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [accountDetails, totalAssets, positions, pnlHistory, overviewStats, totalUnrealizedPnl, positionHistory])
 
-  const handleWithdrawSort = (field) => {
+  const handleWithdrawSort = useCallback((field) => {
     setWithdrawalsLimit(20)
     setWithdrawSortDir(prev => withdrawSortField === field && prev === 'desc' ? 'asc' : 'desc')
     setWithdrawSortField(field)
-  }
+  }, [withdrawSortField])
 
-  const handlePositionSort = (field) => {
+  const handlePositionSort = useCallback((field) => {
     setPositionSortDir(prev => positionSortField === field && prev === 'desc' ? 'asc' : 'desc')
     setPositionSortField(field)
-  }
+  }, [positionSortField])
 
-  const handleBalanceSort = (field) => {
+  const handleBalanceSort = useCallback((field) => {
     setBalanceSortDir(prev => balanceSortField === field && prev === 'desc' ? 'asc' : 'desc')
     setBalanceSortField(field)
-  }
+  }, [balanceSortField])
 
-  const handleTradeSort = (field) => {
+  const handleTradeSort = useCallback((field) => {
     setTradesLimit(20)
     setTradeSortDir(prev => tradeSortField === field && prev === 'desc' ? 'asc' : 'desc')
     setTradeSortField(field)
-  }
+  }, [tradeSortField])
 
-  const SortArrows = ({ active, dir }) => (
-    <div className="sort-arrows">
-      <span className={`sort-arrow ${active && dir === 'asc' ? 'active' : ''}`}>▲</span>
-      <span className={`sort-arrow ${active && dir === 'desc' ? 'active' : ''}`}>▼</span>
-    </div>
-  )
+  // SortArrows defined outside component as memoized component
 
 
 
@@ -711,7 +713,108 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     return items.sort((a, b) => b.timestamp - a.timestamp || a.id.localeCompare(b.id))
   }, [positions, positionHistory, withdrawals, fundTransfers, symbolMap])
 
-  const displayedActivity = activityTimeline.slice(0, activityLimit)
+  const displayedActivity = useMemo(() => activityTimeline.slice(0, activityLimit), [activityTimeline, activityLimit])
+
+  // Pre-compute sorted+sliced data for all tables to avoid re-sorting on every render
+  const sortedPositions = useMemo(() => {
+    const sorted = [...positions].sort((a, b) => {
+      if (!positionSortField) return 0
+      const dir = positionSortDir === 'asc' ? 1 : -1
+      let valA, valB
+      switch (positionSortField) {
+        case 'symbol': valA = a.symbol; valB = b.symbol; break
+        case 'side': valA = a.positionSide; valB = b.positionSide; break
+        case 'size': valA = parseFloat(a.positionSize); valB = parseFloat(b.positionSize); break
+        case 'entry': valA = parseFloat(a.entryPrice); valB = parseFloat(b.entryPrice); break
+        case 'liq': valA = calculateLiquidationPrice(a, leverageBrackets); valB = calculateLiquidationPrice(b, leverageBrackets); break
+        case 'margin': valA = parseFloat(a.isolatedMargin); valB = parseFloat(b.isolatedMargin); break
+        case 'leverage': valA = parseFloat(a.leverage); valB = parseFloat(b.leverage); break
+        case 'pnl': valA = parseFloat(a.unrealizedProfit); valB = parseFloat(b.unrealizedProfit); break
+        default: return 0
+      }
+      if (valA < valB) return -1 * dir
+      if (valA > valB) return 1 * dir
+      return 0
+    })
+    return sorted.slice(0, positionsLimit)
+  }, [positions, positionSortField, positionSortDir, positionsLimit, leverageBrackets])
+
+  // Pre-compute liquidation prices for displayed positions
+  const positionLiqPrices = useMemo(() => {
+    const map = new Map()
+    sortedPositions.forEach(pos => {
+      map.set(pos, calculateLiquidationPrice(pos, leverageBrackets))
+    })
+    return map
+  }, [sortedPositions, leverageBrackets])
+
+  const sortedTrades = useMemo(() => {
+    return [...positionHistory]
+      .sort((a, b) => {
+        const dir = tradeSortDir === 'asc' ? 1 : -1
+        let valA, valB
+        switch (tradeSortField) {
+          case 'symbol': valA = symbolMap[a.symbol_id] || ''; valB = symbolMap[b.symbol_id] || ''; break
+          case 'side': valA = a.position_side; valB = b.position_side; break
+          case 'size': valA = parseFloat(a.max_size || 0); valB = parseFloat(b.max_size || 0); break
+          case 'entry': valA = parseFloat(a.avg_entry_price || 0); valB = parseFloat(b.avg_entry_price || 0); break
+          case 'close': valA = parseFloat(a.avg_close_price || 0); valB = parseFloat(b.avg_close_price || 0); break
+          case 'pnl': valA = parseFloat(a.realized_pnl || 0); valB = parseFloat(b.realized_pnl || 0); break
+          case 'fee': valA = parseFloat(a.cum_trading_fee || 0); valB = parseFloat(b.cum_trading_fee || 0); break
+          case 'date': valA = new Date(a.updated_at).getTime(); valB = new Date(b.updated_at).getTime(); break
+          default: return 0
+        }
+        if (valA < valB) return -1 * dir
+        if (valA > valB) return 1 * dir
+        return 0
+      })
+      .slice(0, tradesLimit)
+  }, [positionHistory, tradeSortField, tradeSortDir, tradesLimit, symbolMap])
+
+  const sortedWithdrawals = useMemo(() => {
+    return [...withdrawals, ...fundTransfers]
+      .sort((a, b) => {
+        const dir = withdrawSortDir === 'asc' ? 1 : -1
+        const keyFor = (w) => {
+          switch (withdrawSortField) {
+            case 'date': return w.stmp || 0
+            case 'amount': return w.amount != null ? parseFloat(formatCoin(w.amount, w.decimals)) : 0
+            case 'type': return getWithdrawalTypeMeta(w).typeLabel.toLowerCase()
+            case 'network': return normalizeNetworkLabel(w.network || w.chain || w.chainName || w.networkName || w.chainId || '').toLowerCase()
+            case 'fee': return w.withdrawFee != null ? parseFloat(formatCoin(w.withdrawFee, w.decimals)) : 0
+            case 'status': return (w.status || '').toString().toLowerCase()
+            default: return 0
+          }
+        }
+        const ka = keyFor(a), kb = keyFor(b)
+        if (ka < kb) return -1 * dir
+        if (ka > kb) return 1 * dir
+        return 0
+      })
+      .slice(0, withdrawalsLimit)
+  }, [withdrawals, fundTransfers, withdrawSortField, withdrawSortDir, withdrawalsLimit])
+
+  const sortedPerformanceTrades = useMemo(() => {
+    return [...positionHistory]
+      .sort((a, b) => parseFloat(b.realized_pnl || 0) - parseFloat(a.realized_pnl || 0))
+      .slice(0, performanceLimit)
+  }, [positionHistory, performanceLimit])
+
+  const assetPerformanceData = useMemo(() => {
+    const assetMap = {}
+    positionHistory.forEach(pos => {
+      const symbolName = symbolMap[pos.symbol_id] || ''
+      const asset = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
+      if (!assetMap[asset]) assetMap[asset] = { wins: 0, losses: 0, totalPnl: 0, symbolName }
+      const pnl = parseFloat(pos.realized_pnl) || 0
+      if (pnl >= 0) assetMap[asset].wins++
+      else assetMap[asset].losses++
+      assetMap[asset].totalPnl += pnl
+    })
+    return Object.entries(assetMap)
+      .map(([asset, data]) => ({ asset, ...data }))
+      .sort((a, b) => b.totalPnl - a.totalPnl)
+  }, [positionHistory, symbolMap])
 
   const handleManualIdSearch = () => {
     const id = manualIdInput.trim()
@@ -808,27 +911,18 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       return
     }
 
-    await fetchMetadata()
+    // Start metadata fetch in parallel (don't await yet)
+    const metadataPromise = fetchMetadata()
 
     setLoading(true)
     setLoadingProgress(25)
     setLoadingStep('Establishing link to Sodex Gateway...')
 
     try {
-      // Fetch details first
-      const detailsRes = await fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`)
-      const detailsData = await detailsRes.json()
-
-      setLoadingProgress(45)
-      setLoadingStep('Syncing cross-chain portfolio balances...')
-
-      const balanceRes = await fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`)
-      const balanceData = await balanceRes.json()
-
-      setLoadingProgress(65)
-      setLoadingStep('Decrypting historical transactions...')
-
-      const [withdrawalsRes, pnlRes, posHistoryRes, fundsRes] = await Promise.all([
+      // Fetch ALL data in parallel - single Promise.all for max speed
+      const [detailsRes, balanceRes, withdrawalsRes, pnlRes, posHistoryRes, fundsRes] = await Promise.all([
+        fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
+        fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
         fetch('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -839,11 +933,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         fetch(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
       ])
 
-      setLoadingProgress(85)
+      setLoadingProgress(65)
       setLoadingStep('Analyzing performance metrics...')
 
-      // Parse remaining responses
-      const [withdrawalsData, pnlData, posHistoryData, fundsData] = await Promise.all([
+      // Parse all responses in parallel
+      const [detailsData, balanceData, withdrawalsData, pnlData, posHistoryData, fundsData] = await Promise.all([
+        detailsRes.json(),
+        balanceRes.json(),
         withdrawalsRes.json(),
         pnlRes.json(),
         posHistoryRes.json(),
@@ -996,6 +1092,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         setPnlHistory(formattedPnl)
       }
 
+      // Ensure metadata is also done
+      await metadataPromise
+
       // Store in global cache after all processing is complete
       globalCache.setAccountData(accountId, {
         accountDetails: processedAccountDetails,
@@ -1081,9 +1180,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     })
   }
 
-  const handleScroll = (e) => {
+  const handleScroll = useCallback((e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
-    // Using a 200px buffer to trigger load before hitting absolute bottom
     if (scrollHeight - scrollTop <= clientHeight + 200) {
       if (activeTab === 'Positions' && positionsLimit < positions.length) {
         setPositionsLimit(prev => prev + 20)
@@ -1096,11 +1194,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       } else if (activeTab === 'Balances') {
         const totalBal = (balanceView === 'Futures' ? (accountDetails?.balances?.length || 0) : (spotBalances.length || 0))
         if (balancesLimit < totalBal) setBalancesLimit(prev => prev + 20)
-      } else if (activeTab === 'Orders' && ordersLimit < 50) { // Just in case orders are added later
+      } else if (activeTab === 'Orders' && ordersLimit < 50) {
         setOrdersLimit(prev => prev + 20)
       }
     }
-  }
+  }, [activeTab, positionsLimit, positions.length, withdrawalsLimit, withdrawals.length, fundTransfers.length, tradesLimit, positionHistory.length, performanceLimit, balanceView, accountDetails?.balances?.length, spotBalances.length, balancesLimit, ordersLimit])
 
   const formatTimeShort = (stmp) => {
     if (!stmp) return ''
@@ -1136,6 +1234,15 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     'Transfers': 'withdrawals',
     'Performance': 'pnl'
   }
+
+  const handleActivityScroll = useCallback((e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop <= clientHeight + 100) {
+      if (activityLimit < activityTimeline.length) {
+        setActivityLimit(prev => prev + 25)
+      }
+    }
+  }, [activityLimit, activityTimeline.length])
 
   if (!accountId && !propAccountId && !loading) {
     return (
@@ -1432,15 +1539,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         </div>
       </div>
     )
-  }
-
-  const handleActivityScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
-    if (scrollHeight - scrollTop <= clientHeight + 100) {
-      if (activityLimit < activityTimeline.length) {
-        setActivityLimit(prev => prev + 25)
-      }
-    }
   }
 
 
@@ -2015,33 +2113,38 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
         </div>
 
+        <div style={{ height: '100%' }}>
         {pnlHistory.length > 0 ? (
-          pnlViewMode === 'chart' ? (
-            <ChartCard
-              title=""
-              data={pnlHistory}
-              series={[
-                { key: 'cumulative', label: 'Cumulative PnL', type: 'line', cumulative: true, hideLegend: true },
-                { key: 'daily', label: 'Daily PnL', type: 'bar', hideLegend: true }
-              ]}
-              showCumulative={true}
-              defaultSelected={['cumulative', 'daily']}
-              fullHeight={true}
-            />
-          ) : (
-            <PnlCalendar
-              pnlHistory={pnlHistory}
-              view={calendarView}
-              onViewChange={setCalendarView}
-              trades={positionHistory}
-              symbolMap={symbolMap}
-            />
-          )
+          <>
+            <div style={{ height: '100%', display: pnlViewMode === 'chart' ? 'block' : 'none' }}>
+              <ChartCard
+                title=""
+                data={pnlHistory}
+                series={[
+                  { key: 'cumulative', label: 'Cumulative PnL', type: 'line', cumulative: true, hideLegend: true },
+                  { key: 'daily', label: 'Daily PnL', type: 'bar', hideLegend: true }
+                ]}
+                showCumulative={true}
+                defaultSelected={['cumulative', 'daily']}
+                fullHeight={true}
+              />
+            </div>
+            <div style={{ height: '100%', display: pnlViewMode === 'calendar' ? 'flex' : 'none', flexDirection: 'column' }}>
+              <PnlCalendar
+                pnlHistory={pnlHistory}
+                view={calendarView}
+                onViewChange={setCalendarView}
+                trades={positionHistory}
+                symbolMap={symbolMap}
+              />
+            </div>
+          </>
         ) : (
-          <div style={{ background: 'var(--color-bg-card)', borderRadius: '12px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', border: '1px solid var(--color-border-visible)' }}>
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
             No PnL data available
           </div>
         )}
+        </div>
       </div>
 
       <aside className="section-activity" onScroll={handleActivityScroll} style={{ overflowY: 'auto' }}>
@@ -2351,32 +2454,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         </tr>
                       </thead>
                       <tbody>
-                        {[...positions]
-                          .sort((a, b) => {
-                            if (!positionSortField) return 0
-                            const dir = positionSortDir === 'asc' ? 1 : -1
-                            let valA, valB
-                            switch (positionSortField) {
-                              case 'symbol': valA = a.symbol; valB = b.symbol; break
-                              case 'side': valA = a.positionSide; valB = b.positionSide; break
-                              case 'size': valA = parseFloat(a.positionSize); valB = parseFloat(b.positionSize); break
-                              case 'entry': valA = parseFloat(a.entryPrice); valB = parseFloat(b.entryPrice); break
-                              case 'liq': valA = calculateLiquidationPrice(a, leverageBrackets); valB = calculateLiquidationPrice(b, leverageBrackets); break
-                              case 'margin': valA = parseFloat(a.isolatedMargin); valB = parseFloat(b.isolatedMargin); break
-                              case 'leverage': valA = parseFloat(a.leverage); valB = parseFloat(b.leverage); break
-                              case 'pnl': valA = parseFloat(a.unrealizedProfit); valB = parseFloat(b.unrealizedProfit); break
-                              default: return 0
-                            }
-                            if (valA < valB) return -1 * dir
-                            if (valA > valB) return 1 * dir
-                            return 0
-                          })
-                          .slice(0, positionsLimit)
-                          .map((pos, i) => {
+                        {sortedPositions.map((pos, i) => {
                             const unrealizedPnl = parseFloat(pos.unrealizedProfit || 0)
-                            const estLiqPrice = calculateLiquidationPrice(pos, leverageBrackets)
+                            const estLiqPrice = positionLiqPrices.get(pos) || 0
                             return (
-                              <tr key={i}>
+                              <tr key={pos.symbol + '-' + pos.positionSide}>
                                 <td style={{ fontWeight: '500' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <CoinLogo symbol={getBaseCoin(pos.symbol)} />
@@ -2637,30 +2719,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       </tr>
                     </thead>
                     <tbody>
-                      {[...positionHistory]
-                        .sort((a, b) => {
-                          const dir = tradeSortDir === 'asc' ? 1 : -1
-                          let valA, valB
-                          switch (tradeSortField) {
-                            case 'symbol':
-                              valA = symbolMap[a.symbol_id] || ''
-                              valB = symbolMap[b.symbol_id] || ''
-                              break
-                            case 'side': valA = a.position_side; valB = b.position_side; break
-                            case 'size': valA = parseFloat(a.max_size || 0); valB = parseFloat(b.max_size || 0); break
-                            case 'entry': valA = parseFloat(a.avg_entry_price || 0); valB = parseFloat(b.avg_entry_price || 0); break
-                            case 'close': valA = parseFloat(a.avg_close_price || 0); valB = parseFloat(b.avg_close_price || 0); break
-                            case 'pnl': valA = parseFloat(a.realized_pnl || 0); valB = parseFloat(b.realized_pnl || 0); break
-                            case 'fee': valA = parseFloat(a.cum_trading_fee || 0); valB = parseFloat(b.cum_trading_fee || 0); break
-                            case 'date': valA = new Date(a.updated_at).getTime(); valB = new Date(b.updated_at).getTime(); break
-                            default: return 0
-                          }
-                          if (valA < valB) return -1 * dir
-                          if (valA > valB) return 1 * dir
-                          return 0
-                        })
-                        .slice(0, tradesLimit)
-                        .map((pos, i) => {
+                      {sortedTrades.map((pos, i) => {
                           const symbolName = symbolMap[pos.symbol_id] || ''
                           const symbolLabel = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
                           const isLong = parseInt(pos.position_side) === 2
@@ -2747,39 +2806,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         </tr>
                       </thead>
                       <tbody>
-                        {[...withdrawals, ...fundTransfers]
-                          .sort((a, b) => {
-                            const dir = withdrawSortDir === 'asc' ? 1 : -1
-                            const keyFor = (w) => {
-                              switch (withdrawSortField) {
-                                case 'date':
-                                  return w.stmp || 0
-                                case 'amount':
-                                  return w.amount != null ? parseFloat(formatCoin(w.amount, w.decimals)) : 0
-                                case 'type': {
-                                  const { typeLabel } = getWithdrawalTypeMeta(w)
-                                  return typeLabel.toLowerCase()
-                                }
-                                case 'network':
-                                  return normalizeNetworkLabel(
-                                    w.network || w.chain || w.chainName || w.networkName || w.chainId || ''
-                                  ).toLowerCase()
-                                case 'fee':
-                                  return w.withdrawFee != null ? parseFloat(formatCoin(w.withdrawFee, w.decimals)) : 0
-                                case 'status':
-                                  return (w.status || '').toString().toLowerCase()
-                                default:
-                                  return 0
-                              }
-                            }
-                            const ka = keyFor(a)
-                            const kb = keyFor(b)
-                            if (ka < kb) return -1 * dir
-                            if (ka > kb) return 1 * dir
-                            return 0
-                          })
-                          .slice(0, withdrawalsLimit)
-                          .map((w, i) => {
+                        {sortedWithdrawals.map((w, i) => {
                             const amount = formatCoin(w.amount, w.decimals)
                             const coin = (w.token || w.coin || '').trim()
                             const { isDeposit, isWithdraw, isInternal, typeLabel } = getWithdrawalTypeMeta(w)
@@ -2863,10 +2890,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       </tr>
                     </thead>
                     <tbody>
-                      {[...positionHistory]
-                        .sort((a, b) => parseFloat(b.realized_pnl || 0) - parseFloat(a.realized_pnl || 0))
-                        .slice(0, performanceLimit)
-                        .map((pos, i) => {
+                      {sortedPerformanceTrades.map((pos, i) => {
                           const symbolName = symbolMap[pos.symbol_id] || ''
                           const symbolLabel = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
                           const isLong = parseInt(pos.position_side) === 2
@@ -2908,25 +2932,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   </table>
                 </div>
               ) : (
-                /* Asset View - aggregated performance per asset */
-                (() => {
-                  const assetMap = {}
-                  positionHistory.forEach(pos => {
-                    const symbolName = symbolMap[pos.symbol_id] || ''
-                    const asset = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
-                    if (!assetMap[asset]) {
-                      assetMap[asset] = { wins: 0, losses: 0, totalPnl: 0, symbolName }
-                    }
-                    const pnl = parseFloat(pos.realized_pnl) || 0
-                    if (pnl >= 0) assetMap[asset].wins++
-                    else assetMap[asset].losses++
-                    assetMap[asset].totalPnl += pnl
-                  })
-                  const assetData = Object.entries(assetMap)
-                    .map(([asset, data]) => ({ asset, ...data }))
-                    .sort((a, b) => b.totalPnl - a.totalPnl)
-
-                  return (
                     <div className="table-scroll-wrapper">
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -2938,7 +2943,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           </tr>
                         </thead>
                         <tbody>
-                          {assetData.slice(0, performanceLimit).map((row, i) => {
+                          {assetPerformanceData.slice(0, performanceLimit).map((row, i) => {
                             const total = row.wins + row.losses
                             const winRate = total > 0 ? (row.wins / total * 100) : 0
                             const winPct = total > 0 ? (row.wins / total * 100) : 0
@@ -2987,8 +2992,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         </tbody>
                       </table>
                     </div>
-                  )
-                })()
               )}
             </div>
           )}

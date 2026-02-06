@@ -526,7 +526,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
   return (
     <div style={{
       background: 'rgba(20,20,20,0.4)',
-      borderRadius: '12px',
+      borderRadius: '0',
       height: '100%',
       width: '100%',
       minWidth: 0,
@@ -655,15 +655,14 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       </div>
 
       {/* Calendar */}
-      <div style={{
-        flex: 1,
-        padding: '12px 16px',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {view === 'weekly' && renderWeeklyCalendar()}
-        {view === 'monthly' && renderMonthlyCalendar()}
-        {view === 'yearly' && renderYearlyCalendar()}
+      <div style={{ flex: 1, padding: '12px 16px', display: view === 'weekly' ? 'flex' : 'none', flexDirection: 'column' }}>
+        {renderWeeklyCalendar()}
+      </div>
+      <div style={{ flex: 1, padding: '12px 16px', display: view === 'monthly' ? 'flex' : 'none', flexDirection: 'column' }}>
+        {renderMonthlyCalendar()}
+      </div>
+      <div style={{ flex: 1, padding: '12px 16px', display: view === 'yearly' ? 'flex' : 'none', flexDirection: 'column' }}>
+        {renderYearlyCalendar()}
       </div>
 
       {/* Bottom - Best streak */}

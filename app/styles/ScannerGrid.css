@@ -123,6 +123,7 @@
     padding: 8px 0 16px 0 !important;
     min-height: 0;
     overflow: hidden;
+    contain: layout style;
 }
 
 /* Tab scrollable area - this is the scroll container */
@@ -166,6 +167,7 @@
     grid-area: activity;
     align-self: stretch;
     overflow-y: auto;
+    contain: layout style;
 }
 
 /* Sticky activity header */

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTheme } from '../lib/ThemeContext'
 import {
   ComposedChart,
@@ -65,14 +65,14 @@ export default function ChartCard({
   const legendRef = useRef(null)
 
   // Sort series: cumulative first, then by volume
-  const sortedSeries = [...series].sort((a, b) => {
+  const sortedSeries = useMemo(() => [...series].sort((a, b) => {
     if (a.cumulative) return -1
     if (b.cumulative) return 1
     if (a.volume !== undefined && b.volume !== undefined) {
       return b.volume - a.volume
     }
     return 0
-  })
+  }), [series])
 
   // Initialize default selection (only once on mount)
   const [initialized, setInitialized] = useState(false)
@@ -99,7 +99,7 @@ export default function ChartCard({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filterByTimeframe = (data) => {
+  const displayData = useMemo(() => {
     if (!data || data.length === 0) return data
     const days = TIMEFRAME_DAYS[timeframe]
     if (!days) return data
@@ -108,9 +108,7 @@ export default function ChartCard({
     cutoff.setDate(cutoff.getDate() - days)
 
     return data.filter(d => new Date(d[dateKey]) >= cutoff)
-  }
-
-  const displayData = filterByTimeframe(data)
+  }, [data, timeframe, dateKey])
 
   const toggleSeries = (key) => {
     setSelectedSeries(prev =>
@@ -179,7 +177,8 @@ export default function ChartCard({
     return niceFraction * Math.pow(10, exponent)
   }
 
-  // Calculate synchronized domains with "Nice" ticks
+  // Calculate synchronized domains with "Nice" ticks - memoized
+  const { left: leftDomain, right: rightDomain } = useMemo(() => {
   const getSynchronizedDomains = () => {
     const defaultDomain = { left: [0, 100], right: [0, 100] }
     if (!displayData || displayData.length === 0) return defaultDomain
@@ -276,10 +275,10 @@ export default function ChartCard({
       right: [rBottom, rTop]
     }
   }
+  return getSynchronizedDomains()
+  }, [displayData, sortedSeries, selectedSeries, stacked])
 
-  const { left: leftDomain, right: rightDomain } = getSynchronizedDomains()
-
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip = useCallback(({ active, payload, label }) => {
     if (!active || !payload || payload.length === 0) return null
 
     // Separate cumulative from regular series
@@ -359,10 +358,10 @@ export default function ChartCard({
         )}
       </div>
     )
-  }
+  }, [successColor, errorColor])
 
   // Get visible legend items (selected series only, max ~6 before truncation)
-  const visibleSeries = sortedSeries.filter(s => selectedSeries.includes(s.key) && !s.hideLegend)
+  const visibleSeries = useMemo(() => sortedSeries.filter(s => selectedSeries.includes(s.key) && !s.hideLegend), [sortedSeries, selectedSeries])
   const maxLegendItems = 6
   const showLegendExpander = visibleSeries.length > maxLegendItems
   const displayedLegendItems = legendExpanded ? visibleSeries : visibleSeries.slice(0, maxLegendItems)
