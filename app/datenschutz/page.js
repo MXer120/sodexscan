@@ -113,7 +113,13 @@ export default function DatenschutzPage() {
 
               <div style={{ marginBottom: '24px' }}>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
-                  <strong style={{ color: 'var(--color-primary)' }}>Erhobene personenbezogene Daten:</strong> E-Mail-Adresse, Wallet-Daten, Tags, Gruppen, Profil-Metadaten. Die Referral-Seite zeigt öffentlich beobachtbare Referral-Codes, Wallet-Adressen und Social-Media-Handles.
+                  <strong style={{ color: 'var(--color-primary)' }}>Erhobene personenbezogene Daten:</strong> E-Mail-Adresse, Name (bei Google-Login), Profilbild (bei Google-Login), Wallet-Daten, Tags, Gruppen, Profil-Metadaten. Die Referral-Seite zeigt öffentlich beobachtbare Referral-Codes, Wallet-Adressen und Social-Media-Handles.
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--color-primary)' }}>Google OAuth Login:</strong> Bei Anmeldung über Google werden Name, E-Mail-Adresse und Profilbild von Google übermittelt. Diese Datenübertragung erfolgt direkt zwischen Ihrem Browser und Google. Wir erhalten nur die von Google freigegebenen Daten. Es gelten zusätzlich die <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>Datenschutzbestimmungen von Google</a>.
                 </p>
               </div>
 
@@ -143,7 +149,7 @@ export default function DatenschutzPage() {
 
               <div style={{ marginBottom: '24px' }}>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
-                  <strong style={{ color: 'var(--color-primary)' }}>Datenweitergabe / Drittanbieter:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Öffentliche APIs wie sodex.com greifen nicht auf personenbezogene Daten zu.
+                  <strong style={{ color: 'var(--color-primary)' }}>Datenweitergabe / Drittanbieter:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth), Google (OAuth-Authentifizierung). Öffentliche APIs wie sodex.com greifen nicht auf personenbezogene Daten zu. Google erhält bei der Anmeldung Kenntnis darüber, dass Sie unsere Website nutzen.
                 </p>
               </div>
 
@@ -178,7 +184,13 @@ export default function DatenschutzPage() {
 
               <div style={{ marginBottom: '24px' }}>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
-                  <strong style={{ color: 'var(--color-primary)' }}>Collected Personal Data:</strong> Email address, wallet data, tags, groups, profile metadata. The Referral page displays publicly observable referral codes, wallet addresses, and social media handles.
+                  <strong style={{ color: 'var(--color-primary)' }}>Collected Personal Data:</strong> Email address, name (with Google login), profile picture (with Google login), wallet data, tags, groups, profile metadata. The Referral page displays publicly observable referral codes, wallet addresses, and social media handles.
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--color-primary)' }}>Google OAuth Login:</strong> When signing in via Google, your name, email address, and profile picture are transmitted by Google. This data transfer occurs directly between your browser and Google. We only receive the data released by Google. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>Google's Privacy Policy</a> also applies.
                 </p>
               </div>
 
@@ -208,7 +220,7 @@ export default function DatenschutzPage() {
 
               <div style={{ marginBottom: '24px' }}>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
-                  <strong style={{ color: 'var(--color-primary)' }}>Data Sharing / Third Parties:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth). Public APIs like sodex.com do not access personal data.
+                  <strong style={{ color: 'var(--color-primary)' }}>Data Sharing / Third Parties:</strong> Vercel (Hosting & Analytics), Supabase (DB & Auth), Google (OAuth authentication). Public APIs like sodex.com do not access personal data. Google receives notice that you are using our website when signing in.
                 </p>
               </div>
 

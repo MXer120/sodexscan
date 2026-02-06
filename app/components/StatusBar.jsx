@@ -10,13 +10,13 @@ export default function StatusBar() {
     <>
       <div className="status-bar">
         <div className="status-bar-left">
-          <a href="https://sodex.com" target="_blank" rel="noopener noreferrer" className="status-link">
-            Sodex
-          </a>
-          <span className="status-divider-text">|</span>
           <button onClick={() => setShowDisclaimer(true)} className="status-link status-btn">
             Disclaimer
           </button>
+          <span className="status-divider-text">|</span>
+          <a href="/terms" className="status-link">
+            Terms
+          </a>
           <span className="status-divider-text">|</span>
           <a href="/impressum" className="status-link">
             Impressum
