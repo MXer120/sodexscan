@@ -344,6 +344,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [activeTab, setActiveTab] = useState('Positions')
   const [manualIdInput, setManualIdInput] = useState('')
   const [balanceView, setBalanceView] = useState('Spot')
+  const [performanceView, setPerformanceView] = useState('Trade')
   const [notFound, setNotFound] = useState(false)
   const router = useRouter()
   const [searchInput, setSearchInput] = useState('')
@@ -2070,9 +2071,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       </aside>
 
       {/* 4. Bottom Center - Tabs */}
-      <div className="section-bottom-center" onScroll={handleScroll} style={{ transition: 'all 0.3s ease' }}>
+      <div className="section-bottom-center">
         {/* Tab Navigation */}
-        <div style={{ position: 'relative', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ position: 'relative', marginBottom: '0', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
           <div className="tab-nav-row" style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -2103,6 +2104,19 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   }}
                 >
                   {tab}
+                  {tab === 'Positions' && positions.length > 0 && (
+                    <span style={{
+                      fontSize: '9px',
+                      fontWeight: '700',
+                      background: 'rgba(var(--color-primary-rgb), 0.15)',
+                      color: THEME_COLORS.primary,
+                      padding: '1px 4px',
+                      borderRadius: '3px',
+                      lineHeight: '14px',
+                      marginLeft: '3px',
+                      verticalAlign: 'middle'
+                    }}>{positions.length}</span>
+                  )}
                   {activeTab === tab && (
                     <motion.div
                       layoutId="tab-underline"
@@ -2155,11 +2169,44 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 ))}
               </div>
             )}
+
+            {activeTab === 'Performance' && (
+              <div style={{
+                display: 'flex',
+                background: 'rgba(255,255,255,0.05)',
+                padding: '2px',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                position: 'relative',
+                zIndex: 10
+              }}>
+                {['Trade', 'Asset'].map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setPerformanceView(mode)}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: performanceView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'rgba(255,255,255,0.03)',
+                      color: performanceView === mode ? THEME_COLORS.primary : 'rgba(255,255,255,0.4)',
+                      transition: 'all 0.2s ease',
+                      margin: '0 1px'
+                    }}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', width: '100%' }} />
         </div>
 
-        <div className="tab-scroll-area">
+        <div className="tab-scroll-area" onScroll={handleScroll}>
           {/* Tab Content */}
           {activeTab === 'Positions' && (
             <div>
@@ -2709,7 +2756,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 <div className="empty-state-container">
                   <p style={{ color: 'rgba(255,255,255,0.5)' }}>No trade history available</p>
                 </div>
-              ) : (
+              ) : performanceView === 'Trade' ? (
                 <div className="table-scroll-wrapper">
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
@@ -2730,8 +2777,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           const symbolName = symbolMap[pos.symbol_id] || ''
                           const symbolLabel = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
                           const isLong = parseInt(pos.position_side) === 2
-                          const sideLabel = isLong ? 'Long' : 'Short'
-                          const sideColor = isLong ? BULLISH_COLOR : BEARISH_COLOR
                           const pnl = parseFloat(pos.realized_pnl) || 0
                           const pnlColor = pnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR
 
@@ -2769,6 +2814,88 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     </tbody>
                   </table>
                 </div>
+              ) : (
+                /* Asset View - aggregated performance per asset */
+                (() => {
+                  const assetMap = {}
+                  positionHistory.forEach(pos => {
+                    const symbolName = symbolMap[pos.symbol_id] || ''
+                    const asset = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
+                    if (!assetMap[asset]) {
+                      assetMap[asset] = { wins: 0, losses: 0, totalPnl: 0, symbolName }
+                    }
+                    const pnl = parseFloat(pos.realized_pnl) || 0
+                    if (pnl >= 0) assetMap[asset].wins++
+                    else assetMap[asset].losses++
+                    assetMap[asset].totalPnl += pnl
+                  })
+                  const assetData = Object.entries(assetMap)
+                    .map(([asset, data]) => ({ asset, ...data }))
+                    .sort((a, b) => b.totalPnl - a.totalPnl)
+
+                  return (
+                    <div className="table-scroll-wrapper">
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left' }}>Asset</th>
+                            <th style={{ textAlign: 'center' }}>Trades</th>
+                            <th style={{ textAlign: 'right' }}>Win Rate</th>
+                            <th style={{ textAlign: 'right' }}>PnL</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {assetData.slice(0, performanceLimit).map((row, i) => {
+                            const total = row.wins + row.losses
+                            const winRate = total > 0 ? (row.wins / total * 100) : 0
+                            const winPct = total > 0 ? (row.wins / total * 100) : 0
+                            const lossPct = 100 - winPct
+                            const pnlColor = row.totalPnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR
+
+                            return (
+                              <tr key={i}>
+                                <td style={{ fontWeight: '600' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CoinLogo symbol={row.asset} />
+                                    <span>{row.asset}</span>
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                    <div style={{ display: 'flex', width: '80px', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
+                                      {row.wins > 0 && (
+                                        <div style={{ width: `${winPct}%`, background: BULLISH_COLOR, height: '100%' }} />
+                                      )}
+                                      {row.losses > 0 && (
+                                        <div style={{ width: `${lossPct}%`, background: BEARISH_COLOR, height: '100%' }} />
+                                      )}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '80px', fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                        <span style={{ width: '5px', height: '5px', borderRadius: '1px', background: BULLISH_COLOR, display: 'inline-block' }} />
+                                        Win {row.wins}
+                                      </span>
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                        Loss {row.losses}
+                                        <span style={{ width: '5px', height: '5px', borderRadius: '1px', background: BEARISH_COLOR, display: 'inline-block' }} />
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: 'right', fontWeight: '600', color: winRate >= 60 ? BULLISH_COLOR : winRate >= 40 ? INTERNAL_COLOR : BEARISH_COLOR }}>
+                                  {winRate.toFixed(1)}%
+                                </td>
+                                <td style={{ textAlign: 'right', color: pnlColor, fontWeight: '600' }}>
+                                  {row.totalPnl >= 0 ? '+' : ''}${formatNumber(row.totalPnl)}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })()
               )}
             </div>
           )}

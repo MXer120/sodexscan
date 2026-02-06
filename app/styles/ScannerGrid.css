@@ -121,19 +121,31 @@
 .section-bottom-center {
     grid-area: bottom-center;
     padding: 8px 0 16px 0 !important;
-    /* Reduced top padding */
-    min-height: 220px;
-    overflow-y: auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
-/* Tab scrollable area */
+/* Tab scrollable area - this is the scroll container */
 .section-bottom-center .tab-scroll-area {
     flex: 1;
-    overflow: visible;
+    overflow: auto;
     padding: 0;
-    /* Removed padding for full-width content */
+    min-height: 0;
     display: flex;
     flex-direction: column;
+}
+
+/* Sticky table headers inside tab-scroll-area */
+.section-bottom-center .tab-scroll-area thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--color-bg-tertiary);
+}
+
+/* Remove overflow from table-scroll-wrapper so sticky works */
+.section-bottom-center .tab-scroll-area .table-scroll-wrapper {
+    overflow: visible;
 }
 
 /* Tab navigation row */
@@ -152,6 +164,16 @@
     grid-area: activity;
     align-self: stretch;
     overflow-y: auto;
+}
+
+/* Sticky activity header */
+.section-activity h3 {
+    position: sticky;
+    top: -20px;
+    z-index: 10;
+    background: #101010;
+    margin: -20px -24px 8px -24px !important;
+    padding: 20px 24px 8px 24px !important;
 }
 
 /* Metrics in Sidebar */
