@@ -189,8 +189,8 @@ export default function TotalUsersChart() {
     const prevAvg = prev4.length > 0 ? prev4.reduce((s, d) => s + d.newUsers, 0) / prev4.length : recentAvg
     const momentumRatio = prevAvg > 0 ? recentAvg / prevAvg : 1
 
-    const holtForecast = level + trend
-    const basePrediction = Math.max(1, holtForecast * 0.6 + recentAvg * 0.4)
+    // Prediction = recent average, flat linear projection
+    const basePrediction = Math.max(1, recentAvg)
 
     // Generate predictions
     let cumulative = lastActual.totalUsers
@@ -198,20 +198,10 @@ export default function TotalUsersChart() {
     let totalPredictedUsers = 0
 
     for (let i = 1; i <= projectionDays; i++) {
-      const dampeningFactor = Math.pow(0.92, i - 1)
-
-      let trendMultiplier = 1
-      if (momentumRatio > 1) {
-        trendMultiplier = 1 + (momentumRatio - 1) * dampeningFactor * 0.5
-      } else {
-        trendMultiplier = Math.max(0.7, 1 - (1 - momentumRatio) * dampeningFactor * 0.3)
-      }
-
       // Small variance (deterministic)
       const variance = 0.97 + (((i * 7) % 10) / 100)
 
-      const minDaily = Math.max(1, recentAvg * 0.3)
-      const dailyPredicted = Math.round(Math.max(minDaily, basePrediction * trendMultiplier * variance))
+      const dailyPredicted = Math.round(Math.max(1, basePrediction * variance))
 
       cumulative += dailyPredicted
       totalPredictedUsers += dailyPredicted
