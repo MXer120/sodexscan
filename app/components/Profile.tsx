@@ -59,6 +59,17 @@ export default function Profile() {
   const [customBearish, setCustomBearish] = useState(theme.bearishColor)
   const [customAccent, setCustomAccent] = useState(theme.accentColor)
 
+  // Unsaved changes tracking
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [originalValues, setOriginalValues] = useState({
+    ownWallet: '',
+    colorScheme: theme.colorScheme,
+    mode: theme.mode,
+    bullishColor: theme.bullishColor,
+    bearishColor: theme.bearishColor,
+    accentColor: theme.accentColor
+  })
+
   useEffect(() => {
     setCustomBullish(theme.bullishColor)
     setCustomBearish(theme.bearishColor)
@@ -72,10 +83,28 @@ export default function Profile() {
   }
 
   const handleTagClick = (walletAddress: string) => {
+    if (hasUnsavedChanges) {
+      // Trigger shake animation
+      const banner = document.querySelector('.unsaved-changes-banner')
+      if (banner) {
+        banner.classList.add('shake')
+        setTimeout(() => banner.classList.remove('shake'), 500)
+      }
+      return
+    }
     router.push(`/tracker?wallet=${encodeURIComponent(walletAddress)}`)
   }
 
   const handleLogout = async () => {
+    if (hasUnsavedChanges) {
+      // Trigger shake animation
+      const banner = document.querySelector('.unsaved-changes-banner')
+      if (banner) {
+        banner.classList.add('shake')
+        setTimeout(() => banner.classList.remove('shake'), 500)
+      }
+      return
+    }
     await supabase.auth.signOut()
     window.location.href = '/'
   }
@@ -165,8 +194,35 @@ export default function Profile() {
   React.useEffect(() => {
     if (profileData?.profile?.own_wallet) {
       setOwnWalletInput(profileData.profile.own_wallet)
+      setOriginalValues(prev => ({ ...prev, ownWallet: profileData.profile.own_wallet }))
     }
   }, [profileData?.profile?.own_wallet])
+
+  // Check for unsaved changes
+  useEffect(() => {
+    const hasChanges =
+      ownWalletInput.trim() !== originalValues.ownWallet ||
+      theme.colorScheme !== originalValues.colorScheme ||
+      theme.mode !== originalValues.mode ||
+      theme.bullishColor !== originalValues.bullishColor ||
+      theme.bearishColor !== originalValues.bearishColor ||
+      theme.accentColor !== originalValues.accentColor
+
+    setHasUnsavedChanges(hasChanges)
+  }, [ownWalletInput, theme.colorScheme, theme.mode, theme.bullishColor, theme.bearishColor, theme.accentColor, originalValues])
+
+  // Block navigation when unsaved changes
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   const handleSaveOwnWallet = async () => {
     setIsSaving(true)
@@ -177,6 +233,45 @@ export default function Profile() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleSaveAllChanges = async () => {
+    setIsSaving(true)
+    try {
+      // Save own wallet if changed
+      if (ownWalletInput.trim() !== originalValues.ownWallet) {
+        await updateOwnWallet.mutateAsync(ownWalletInput.trim())
+      }
+
+      // Update original values
+      setOriginalValues({
+        ownWallet: ownWalletInput.trim(),
+        colorScheme: theme.colorScheme,
+        mode: theme.mode,
+        bullishColor: theme.bullishColor,
+        bearishColor: theme.bearishColor,
+        accentColor: theme.accentColor
+      })
+
+      setHasUnsavedChanges(false)
+    } catch (err) {
+      console.error('Error saving changes:', err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDiscardChanges = () => {
+    // Revert all changes
+    setOwnWalletInput(originalValues.ownWallet)
+    setTheme({
+      colorScheme: originalValues.colorScheme,
+      mode: originalValues.mode,
+      bullishColor: originalValues.bullishColor,
+      bearishColor: originalValues.bearishColor,
+      accentColor: originalValues.accentColor
+    })
+    setHasUnsavedChanges(false)
   }
 
   // Theme handlers
@@ -241,6 +336,19 @@ export default function Profile() {
 
   const { profile, leaderboardStats, tagMap } = profileData
 
+  const handleSectionChange = (section: ProfileSection) => {
+    if (hasUnsavedChanges) {
+      // Trigger shake animation instead of browser confirm
+      const banner = document.querySelector('.unsaved-changes-banner')
+      if (banner) {
+        banner.classList.add('shake')
+        setTimeout(() => banner.classList.remove('shake'), 500)
+      }
+      return
+    }
+    setActiveSection(section)
+  }
+
   const navItems: { key: ProfileSection; label: string; icon: React.ReactNode }[] = [
     {
       key: 'account',
@@ -289,6 +397,30 @@ export default function Profile() {
 
   return (
     <div className="profile-container">
+      {/* Unsaved Changes Banner */}
+      {hasUnsavedChanges && (
+        <div className="unsaved-changes-banner">
+          <div className="banner-content">
+            <div className="banner-text">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>You have unsaved changes</span>
+            </div>
+            <div className="banner-actions">
+              <button onClick={handleDiscardChanges} className="discard-btn" disabled={isSaving}>
+                Discard
+              </button>
+              <button onClick={handleSaveAllChanges} className="save-btn" disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="profile-layout">
         {/* Vertical Navigation */}
         <nav className="profile-nav">
@@ -297,7 +429,7 @@ export default function Profile() {
             <button
               key={item.key}
               className={`profile-nav-item ${activeSection === item.key ? 'active' : ''}`}
-              onClick={() => setActiveSection(item.key)}
+              onClick={() => handleSectionChange(item.key)}
             >
               {item.icon}
               <span>{item.label}</span>
