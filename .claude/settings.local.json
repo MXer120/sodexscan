@@ -20,7 +20,9 @@
       "Bash(powershell -Command \"Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Remove-Item -Recurse -Force ''C:\\\\Users\\\\lutzs\\\\OneDrive - Fam. Steinfartz\\\\Lutz Schriftgut\\\\.work\\\\sodexscan\\\\.next'' -ErrorAction SilentlyContinue; Write-Host ''Done''\")",
       "WebFetch(domain:mainnet-data.sodex.dev)",
       "Bash(grep:*)",
-      "Bash(npx next build:*)"
+      "Bash(npx next build:*)",
+      "Bash(git clean:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

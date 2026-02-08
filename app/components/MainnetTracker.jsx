@@ -794,6 +794,18 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       .slice(0, withdrawalsLimit)
   }, [withdrawals, fundTransfers, withdrawSortField, withdrawSortDir, withdrawalsLimit])
 
+  const depositWithdrawalDelta = useMemo(() => {
+    let totalDeposits = 0
+    let totalWithdrawals = 0
+    for (const w of withdrawals) {
+      const { isDeposit, isWithdraw } = getWithdrawalTypeMeta(w)
+      const amt = parseFloat(formatCoin(w.amount, w.decimals)) || 0
+      if (isDeposit) totalDeposits += amt
+      else if (isWithdraw) totalWithdrawals += amt
+    }
+    return { totalDeposits, totalWithdrawals, delta: totalWithdrawals - totalDeposits }
+  }, [withdrawals])
+
   const sortedPerformanceTrades = useMemo(() => {
     return [...positionHistory]
       .sort((a, b) => parseFloat(b.realized_pnl || 0) - parseFloat(a.realized_pnl || 0))
@@ -920,14 +932,31 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
     try {
       // Fetch ALL data in parallel - single Promise.all for max speed
-      const [detailsRes, balanceRes, withdrawalsRes, pnlRes, posHistoryRes, fundsRes] = await Promise.all([
+      // Paginated fetch for full account flow history
+      const fetchAllFlows = async () => {
+        const allFlows = []
+        let start = 0
+        const limit = 200
+        while (true) {
+          const res = await fetch('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account: walletAddress || '', start, limit })
+          })
+          const data = await res.json()
+          if (data.code !== '0' || !data.data?.accountFlows) break
+          allFlows.push(...data.data.accountFlows)
+          const total = data.data.total || 0
+          if (allFlows.length >= total || data.data.accountFlows.length < limit) break
+          start += limit
+        }
+        return allFlows
+      }
+
+      const [detailsRes, balanceRes, allFlows, pnlRes, posHistoryRes, fundsRes] = await Promise.all([
         fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
         fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
-        fetch('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ account: walletAddress || '', start: 0, limit: 200 })
-        }),
+        fetchAllFlows(),
         fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
         fetch(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
         fetch(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
@@ -936,11 +965,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       setLoadingProgress(65)
       setLoadingStep('Analyzing performance metrics...')
 
-      // Parse all responses in parallel
-      const [detailsData, balanceData, withdrawalsData, pnlData, posHistoryData, fundsData] = await Promise.all([
+      // Parse all responses in parallel (allFlows already parsed)
+      const [detailsData, balanceData, pnlData, posHistoryData, fundsData] = await Promise.all([
         detailsRes.json(),
         balanceRes.json(),
-        withdrawalsRes.json(),
         pnlRes.json(),
         posHistoryRes.json(),
         fundsRes.json()
@@ -1028,12 +1056,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         }
       }
 
-      // Process withdrawals
-      let processedWithdrawals = []
-      if (withdrawalsData.code === '0' && withdrawalsData.data?.accountFlows) {
-        processedWithdrawals = withdrawalsData.data.accountFlows
-        setWithdrawals(processedWithdrawals)
-      }
+      // Process withdrawals (already paginated & parsed)
+      let processedWithdrawals = allFlows
+      setWithdrawals(processedWithdrawals)
 
       // Process fund transfers
       let processedFunds = []
@@ -1918,6 +1943,29 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               <span style={{ color: 'rgba(255,255,255,0.5)' }}>Sharpe Ratio</span>
               <span style={{ color: INTERNAL_COLOR, fontWeight: '600' }}>
                 {statsSummary.sharpe.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+
+        {/* Section: Deposit/Withdrawal Delta */}
+        <div style={{ marginBottom: '0' }}>
+          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deposit / Withdrawal</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Deposited</span>
+              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(depositWithdrawalDelta.totalDeposits)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Withdrawn</span>
+              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(depositWithdrawalDelta.totalWithdrawals)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Delta</span>
+              <span style={{ color: depositWithdrawalDelta.delta > 0 ? '#4ade80' : depositWithdrawalDelta.delta < 0 ? '#f87171' : '#fff', fontWeight: '600' }}>
+                {depositWithdrawalDelta.delta >= 0 ? '+' : ''}${formatNumber(depositWithdrawalDelta.delta)}
               </span>
             </div>
           </div>
