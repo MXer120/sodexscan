@@ -456,11 +456,16 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
   // Mobile check
   const [isMobile, setIsMobile] = useState(false)
+  const [expandedRows, setExpandedRows] = useState({})
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 900)
     handleResize() // Init
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const toggleRow = useCallback((tab, key) => {
+    setExpandedRows(prev => ({ ...prev, [`${tab}-${key}`]: !prev[`${tab}-${key}`] }))
   }, [])
 
   const editMenuRef = useRef(null)
@@ -2458,6 +2463,40 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 <div className="empty-state-container">
                   <p style={{ color: 'rgba(255,255,255,0.5)' }}>No open positions</p>
                 </div>
+              ) : isMobile ? (
+                <div className="mobile-card-list">
+                  {sortedPositions.map((pos, i) => {
+                    const unrealizedPnl = parseFloat(pos.unrealizedProfit || 0)
+                    const estLiqPrice = positionLiqPrices.get(pos) || 0
+                    const rowKey = `pos-${pos.symbol}-${pos.positionSide}`
+                    const isExpanded = expandedRows[`Positions-${rowKey}`]
+                    return (
+                      <div key={rowKey} className="mobile-card">
+                        <div className="mobile-card-summary" onClick={() => toggleRow('Positions', rowKey)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <CoinLogo symbol={getBaseCoin(pos.symbol)} />
+                            <span style={{ fontWeight: '600', fontSize: '12px' }}>{getBaseCoin(pos.symbol)}</span>
+                            <SideBadge side={pos.positionSide === 'LONG' ? 'LONG' : 'SHORT'} leverage={pos.leverage} BULLISH_COLOR={BULLISH_COLOR} BEARISH_COLOR={BEARISH_COLOR} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px', color: unrealizedPnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR }}>
+                              {unrealizedPnl >= 0 ? '+' : ''}${formatNumber(unrealizedPnl)}
+                            </span>
+                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                        </div>
+                        {isExpanded && (
+                          <div className="mobile-card-details">
+                            <div className="mobile-card-detail-cell"><span>Size</span><span>{formatNumber(parseFloat(pos.positionSize), 6)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Entry</span><span>${formatNumber(parseFloat(pos.entryPrice))}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Liq.</span><span style={{ color: BEARISH_COLOR }}>${formatNumber(estLiqPrice)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Margin</span><span>${formatNumber(parseFloat(pos.isolatedMargin || 0))}</span></div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               ) : (
                 <>
                   <div className="table-scroll-wrapper">
@@ -2556,6 +2595,51 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               {/* Futures Balances */}
               {balanceView === 'Futures' && (
                 accountDetails?.balances?.length > 0 ? (
+                  isMobile ? (
+                    <div className="mobile-card-list">
+                      {[...accountDetails.balances]
+                        .sort((a, b) => {
+                          if (!balanceSortField) return 0
+                          const dir = balanceSortDir === 'asc' ? 1 : -1
+                          let valA, valB
+                          switch (balanceSortField) {
+                            case 'coin': valA = a.coin; valB = b.coin; break
+                            case 'wallet': valA = parseFloat(a.walletBalance); valB = parseFloat(b.walletBalance); break
+                            case 'available': valA = parseFloat(a.availableBalance); valB = parseFloat(b.availableBalance); break
+                            case 'frozen': valA = parseFloat(a.openOrderMarginFrozen); valB = parseFloat(b.openOrderMarginFrozen); break
+                            default: return 0
+                          }
+                          if (valA < valB) return -1 * dir
+                          if (valA > valB) return 1 * dir
+                          return 0
+                        })
+                        .slice(0, balancesLimit)
+                        .map((bal, i) => {
+                          const rowKey = `fbal-${bal.coin}-${i}`
+                          const isExpanded = expandedRows[`Balances-${rowKey}`]
+                          return (
+                            <div key={i} className="mobile-card">
+                              <div className="mobile-card-summary" onClick={() => toggleRow('Balances', rowKey)}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                                  <CoinLogo symbol={getBaseCoin(bal.coin)} />
+                                  <span style={{ fontWeight: '600', fontSize: '12px' }}>{getBaseCoin(bal.coin)}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontWeight: '600', fontSize: '12px' }}>{formatBalance(bal.walletBalance, bal.coin)}</span>
+                                  <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </div>
+                              </div>
+                              {isExpanded && (
+                                <div className="mobile-card-details">
+                                  <div className="mobile-card-detail-cell"><span>Available</span><span>{formatBalance(bal.availableBalance, bal.coin)}</span></div>
+                                  <div className="mobile-card-detail-cell"><span>Frozen</span><span style={{ color: BEARISH_COLOR }}>{formatBalance(bal.openOrderMarginFrozen, bal.coin)}</span></div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                    </div>
+                  ) : (
                   <div className="table-scroll-wrapper" style={{ marginBottom: '32px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
@@ -2622,6 +2706,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       </tbody>
                     </table>
                   </div>
+                  )
                 ) : (
                   <div className="empty-state-container">
                     <p style={{ color: 'rgba(255,255,255,0.5)' }}>No futures balances found</p>
@@ -2632,6 +2717,51 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               {/* Spot Balances */}
               {balanceView === 'Spot' && (
                 spotBalances.length > 0 ? (
+                  isMobile ? (
+                    <div className="mobile-card-list">
+                      {[...spotBalances]
+                        .sort((a, b) => {
+                          if (!balanceSortField) return 0
+                          const dir = balanceSortDir === 'asc' ? 1 : -1
+                          let valA, valB
+                          switch (balanceSortField) {
+                            case 'coin': valA = a.coin; valB = b.coin; break
+                            case 'balance': valA = parseFloat(a.balance); valB = parseFloat(b.balance); break
+                            case 'available': valA = parseFloat(a.available); valB = parseFloat(b.available); break
+                            case 'frozen': valA = parseFloat(a.frozen); valB = parseFloat(b.frozen); break
+                            default: return 0
+                          }
+                          if (valA < valB) return -1 * dir
+                          if (valA > valB) return 1 * dir
+                          return 0
+                        })
+                        .slice(0, balancesLimit)
+                        .map((bal, i) => {
+                          const rowKey = `sbal-${bal.coin}-${i}`
+                          const isExpanded = expandedRows[`Balances-${rowKey}`]
+                          return (
+                            <div key={i} className="mobile-card">
+                              <div className="mobile-card-summary" onClick={() => toggleRow('Balances', rowKey)}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                                  <CoinLogo symbol={getBaseCoin(bal.coin)} />
+                                  <span style={{ fontWeight: '600', fontSize: '12px' }}>{getBaseCoin(bal.coin)}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontWeight: '600', fontSize: '12px' }}>{formatBalance(bal.balance, bal.coin)}</span>
+                                  <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </div>
+                              </div>
+                              {isExpanded && (
+                                <div className="mobile-card-details">
+                                  <div className="mobile-card-detail-cell"><span>Available</span><span>{formatBalance(bal.availableBalance, bal.coin)}</span></div>
+                                  <div className="mobile-card-detail-cell"><span>Frozen</span><span style={{ color: BEARISH_COLOR }}>{formatBalance(bal.freeze, bal.coin)}</span></div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                    </div>
+                  ) : (
                   <div className="table-scroll-wrapper">
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
@@ -2698,6 +2828,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       </tbody>
                     </table>
                   </div>
+                  )
                 ) : (
                   <div className="empty-state-container">
                     <p style={{ color: 'rgba(255,255,255,0.5)' }}>No spot balances found</p>
@@ -2718,6 +2849,44 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               {positionHistory.length === 0 ? (
                 <div className="empty-state-container">
                   <p style={{ color: 'rgba(255,255,255,0.5)' }}>No position history found</p>
+                </div>
+              ) : isMobile ? (
+                <div className="mobile-card-list">
+                  {sortedTrades.map((pos, i) => {
+                    const symbolName = symbolMap[pos.symbol_id] || ''
+                    const symbolLabel = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
+                    const isLong = parseInt(pos.position_side) === 2
+                    const pnl = parseFloat(pos.realized_pnl) || 0
+                    const pnlColor = pnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR
+                    const rowKey = `trade-${i}`
+                    const isExpanded = expandedRows[`Trades-${rowKey}`]
+                    return (
+                      <div key={i} className="mobile-card">
+                        <div className="mobile-card-summary" onClick={() => toggleRow('Trades', rowKey)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <CoinLogo symbol={symbolName ? getBaseCoin(symbolName) : ''} />
+                            <span style={{ fontWeight: '600', fontSize: '12px' }}>{symbolLabel}</span>
+                            <SideBadge side={pos.position_side} leverage={pos.leverage} BULLISH_COLOR={BULLISH_COLOR} BEARISH_COLOR={BEARISH_COLOR} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px', color: pnlColor }}>
+                              {pnl >= 0 ? '+' : ''}${formatNumber(pnl)}
+                            </span>
+                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                        </div>
+                        {isExpanded && (
+                          <div className="mobile-card-details">
+                            <div className="mobile-card-detail-cell"><span>Max Size</span><span>{pos.max_size}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Avg Entry</span><span>${formatNumber(parseFloat(pos.avg_entry_price) || 0)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Avg Close</span><span>${formatNumber(parseFloat(pos.avg_close_price) || 0)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Fees</span><span style={{ color: BEARISH_COLOR }}>${formatNumber(parseFloat(pos.cum_trading_fee) || 0)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Dates</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>{new Date(pos.created_at).toLocaleDateString()} - {new Date(pos.updated_at).toLocaleDateString()}</span></div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="table-scroll-wrapper">
@@ -2826,6 +2995,50 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 <div className="empty-state-container">
                   <p style={{ color: 'rgba(255,255,255,0.5)' }}>No withdrawals or transfers found</p>
                 </div>
+              ) : isMobile ? (
+                <div className="mobile-card-list">
+                  {sortedWithdrawals.map((w, i) => {
+                    const amount = formatCoin(w.amount, w.decimals)
+                    const coin = (w.token || w.coin || '').trim()
+                    const { isDeposit, isWithdraw, isInternal, typeLabel } = getWithdrawalTypeMeta(w)
+                    const flowColor = isDeposit ? BULLISH_COLOR : isWithdraw ? BEARISH_COLOR : isInternal ? INTERNAL_COLOR : '#fff'
+                    const sign = isDeposit ? '+' : isWithdraw ? '-' : ''
+                    let fromAddr = w.fromOverride || '-'
+                    let toAddr = w.toOverride || '-'
+                    const hash = w.txHash || w.tx_hash || w.hash || '-'
+                    if (fromAddr === '-' && toAddr === '-') {
+                      if (isDeposit) { fromAddr = w.sender || '-'; toAddr = w.receiver || walletAddress || '-' }
+                      else if (isWithdraw) { fromAddr = w.sender || walletAddress || '-'; toAddr = w.receiver || '-' }
+                      else { fromAddr = w.sender || walletAddress || '-'; toAddr = w.receiver || '-' }
+                    }
+                    const rowKey = `transfer-${i}`
+                    const isExpanded = expandedRows[`Transfers-${rowKey}`]
+                    const isSpecialLabel = (addr) => ['Spot', 'Fund', 'N/A'].includes(addr)
+                    return (
+                      <div key={i} className="mobile-card">
+                        <div className="mobile-card-summary" onClick={() => toggleRow('Transfers', rowKey)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <CoinLogo symbol={getBaseCoin(coin)} />
+                            <span style={{ fontWeight: '600', fontSize: '12px' }}>{getBaseCoin(coin) || coin || '???'}</span>
+                            <TransactionTypeBadge type={typeLabel} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px', color: flowColor }}>{sign}{amount}</span>
+                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                        </div>
+                        {isExpanded && (
+                          <div className="mobile-card-details">
+                            <div className="mobile-card-detail-cell"><span>Time</span><span style={{ color: 'rgba(255,255,255,0.6)' }}>{formatTimeShort(w.stmp)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>From</span><span>{isSpecialLabel(fromAddr) ? fromAddr : (fromAddr.length > 10 ? fromAddr.slice(0,6) + '...' + fromAddr.slice(-4) : fromAddr)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>To</span><span>{isSpecialLabel(toAddr) ? toAddr : (toAddr.length > 10 ? toAddr.slice(0,6) + '...' + toAddr.slice(-4) : toAddr)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Hash</span><span>{hash !== '-' && hash.length > 10 ? hash.slice(0,6) + '...' + hash.slice(-4) : hash}</span></div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               ) : (
                 <>
                   <div className="table-scroll-wrapper">
@@ -2925,6 +3138,42 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   <p style={{ color: 'rgba(255,255,255,0.5)' }}>No trade history available</p>
                 </div>
               ) : performanceView === 'Trade' ? (
+                isMobile ? (
+                  <div className="mobile-card-list">
+                    {sortedPerformanceTrades.map((pos, i) => {
+                      const symbolName = symbolMap[pos.symbol_id] || ''
+                      const symbolLabel = symbolName ? getBaseCoin(symbolName) : `ID #${pos.symbol_id}`
+                      const pnl = parseFloat(pos.realized_pnl) || 0
+                      const pnlColor = pnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR
+                      const rowKey = `perf-trade-${i}`
+                      const isExpanded = expandedRows[`Performance-${rowKey}`]
+                      return (
+                        <div key={i} className="mobile-card">
+                          <div className="mobile-card-summary" onClick={() => toggleRow('Performance', rowKey)}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                              <CoinLogo symbol={symbolName ? getBaseCoin(symbolName) : ''} />
+                              <span style={{ fontWeight: '600', fontSize: '12px' }}>{symbolLabel}</span>
+                              <SideBadge side={pos.position_side} leverage={pos.leverage} BULLISH_COLOR={BULLISH_COLOR} BEARISH_COLOR={BEARISH_COLOR} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontWeight: '600', fontSize: '12px', color: pnlColor }}>
+                                {pnl >= 0 ? '+' : ''}${formatNumber(pnl)}
+                              </span>
+                              <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <div className="mobile-card-details">
+                              <div className="mobile-card-detail-cell"><span>Max Size</span><span>{pos.max_size}</span></div>
+                              <div className="mobile-card-detail-cell"><span>Avg Entry</span><span>${formatNumber(parseFloat(pos.avg_entry_price) || 0)}</span></div>
+                              <div className="mobile-card-detail-cell"><span>Avg Close</span><span>${formatNumber(parseFloat(pos.avg_close_price) || 0)}</span></div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
                 <div className="table-scroll-wrapper">
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
@@ -2979,7 +3228,42 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     </tbody>
                   </table>
                 </div>
+                )
               ) : (
+                isMobile ? (
+                  <div className="mobile-card-list">
+                    {assetPerformanceData.slice(0, performanceLimit).map((row, i) => {
+                      const total = row.wins + row.losses
+                      const winRate = total > 0 ? (row.wins / total * 100) : 0
+                      const pnlColor = row.totalPnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR
+                      const rowKey = `perf-asset-${i}`
+                      const isExpanded = expandedRows[`Performance-${rowKey}`]
+                      return (
+                        <div key={i} className="mobile-card">
+                          <div className="mobile-card-summary" onClick={() => toggleRow('Performance', rowKey)}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                              <CoinLogo symbol={row.asset} />
+                              <span style={{ fontWeight: '600', fontSize: '12px' }}>{row.asset}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontWeight: '600', fontSize: '12px', color: pnlColor }}>
+                                {row.totalPnl >= 0 ? '+' : ''}${formatNumber(row.totalPnl)}
+                              </span>
+                              <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <div className="mobile-card-details">
+                              <div className="mobile-card-detail-cell"><span>Wins</span><span style={{ color: BULLISH_COLOR }}>{row.wins}</span></div>
+                              <div className="mobile-card-detail-cell"><span>Losses</span><span style={{ color: BEARISH_COLOR }}>{row.losses}</span></div>
+                              <div className="mobile-card-detail-cell"><span>Win Rate</span><span style={{ color: winRate >= 60 ? BULLISH_COLOR : winRate >= 40 ? INTERNAL_COLOR : BEARISH_COLOR }}>{winRate.toFixed(1)}%</span></div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
                     <div className="table-scroll-wrapper">
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -3040,6 +3324,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         </tbody>
                       </table>
                     </div>
+                )
               )}
             </div>
           )}
