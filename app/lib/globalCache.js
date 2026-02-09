@@ -30,7 +30,13 @@ class GlobalCache {
       socialPages: new Map(), // key -> {data, totalCount, fetchTime, timestamp}
 
       // Social stats (group_stats_daily) cache
-      socialStats: { data: null, timestamp: 0 }
+      socialStats: { data: null, timestamp: 0 },
+
+      // Weekly leaderboard caches
+      weeklyLeaderboardPages: new Map(), // key: "weekNum_page_sort_excludeSodex"
+      weeklyTotalCounts: new Map(),      // key: "weekNum_sort_excludeSodex"
+      leaderboardMeta: { data: null, timestamp: 0 },
+      weeklyRewardEstimate: { data: null, timestamp: 0 }
     }
 
     this.TTL = {
@@ -324,6 +330,74 @@ class GlobalCache {
     })
   }
 
+  // Weekly leaderboard page cache
+  getWeeklyLeaderboardPage(weekNum, page, sort, excludeSodex) {
+    const key = `${weekNum}_${page}_${sort}_${excludeSodex}`
+    const cached = this.caches.weeklyLeaderboardPages.get(key)
+    if (!cached) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.mainnetPage) {
+      this.caches.weeklyLeaderboardPages.delete(key)
+      return null
+    }
+    return cached.data
+  }
+
+  setWeeklyLeaderboardPage(weekNum, page, sort, excludeSodex, data) {
+    const key = `${weekNum}_${page}_${sort}_${excludeSodex}`
+    this.caches.weeklyLeaderboardPages.set(key, { data, timestamp: Date.now() })
+  }
+
+  // Weekly total count cache
+  getWeeklyTotalCount(weekNum, sort, excludeSodex) {
+    const key = `${weekNum}_${sort}_${excludeSodex}`
+    const cached = this.caches.weeklyTotalCounts.get(key)
+    if (!cached) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.mainnetPage) {
+      this.caches.weeklyTotalCounts.delete(key)
+      return null
+    }
+    return cached.count
+  }
+
+  setWeeklyTotalCount(weekNum, sort, excludeSodex, count) {
+    const key = `${weekNum}_${sort}_${excludeSodex}`
+    this.caches.weeklyTotalCounts.set(key, { count, timestamp: Date.now() })
+  }
+
+  // Leaderboard meta cache
+  getLeaderboardMeta() {
+    const cached = this.caches.leaderboardMeta
+    if (!cached.data) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.mainnetPage) {
+      this.caches.leaderboardMeta = { data: null, timestamp: 0 }
+      return null
+    }
+    return cached.data
+  }
+
+  setLeaderboardMeta(data) {
+    this.caches.leaderboardMeta = { data, timestamp: Date.now() }
+  }
+
+  // Weekly reward estimate cache
+  getWeeklyRewardEstimate() {
+    const cached = this.caches.weeklyRewardEstimate
+    if (!cached.data) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.tracker) { // 2 min TTL
+      this.caches.weeklyRewardEstimate = { data: null, timestamp: 0 }
+      return null
+    }
+    return cached.data
+  }
+
+  setWeeklyRewardEstimate(data) {
+    this.caches.weeklyRewardEstimate = { data, timestamp: Date.now() }
+  }
+
   // Clear all caches
   clear() {
     this.caches.leaderboardPages.clear()
@@ -337,6 +411,10 @@ class GlobalCache {
     this.caches.socialLeaderboards.clear()
     this.caches.socialPages.clear()
     this.caches.socialStats = { data: null, timestamp: 0 }
+    this.caches.weeklyLeaderboardPages.clear()
+    this.caches.weeklyTotalCounts.clear()
+    this.caches.leaderboardMeta = { data: null, timestamp: 0 }
+    this.caches.weeklyRewardEstimate = { data: null, timestamp: 0 }
     if (typeof window !== 'undefined') {
       try { localStorage.removeItem('socialLeaderboardCache') } catch (e) { }
     }

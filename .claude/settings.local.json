@@ -22,7 +22,10 @@
       "Bash(grep:*)",
       "Bash(npx next build:*)",
       "Bash(git clean:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npx supabase db push:*)",
+      "Bash(npx supabase:*)",
+      "Bash(rd:*)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useUserProfile } from '../hooks/useProfile'
 import { globalCache } from '../lib/globalCache'
@@ -77,8 +77,31 @@ export default function MainnetPage() {
   const [showSyncStatus, setShowSyncStatus] = useState(false)
   const [excludeSodexOwned, setExcludeSodexOwned] = useState(true)
 
-  // Using global cache that persists across component mounts (navigation)
-  // No more useRef caches - globalCache persists even when navigating away
+  // Week selector: 'all' | 'current' | 1 | 2 | 3...
+  const [timeRange, setTimeRange] = useState('all')
+  const [lbMeta, setLbMeta] = useState(null)
+  const [weekDropdownOpen, setWeekDropdownOpen] = useState(false)
+
+  const weekDropdownRef = useRef(null)
+
+  // Close dropdown on click outside or Escape
+  useEffect(() => {
+    if (!weekDropdownOpen) return
+    const handleClickOutside = (e) => {
+      if (weekDropdownRef.current && !weekDropdownRef.current.contains(e.target)) {
+        setWeekDropdownOpen(false)
+      }
+    }
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setWeekDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [weekDropdownOpen])
 
   // Top 10 data
   const [topGainersData, setTopGainersData] = useState([])
@@ -86,100 +109,152 @@ export default function MainnetPage() {
   const [top10Loading, setTop10Loading] = useState(false)
 
   const { data: profileData } = useUserProfile()
-  const showZeroData = false // Temporarily disabled for optimization
+  const showZeroData = false
+
+  const isWeeklyView = timeRange !== 'all'
+
+  // Load leaderboard meta on mount
+  useEffect(() => {
+    loadLbMeta()
+  }, [])
+
+  const loadLbMeta = async () => {
+    const cached = globalCache.getLeaderboardMeta()
+    if (cached) { setLbMeta(cached); return }
+    try {
+      const { data, error } = await supabase
+        .from('leaderboard_meta')
+        .select('*')
+        .eq('id', 1)
+        .single()
+      if (error) throw error
+      if (data) {
+        globalCache.setLeaderboardMeta(data)
+        setLbMeta(data)
+      }
+    } catch (err) {
+      console.error('Failed to load leaderboard meta:', err)
+    }
+  }
 
   // Reload when filters change
   useEffect(() => {
     setLeaderboardPage(1)
-    loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData)
-    loadTop10(showZeroData, excludeSodexOwned)
-  }, [excludeSodexOwned, showZeroData, leaderboardType])
+    if (timeRange === 'all') {
+      loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData)
+      loadTop10(showZeroData, excludeSodexOwned)
+    } else {
+      const weekNum = timeRange === 'current' ? 0 : timeRange
+      loadWeeklyPage(1, weekNum, leaderboardType, excludeSodexOwned)
+    }
+  }, [excludeSodexOwned, showZeroData, leaderboardType, timeRange])
 
-  // Load single page of leaderboard (20 users)
-  const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false) => {
-    // Check global cache first
-    const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex, showZero)
-    if (cachedData) {
-      // Cache hit - use cached data
-      setLeaderboardData(cachedData)
-
-      // Use cached total count if available
-      const cachedCount = globalCache.getTotalCount(type, excludeSodex, showZero)
-      if (cachedCount !== null) {
-        setTotalLeaderboardCount(cachedCount)
-      }
+  // ── Weekly leaderboard loading (RPC) ──
+  const loadWeeklyPage = async (page, weekNum, type, excludeSodex) => {
+    const cached = globalCache.getWeeklyLeaderboardPage(weekNum, page, type, excludeSodex)
+    if (cached) {
+      setLeaderboardData(cached)
+      const cachedCount = globalCache.getWeeklyTotalCount(weekNum, type, excludeSodex)
+      if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
       setLeaderboardLoading(false)
       return
     }
 
-    // Cache miss - fetch from Supabase
+    setLeaderboardLoading(true)
+    try {
+      const pageSize = 20
+
+      // Get total count
+      let totalCount = globalCache.getWeeklyTotalCount(weekNum, type, excludeSodex)
+      if (totalCount === null) {
+        const { data: cnt, error: cntErr } = await supabase.rpc('get_weekly_leaderboard_count', {
+          p_week: weekNum,
+          p_exclude_sodex: excludeSodex
+        })
+        if (cntErr) throw cntErr
+        totalCount = cnt || 0
+        globalCache.setWeeklyTotalCount(weekNum, type, excludeSodex, totalCount)
+      }
+      setTotalLeaderboardCount(totalCount)
+
+      // Get page data
+      const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
+        p_week: weekNum,
+        p_sort: type,
+        p_limit: pageSize,
+        p_offset: (page - 1) * pageSize,
+        p_exclude_sodex: excludeSodex
+      })
+      if (error) throw error
+
+      const formattedData = (data || []).map(row => ({
+        accountId: row.account_id,
+        walletAddress: row.wallet_address,
+        pnl: parseFloat(row.weekly_pnl) || 0,
+        volume: parseFloat(row.weekly_volume) || 0,
+        unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
+        pnlRank: row.pnl_rank || null,
+        volumeRank: row.volume_rank || null
+      }))
+
+      globalCache.setWeeklyLeaderboardPage(weekNum, page, type, excludeSodex, formattedData)
+      setLeaderboardData(formattedData)
+    } catch (err) {
+      console.error('Failed to load weekly leaderboard:', err)
+    }
+    setLeaderboardLoading(false)
+  }
+
+  // ── All-time leaderboard loading (existing) ──
+  const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false) => {
+    const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex, showZero)
+    if (cachedData) {
+      setLeaderboardData(cachedData)
+      const cachedCount = globalCache.getTotalCount(type, excludeSodex, showZero)
+      if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
+      setLeaderboardLoading(false)
+      return
+    }
+
     setLeaderboardLoading(true)
     try {
       const pageSize = 20
       const orderColumn = type === 'volume' ? 'volume_rank' : 'pnl_rank'
 
-      // Get total count (cached separately)
       let totalCount = globalCache.getTotalCount(type, excludeSodex, showZero)
       if (totalCount === null) {
         let countQuery = supabase
           .from('leaderboard_smart')
           .select('*', { count: 'exact', head: true })
-
-        if (excludeSodex) {
-          // Exclude Sodex-owned: IS NOT TRUE handles both NULL and FALSE
-          countQuery = countQuery.not('is_sodex_owned', 'is', true)
-        }
-
-        if (!showZero) {
-          // Hide NULL and 0 when showZero is false
-          countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
-        }
-
+        if (excludeSodex) countQuery = countQuery.not('is_sodex_owned', 'is', true)
+        if (!showZero) countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
         const { count } = await countQuery
         totalCount = count || 0
         globalCache.setTotalCount(type, excludeSodex, showZero, totalCount)
       }
       setTotalLeaderboardCount(totalCount)
 
-      // Fetch single page
       let dataQuery = supabase
         .from('leaderboard_smart')
         .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at')
         .order(orderColumn, { ascending: true, nullsFirst: false })
-
-      if (excludeSodex) {
-        // Exclude Sodex-owned: IS NOT TRUE handles both NULL and FALSE
-        dataQuery = dataQuery.not('is_sodex_owned', 'is', true)
-      }
-
-      if (!showZero) {
-        // Hide NULL and 0 when showZero is false
-        // PostgREST .or excludes NULL automatically for gt and neq
-        dataQuery = dataQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
-      }
+      if (excludeSodex) dataQuery = dataQuery.not('is_sodex_owned', 'is', true)
+      if (!showZero) dataQuery = dataQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
 
       const { data, error } = await dataQuery.range((page - 1) * pageSize, page * pageSize - 1)
-
       if (error) throw error
 
-      const formattedData = (data || []).map(row => {
-        const pnl = parseFloat(row.cumulative_pnl)
-        const volume = parseFloat(row.cumulative_volume)
-        const unrealizedPnl = parseFloat(row.unrealized_pnl)
+      const formattedData = (data || []).map(row => ({
+        accountId: row.account_id,
+        walletAddress: row.wallet_address,
+        pnl: parseFloat(row.cumulative_pnl) || 0,
+        volume: parseFloat(row.cumulative_volume) || 0,
+        unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
+        pnlRank: parseInt(row.pnl_rank, 10) || null,
+        volumeRank: parseInt(row.volume_rank, 10) || null,
+        lastSyncedAt: row.last_synced_at
+      }))
 
-        return {
-          accountId: row.account_id,
-          walletAddress: row.wallet_address,
-          pnl: pnl || 0,
-          volume: volume || 0,
-          unrealizedPnl: unrealizedPnl || 0,
-          pnlRank: parseInt(row.pnl_rank, 10) || null,
-          volumeRank: parseInt(row.volume_rank, 10) || null,
-          lastSyncedAt: row.last_synced_at
-        }
-      })
-
-      // Store in global cache
       globalCache.setLeaderboardPage(page, type, excludeSodex, showZero, formattedData)
       setLeaderboardData(formattedData)
     } catch (err) {
@@ -190,7 +265,6 @@ export default function MainnetPage() {
 
   // Load top 10 gainers/losers (PnL only)
   const loadTop10 = async (showZero = false, excludeSodex = true) => {
-    // Check global cache first
     const cached = globalCache.getTop10(showZero, excludeSodex)
     if (cached) {
       setTopGainersData(cached.gainers)
@@ -201,49 +275,32 @@ export default function MainnetPage() {
 
     setTop10Loading(true)
     try {
-      // Top 10 gainers
       let gainersQuery = supabase
         .from('leaderboard_smart')
         .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned')
         .order('cumulative_pnl', { ascending: false, nullsFirst: false })
         .limit(10)
-
-      if (excludeSodex) {
-        gainersQuery = gainersQuery.not('is_sodex_owned', 'is', true)
-      }
-
+      if (excludeSodex) gainersQuery = gainersQuery.not('is_sodex_owned', 'is', true)
       if (!showZero) {
         gainersQuery = gainersQuery.gt('cumulative_pnl', 0)
       } else {
-        // When showZero is true, include wallets with 0 (NULL) profit 
-        // but still exclude actual losers from the gainers side.
         gainersQuery = gainersQuery.or('cumulative_pnl.gt.0,cumulative_pnl.is.null')
       }
-
       const { data: gainers, error: gainersError } = await gainersQuery
-
       if (gainersError) throw gainersError
 
-      // Top 10 losers
       let losersQuery = supabase
         .from('leaderboard_smart')
         .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned')
         .order('cumulative_pnl', { ascending: true, nullsFirst: false })
         .limit(10)
-
-      if (excludeSodex) {
-        losersQuery = losersQuery.not('is_sodex_owned', 'is', true)
-      }
-
+      if (excludeSodex) losersQuery = losersQuery.not('is_sodex_owned', 'is', true)
       if (!showZero) {
         losersQuery = losersQuery.lt('cumulative_pnl', 0)
       } else {
-        // Include wallets with 0 (NULL) profit if showZero is true
         losersQuery = losersQuery.or('cumulative_pnl.lt.0,cumulative_pnl.is.null')
       }
-
       const { data: losers, error: losersError } = await losersQuery
-
       if (losersError) throw losersError
 
       const formatUser = (row) => ({
@@ -254,10 +311,7 @@ export default function MainnetPage() {
 
       const formattedGainers = (gainers || []).map(formatUser)
       const formattedLosers = (losers || []).map(formatUser)
-
-      // Update global cache
       globalCache.setTop10(formattedGainers, formattedLosers, showZero, excludeSodex)
-
       setTopGainersData(formattedGainers)
       setTopLosersData(formattedLosers)
     } catch (err) {
@@ -268,10 +322,8 @@ export default function MainnetPage() {
 
 
   const formatFullNumber = (num) => {
-    // Use European format: . for thousands, , for decimals
     const absNum = Math.abs(num)
     const sign = num < 0 ? '-' : ''
-
     if (absNum >= 1000000) {
       const formatted = (absNum / 1000000).toFixed(2).replace('.', ',')
       return `${sign}${formatted}M`
@@ -286,7 +338,7 @@ export default function MainnetPage() {
   const formatPnL = (pnl) => {
     if (pnl === 0) return formatFullNumber(pnl)
     if (pnl > 0) return `+${formatFullNumber(pnl)}`
-    return formatFullNumber(pnl) // negative sign already in number
+    return formatFullNumber(pnl)
   }
 
   const getPnLClassName = (pnl) => {
@@ -302,33 +354,22 @@ export default function MainnetPage() {
     return `${hours}:${minutes}`
   }
 
-  // User stats loaded separately (aggregate query would be better for production)
   const [userStats, setUserStats] = React.useState({
     totalUsers: 0,
     gt2kVol: 0,
     gt1kVol: 0
   })
 
-  // Load aggregate stats
   React.useEffect(() => {
-    if (userStats.totalUsers === 0) {
-      loadUserStats()
-    }
+    if (userStats.totalUsers === 0) loadUserStats()
   }, [])
 
   const loadUserStats = async () => {
-    // Check in-memory global cache first
     const cached = globalCache.getUserStats()
-    if (cached) {
-      setUserStats(cached)
-      return
-    }
-
+    if (cached) { setUserStats(cached); return }
     try {
-      // Call RPC directly to get stats
       const { data, error } = await supabase.rpc('get_leaderboard_stats')
       if (error) throw error
-
       if (data) {
         globalCache.setUserStats(data)
         setUserStats(data)
@@ -338,24 +379,32 @@ export default function MainnetPage() {
     }
   }
 
-  // Leaderboard is already sorted by server, calculate sequential display ranks
   const sortedLeaderboard = leaderboardData.map((user, idx) => ({
     ...user,
-    // Calculate sequential rank based on page position
-    displayRank: (leaderboardPage - 1) * 20 + idx + 1
+    displayRank: isWeeklyView
+      ? (leaderboardType === 'volume' ? user.volumeRank : user.pnlRank) || ((leaderboardPage - 1) * 20 + idx + 1)
+      : (leaderboardPage - 1) * 20 + idx + 1
   }))
 
   const leaderboardPageSize = 20
   const totalLeaderboardPages = Math.ceil(totalLeaderboardCount / leaderboardPageSize)
-  // Data is already paginated from server
   const paginatedLeaderboard = sortedLeaderboard
 
-  // Export CSV - fetches all data for export
+  // Pagination handler (works for both all-time and weekly)
+  const handlePageChange = (newPage) => {
+    setLeaderboardPage(newPage)
+    if (timeRange === 'all') {
+      loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData)
+    } else {
+      const weekNum = timeRange === 'current' ? 0 : timeRange
+      loadWeeklyPage(newPage, weekNum, leaderboardType, excludeSodexOwned)
+    }
+  }
+
+  // Export CSV
   const exportLeaderboardCSV = async () => {
     try {
       const orderColumn = leaderboardType === 'volume' ? 'volume_rank' : 'pnl_rank'
-
-      // Fetch all data for export
       const pageSize = 1000
       const allData = []
       let currentPage = 0
@@ -365,13 +414,8 @@ export default function MainnetPage() {
           .from('leaderboard_smart')
           .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
           .order(orderColumn, { ascending: true, nullsFirst: false })
-
-        if (excludeSodexOwned) {
-          query = query.not('is_sodex_owned', 'is', true)
-        }
-
+        if (excludeSodexOwned) query = query.not('is_sodex_owned', 'is', true)
         const { data, error } = await query.range(currentPage * pageSize, (currentPage + 1) * pageSize - 1)
-
         if (error) throw error
         allData.push(...data)
         currentPage++
@@ -379,18 +423,14 @@ export default function MainnetPage() {
 
       const headers = ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
       const rows = allData.map((row, idx) => [
-        idx + 1, // Sequential rank for filtered/exported data
+        idx + 1,
         row.wallet_address,
         row.cumulative_pnl,
         row.cumulative_volume,
         row.unrealized_pnl
       ])
 
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
-      ].join('\n')
-
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
@@ -404,6 +444,21 @@ export default function MainnetPage() {
       console.error('Failed to export CSV:', err)
     }
   }
+
+  // Build week options for dropdown
+  const getWeekOptions = () => {
+    const options = [{ value: 'all', label: 'All Time' }]
+    if (lbMeta) {
+      options.push({ value: 'current', label: `Week ${lbMeta.current_week_number} (Live)` })
+      for (let i = lbMeta.current_week_number - 1; i >= 1; i--) {
+        options.push({ value: i, label: `Week ${i}` })
+      }
+    }
+    return options
+  }
+
+  const weekOptions = getWeekOptions()
+  const selectedLabel = weekOptions.find(o => o.value === timeRange)?.label || 'All Time'
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -458,8 +513,8 @@ export default function MainnetPage() {
         </div>
       </div>
 
-      {/* Top 10 Gainers & Losers */}
-      {!top10Loading && (topGainersData.length > 0 || topLosersData.length > 0) && (
+      {/* Top 10 Gainers & Losers - only for All Time view */}
+      {timeRange === 'all' && !top10Loading && (topGainersData.length > 0 || topLosersData.length > 0) && (
         <div className="top-10-grid">
           {/* Top 10 Gainers */}
           <div className="top-10-card gainers">
@@ -526,47 +581,115 @@ export default function MainnetPage() {
       )}
 
       {/* Leaderboard */}
-      {leaderboardData.length > 0 && (
+      {(leaderboardData.length > 0 || leaderboardLoading) && (
         <div className="mainnet-leaderboard" style={{ position: 'relative', opacity: leaderboardLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
           <div className="leaderboard-header">
             <h2>Leaderboard</h2>
             <div className="leaderboard-controls">
+              {/* Week Selector Dropdown */}
+              <div className="week-selector" ref={weekDropdownRef} style={{ position: 'relative' }}>
+                <button
+                  className="week-selector-btn"
+                  onClick={() => setWeekDropdownOpen(!weekDropdownOpen)}
+                  style={{
+                    padding: '10px 16px',
+                    background: 'rgba(30, 30, 30, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    color: 'var(--color-text-main)',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'border-color 0.2s',
+                    minWidth: '140px',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>{selectedLabel}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: weekDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {weekDropdownOpen && (
+                  <div
+                    className="week-dropdown"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      marginTop: '4px',
+                      background: 'var(--color-bg-secondary, rgba(25, 25, 25, 0.98))',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      zIndex: 100,
+                      minWidth: '160px',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+                    }}
+                  >
+                    {weekOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setTimeRange(opt.value)
+                          setWeekDropdownOpen(false)
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '10px 16px',
+                          background: opt.value === timeRange ? 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.15)' : 'transparent',
+                          border: 'none',
+                          color: opt.value === timeRange ? 'var(--color-primary)' : 'var(--color-text-main)',
+                          fontSize: '13px',
+                          fontWeight: opt.value === timeRange ? '600' : '400',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background 0.15s'
+                        }}
+                        onMouseEnter={(e) => { if (opt.value !== timeRange) e.target.style.background = 'rgba(255, 255, 255, 0.05)' }}
+                        onMouseLeave={(e) => { if (opt.value !== timeRange) e.target.style.background = 'transparent' }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="leaderboard-toggle">
                 <button
                   className={leaderboardType === 'volume' ? 'active' : ''}
-                  onClick={() => {
-                    setLeaderboardType('volume')
-                    setLeaderboardPage(1)
-                    loadLeaderboardPage(1, 'volume', excludeSodexOwned, showZeroData)
-                  }}
+                  onClick={() => setLeaderboardType('volume')}
                 >
                   Volume
                 </button>
                 <button
                   className={leaderboardType === 'pnl' ? 'active' : ''}
-                  onClick={() => {
-                    setLeaderboardType('pnl')
-                    setLeaderboardPage(1)
-                    loadLeaderboardPage(1, 'pnl', excludeSodexOwned, showZeroData)
-                  }}
+                  onClick={() => setLeaderboardType('pnl')}
                 >
                   PnL
                 </button>
               </div>
               <div className="leaderboard-options-row">
-                <label className="leaderboard-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={showSyncStatus}
-                    onChange={(e) => setShowSyncStatus(e.target.checked)}
-                  />
-                  <span className="custom-check">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </span>
-                  <span>Sync Status</span>
-                </label>
+                {!isWeeklyView && (
+                  <label className="leaderboard-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={showSyncStatus}
+                      onChange={(e) => setShowSyncStatus(e.target.checked)}
+                    />
+                    <span className="custom-check">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
+                    <span>Sync Status</span>
+                  </label>
+                )}
                 <label className="leaderboard-checkbox">
                   <input
                     type="checkbox"
@@ -580,26 +703,28 @@ export default function MainnetPage() {
                   </span>
                   <span>Excl. Sodex</span>
                 </label>
-                <button
-                  onClick={exportLeaderboardCSV}
-                  className="export-csv-btn"
-                  title="Export as CSV"
-                  style={{
-                    padding: '8px 16px',
-                    background: 'var(--color-accent)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    transition: 'opacity 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.opacity = '0.8'}
-                  onMouseLeave={(e) => e.target.style.opacity = '1'}
-                >
-                  Export CSV
-                </button>
+                {!isWeeklyView && (
+                  <button
+                    onClick={exportLeaderboardCSV}
+                    className="export-csv-btn"
+                    title="Export as CSV"
+                    style={{
+                      padding: '8px 16px',
+                      background: 'var(--color-accent)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      transition: 'opacity 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                    onMouseLeave={(e) => e.target.style.opacity = '1'}
+                  >
+                    Export CSV
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -610,9 +735,9 @@ export default function MainnetPage() {
                 <tr>
                   <th>Rank</th>
                   <th>Wallet</th>
-                  <th className="text-right">PnL</th>
-                  <th className="text-right">Volume</th>
-                  {showSyncStatus && <th className="text-right">Sync</th>}
+                  <th className="text-right">{isWeeklyView ? 'Weekly PnL' : 'PnL'}</th>
+                  <th className="text-right">{isWeeklyView ? 'Weekly Volume' : 'Volume'}</th>
+                  {!isWeeklyView && showSyncStatus && <th className="text-right">Sync</th>}
                 </tr>
               </thead>
               <tbody>
@@ -624,7 +749,7 @@ export default function MainnetPage() {
                       ${formatPnL(user.pnl)}
                     </td>
                     <td className="volume-cell text-right" aria-label={`Volume: ${user.volume}`}>${formatFullNumber(user.volume)}</td>
-                    {showSyncStatus && (
+                    {!isWeeklyView && showSyncStatus && (
                       <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
                         {formatSyncTime(user.lastSyncedAt)}
                       </td>
@@ -637,11 +762,7 @@ export default function MainnetPage() {
 
           <div className="pagination">
             <button
-              onClick={() => {
-                const newPage = Math.max(1, leaderboardPage - 1)
-                setLeaderboardPage(newPage)
-                loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData)
-              }}
+              onClick={() => handlePageChange(Math.max(1, leaderboardPage - 1))}
               disabled={leaderboardPage === 1}
               className="page-btn"
             >
@@ -651,11 +772,7 @@ export default function MainnetPage() {
               Page {leaderboardPage} of {totalLeaderboardPages} ({totalLeaderboardCount} traders)
             </span>
             <button
-              onClick={() => {
-                const newPage = Math.min(totalLeaderboardPages, leaderboardPage + 1)
-                setLeaderboardPage(newPage)
-                loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData)
-              }}
+              onClick={() => handlePageChange(Math.min(totalLeaderboardPages, leaderboardPage + 1))}
               disabled={leaderboardPage === totalLeaderboardPages}
               className="page-btn"
             >
@@ -665,7 +782,7 @@ export default function MainnetPage() {
         </div>
       )}
 
-      {leaderboardLoading && (
+      {leaderboardLoading && leaderboardData.length === 0 && (
         <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>Loading leaderboard...</div>
       )}
     </div>

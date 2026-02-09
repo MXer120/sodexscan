@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import '../styles/SoPoints.css'
 import { supabase } from '../lib/supabaseClient'
+import { useUserProfile } from '../hooks/useProfile'
+import { globalCache } from '../lib/globalCache'
+import Link from 'next/link'
 
 const SoPointsPage = () => {
     const [timeLeft, setTimeLeft] = useState('')
@@ -13,9 +16,37 @@ const SoPointsPage = () => {
     })
     const [showDiff, setShowDiff] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [lbMeta, setLbMeta] = useState(null)
+    const [rewardEstimate, setRewardEstimate] = useState(null)
+    const [rewardLoading, setRewardLoading] = useState(false)
+    const [weeklyStats, setWeeklyStats] = useState({}) // { weekNum: { traders, totalUsers, activeTraders } }
+    const [totalUserCounts, setTotalUserCounts] = useState({}) // { "1": 22189, ... }
 
-    // Target date logic: Feb 10, 2026 12:00:00 UTC (1 min later than before)
-    const targetDate = new Date('2026-02-10T12:00:00Z').getTime()
+    const { data: profileData } = useUserProfile()
+    const ownWallet = profileData?.profile?.own_wallet
+
+    // Week 1 starts Feb 9 00:00 UTC, each subsequent week is +7 days
+    const WEEK1_START = new Date('2026-02-09T00:00:00Z')
+
+    const getWeekDateRange = (weekNum) => {
+        const start = new Date(WEEK1_START.getTime() + (weekNum - 1) * 7 * 24 * 60 * 60 * 1000)
+        const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+        return `${fmt(start)} - ${fmt(end)}`
+    }
+
+    // Next Monday 00:00 UTC countdown
+    const getNextMonday = () => {
+        const now = new Date()
+        const day = now.getUTCDay()
+        const daysUntilMonday = day === 0 ? 1 : (8 - day)
+        const next = new Date(now)
+        next.setUTCDate(now.getUTCDate() + daysUntilMonday)
+        next.setUTCHours(0, 0, 0, 0)
+        return next.getTime()
+    }
+
+    const [targetDate] = useState(() => getNextMonday())
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -23,7 +54,7 @@ const SoPointsPage = () => {
             const distance = targetDate - now
 
             if (distance < 0) {
-                setTimeLeft('DISTRIBUTED')
+                setTimeLeft('DISTRIBUTING...')
                 return
             }
 
@@ -38,23 +69,110 @@ const SoPointsPage = () => {
         return () => clearInterval(timer)
     }, [targetDate])
 
+    // Load meta + stats
+    useEffect(() => {
+        loadMeta()
+        loadStats()
+    }, [])
+
+    // Load reward estimate when wallet available
+    useEffect(() => {
+        if (ownWallet) loadRewardEstimate(ownWallet)
+    }, [ownWallet])
+
+    // Load per-week trader counts for frozen weeks (after meta + totalUserCounts loaded)
+    useEffect(() => {
+        if (lbMeta && lbMeta.current_week_number > 1) {
+            loadWeeklyStats(lbMeta.current_week_number)
+        }
+    }, [lbMeta, totalUserCounts])
+
+    const loadWeeklyStats = async (currentWeek) => {
+        try {
+            const stats = {}
+            for (let w = currentWeek - 1; w >= 1; w--) {
+                const { count: traders } = await supabase
+                    .from('leaderboard_weekly')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('week_number', w)
+                    .gt('cumulative_volume', 0)
+                    .not('is_sodex_owned', 'is', true)
+
+                const { count: activeTraders } = await supabase
+                    .from('leaderboard_weekly')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('week_number', w)
+                    .gte('cumulative_volume', 5000)
+                    .not('is_sodex_owned', 'is', true)
+
+                // Total users from stored snapshot counts (captured at freeze time)
+                const storedCount = totalUserCounts[String(w)]
+
+                stats[w] = {
+                    traders: traders || 0,
+                    totalUsers: storedCount || 0,
+                    activeTraders: activeTraders || 0
+                }
+            }
+            setWeeklyStats(stats)
+        } catch (err) {
+            console.error('Failed to load weekly stats:', err)
+        }
+    }
+
+    const loadMeta = async () => {
+        const cached = globalCache.getLeaderboardMeta()
+        if (cached) { setLbMeta(cached); if (cached.total_user_counts) setTotalUserCounts(cached.total_user_counts); return }
+        try {
+            const { data, error } = await supabase
+                .from('leaderboard_meta')
+                .select('*')
+                .eq('id', 1)
+                .single()
+            if (error) throw error
+            if (data) {
+                globalCache.setLeaderboardMeta(data)
+                setLbMeta(data)
+                if (data.total_user_counts) setTotalUserCounts(data.total_user_counts)
+            }
+        } catch (err) {
+            console.error('Failed to load lb meta:', err)
+        }
+    }
+
+    const loadRewardEstimate = async (wallet) => {
+        const cached = globalCache.getWeeklyRewardEstimate()
+        if (cached) { setRewardEstimate(cached); return }
+        setRewardLoading(true)
+        try {
+            const { data, error } = await supabase.rpc('get_user_weekly_reward_estimate', {
+                p_wallet_address: wallet
+            })
+            if (error) throw error
+            if (data) {
+                globalCache.setWeeklyRewardEstimate(data)
+                setRewardEstimate(data)
+            }
+        } catch (err) {
+            console.error('Failed to load reward estimate:', err)
+        }
+        setRewardLoading(false)
+    }
+
     const loadStats = async () => {
         setLoading(true)
         try {
-            // 1. Total Users
             const { count: totalUsers } = await supabase
                 .from('leaderboard')
                 .select('*', { count: 'exact', head: true })
                 .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
 
-            // 2. Traders
             const { count: traders } = await supabase
                 .from('leaderboard')
                 .select('*', { count: 'exact', head: true })
                 .or('cumulative_pnl.neq.0,cumulative_volume.gt.0')
                 .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
 
-            // 3. Active Traders
             const { count: activeTraders } = await supabase
                 .from('leaderboard')
                 .select('*', { count: 'exact', head: true })
@@ -73,11 +191,6 @@ const SoPointsPage = () => {
         }
     }
 
-    useEffect(() => {
-        loadStats()
-    }, [])
-
-    // Closed Alpha Baseline (Static Snapshot)
     const closedAlphaStats = {
         totalUsers: 4708,
         traders: 1800,
@@ -85,9 +198,7 @@ const SoPointsPage = () => {
         pool: '~1.000.000'
     }
 
-    const formatNumber = (num) => {
-        return num.toLocaleString('en-US')
-    }
+    const formatNumber = (num) => num.toLocaleString('en-US')
 
     const formatDiff = (current, baseline) => {
         const diff = current - baseline
@@ -106,10 +217,6 @@ const SoPointsPage = () => {
 
     const renderClosedAlphaValue = (val, prefix = '') => {
         if (!showDiff) return `${prefix}${formatNumber(val)}`
-        // For Closed Alpha baseline display (when diff enabled for current week)
-        // usually baseline rows just show their value or 0 diff?
-        // Logic asked: "For Closed Alpha take 0 as a baseline everywhere."
-        // So display is +Value.
         return `+${formatNumber(val)}`
     }
 
@@ -124,10 +231,7 @@ const SoPointsPage = () => {
 
     const renderAvgReward = (pool, traders, baselinePool, baselineTraders) => {
         const currentAvg = calcAvg(pool, traders)
-
         if (!showDiff) return `~${formatNumber(currentAvg)}`
-
-        // Diff logic
         const baselineAvg = calcAvg(baselinePool, baselineTraders)
         return (
             <span className={currentAvg >= baselineAvg ? 'positive-diff' : 'negative-diff'}>
@@ -136,43 +240,85 @@ const SoPointsPage = () => {
         )
     }
 
+    const formatSoPoints = (num) => {
+        if (!num || num === 0) return '0'
+        return Math.round(num).toLocaleString('en-US')
+    }
+
+    const poolSize = lbMeta?.pool_size ? parseFloat(lbMeta.pool_size) : 1000000
+    const currentWeekNum = lbMeta?.current_week_number || 1
+
+    // Get previous week's stats for diff calculation
+    // Week 1 compares vs Closed Alpha, Week N compares vs Week N-1
+    const getPrevStats = (weekNum) => {
+        if (weekNum <= 1) return closedAlphaStats
+        const prev = weeklyStats[weekNum - 1]
+        if (prev) return prev
+        return { totalUsers: 0, traders: 0, activeTraders: 0 }
+    }
 
     return (
         <div className="sopoints-container">
             <div className="sopoints-header">
-                {/* Week 1 Pool Card */}
+                {/* Current Week Pool Card */}
                 <div className="sopoints-card pool-card">
-                    <div className="pool-label">Week 1 Reward Pool</div>
+                    <div className="pool-label">Week {currentWeekNum} Reward Pool</div>
                     <div className="pool-amount" style={{ fontSize: '32px' }}>
-                        1.000.000 <span style={{ color: 'var(--color-primary)' }}>SoPoints</span>
+                        {formatNumber(poolSize)} <span style={{ color: 'var(--color-primary)' }}>SoPoints</span>
                     </div>
                     <div className="countdown-container">
-                        <div className="countdown-label">Next Distribution in</div>
+                        <div className="countdown-label">Next Snapshot in</div>
                         <div className="countdown-timer">
                             {timeLeft || 'Calculating...'}
                         </div>
                     </div>
                 </div>
 
-                {/* Join Sodex Card */}
-                <div className="sopoints-card cta-card">
-                    <div className="cta-boost">+5% Points Boost</div>
-                    <div className="cta-text">Join the Sodex ecosystem and boost your rewards.</div>
-                    <a
-                        href="https://sodex.com/join/SOSO"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="join-btn"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <line x1="19" y1="8" x2="19" y2="14"></line>
-                            <line x1="22" y1="11" x2="16" y2="11"></line>
-                        </svg>
-                        Join now
-                    </a>
-                </div>
+                {/* Your Estimated Reward Card */}
+                {ownWallet ? (
+                    <div className="sopoints-card cta-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div className="pool-label" style={{ marginBottom: '8px' }}>Your Estimated Reward</div>
+                        {rewardLoading ? (
+                            <div className="pool-amount" style={{ fontSize: '28px' }}>...</div>
+                        ) : rewardEstimate?.found ? (
+                            <>
+                                <div className="pool-amount" style={{ fontSize: '28px' }}>
+                                    ~{formatSoPoints(rewardEstimate.estimated_reward)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
+                                </div>
+                                <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                                    <span>Vol: ${parseFloat(rewardEstimate.weekly_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                                    <span>Share: {rewardEstimate.total_weekly_volume > 0
+                                        ? ((parseFloat(rewardEstimate.weekly_volume) / parseFloat(rewardEstimate.total_weekly_volume)) * 100).toFixed(2)
+                                        : '0.00'}%</span>
+                                    <span>Rank: #{rewardEstimate.volume_rank || '-'}</span>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                                No trading volume this week yet
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="sopoints-card cta-card">
+                        <div className="cta-boost">+5% Points Boost</div>
+                        <div className="cta-text">Connect your wallet in <Link href="/profile" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>Profile</Link> to see your estimated reward.</div>
+                        <a
+                            href="https://sodex.com/join/SOSO"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="join-btn"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <line x1="19" y1="8" x2="19" y2="14"></line>
+                                <line x1="22" y1="11" x2="16" y2="11"></line>
+                            </svg>
+                            Join now
+                        </a>
+                    </div>
+                )}
             </div>
 
             <div className="table-controls" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -200,30 +346,59 @@ const SoPointsPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {/* Week 1 Row (Current) */}
+                        {/* Current Week Row (Live) — diff vs previous frozen week or closed alpha */}
                         <tr>
                             <td>
                                 <div className="week-cell">
-                                    <span className="week-name">Week 1</span>
-                                    <span className="week-dates">Jan 31 - Feb 10</span>
+                                    <span className="week-name">Week {currentWeekNum} <span style={{ color: 'var(--color-primary)', fontSize: '11px' }}>LIVE</span></span>
+                                    <span className="week-dates">Ongoing</span>
                                 </div>
                             </td>
                             <td className="global-stats-value">
-                                {loading ? '...' : renderValue(globalStats.totalUsers, closedAlphaStats.totalUsers)}
+                                {loading ? '...' : renderValue(globalStats.totalUsers, getPrevStats(currentWeekNum).totalUsers)}
                             </td>
                             <td className="global-stats-value">
-                                {loading ? '...' : renderValue(globalStats.traders, closedAlphaStats.traders)}
+                                {loading ? '...' : renderValue(globalStats.traders, getPrevStats(currentWeekNum).traders)}
                             </td>
                             <td className="global-stats-value">
-                                {loading ? '...' : renderValue(globalStats.activeTraders, closedAlphaStats.activeTraders)}
+                                {loading ? '...' : renderValue(globalStats.activeTraders, getPrevStats(currentWeekNum).activeTraders)}
                             </td>
                             <td className="points-cell" style={{ color: 'var(--color-text-main)' }}>
-                                {loading ? '...' : renderAvgReward(1000000, globalStats.traders, closedAlphaStats.pool, closedAlphaStats.traders)}
+                                {loading ? '...' : renderAvgReward(poolSize, globalStats.traders, poolSize, getPrevStats(currentWeekNum).traders)}
                             </td>
-                            <td className="points-cell">1,000,000</td>
+                            <td className="points-cell">{formatNumber(poolSize)}</td>
                         </tr>
 
-                        {/* Closed Alpha Row */}
+                        {/* Frozen Week Rows (reverse chronological) — diff vs previous week */}
+                        {Array.from({ length: Math.max(0, currentWeekNum - 1) }, (_, i) => currentWeekNum - 1 - i).map(weekNum => {
+                            const ws = weeklyStats[weekNum]
+                            const prev = getPrevStats(weekNum)
+                            return (
+                                <tr key={`week-${weekNum}`}>
+                                    <td>
+                                        <div className="week-cell">
+                                            <span className="week-name">Week {weekNum}</span>
+                                            <span className="week-dates">{getWeekDateRange(weekNum)}</span>
+                                        </div>
+                                    </td>
+                                    <td className="global-stats-value">
+                                        {ws ? renderValue(ws.totalUsers, prev.totalUsers) : '...'}
+                                    </td>
+                                    <td className="global-stats-value">
+                                        {ws ? renderValue(ws.traders, prev.traders) : '...'}
+                                    </td>
+                                    <td className="global-stats-value">
+                                        {ws ? renderValue(ws.activeTraders, prev.activeTraders) : '...'}
+                                    </td>
+                                    <td className="points-cell" style={{ color: 'var(--color-text-main)' }}>
+                                        {ws ? renderAvgReward(poolSize, ws.traders, poolSize, prev.traders) : '...'}
+                                    </td>
+                                    <td className="points-cell">{formatNumber(poolSize)}</td>
+                                </tr>
+                            )
+                        })}
+
+                        {/* Closed Alpha Row — no diff (baseline) */}
                         <tr>
                             <td>
                                 <div className="week-cell">
@@ -240,7 +415,7 @@ const SoPointsPage = () => {
                             <td className="points-cell">
                                 <span className="tooltip-container">
                                     {closedAlphaStats.pool}
-                                    <span className="info-icon">ⓘ</span>
+                                    <span className="info-icon">i</span>
                                     <span className="tooltip-text">This is a pure estimate based on closed alpha participation.</span>
                                 </span>
                             </td>
@@ -258,11 +433,11 @@ const SoPointsPage = () => {
           color: var(--color-text-secondary);
           user-select: none;
         }
-        
+
         .diff-checkbox input {
           display: none;
         }
-        
+
         .checkbox-custom {
           width: 18px;
           height: 18px;
@@ -271,12 +446,12 @@ const SoPointsPage = () => {
           position: relative;
           transition: all 0.2s;
         }
-        
+
         .diff-checkbox input:checked + .checkbox-custom {
           background: var(--color-primary);
           border-color: var(--color-primary);
         }
-        
+
         .diff-checkbox input:checked + .checkbox-custom::after {
           content: '';
           position: absolute;
@@ -293,7 +468,7 @@ const SoPointsPage = () => {
           color: var(--color-success);
           font-weight: 600;
         }
-        
+
         .negative-diff {
           color: var(--color-error);
           font-weight: 600;
