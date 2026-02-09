@@ -25,8 +25,9 @@ const SoPointsPage = () => {
     const { data: profileData } = useUserProfile()
     const ownWallet = profileData?.profile?.own_wallet
 
-    // Week 1 starts Feb 9 00:00 UTC, each subsequent week is +7 days
-    const WEEK1_START = new Date('2026-02-09T00:00:00Z')
+    // Week 1 ended at Feb 9 00:00 UTC (snapshot), Week 2 started Feb 9 00:00 UTC
+    // So Week 1 started Feb 2, Week 2 = Feb 9, Week 3 = Feb 16, etc.
+    const WEEK1_START = new Date('2026-02-02T00:00:00Z')
 
     const getWeekDateRange = (weekNum) => {
         const start = new Date(WEEK1_START.getTime() + (weekNum - 1) * 7 * 24 * 60 * 60 * 1000)
