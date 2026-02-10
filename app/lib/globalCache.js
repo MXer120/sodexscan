@@ -36,7 +36,12 @@ class GlobalCache {
       weeklyLeaderboardPages: new Map(), // key: "weekNum_page_sort_excludeSodex"
       weeklyTotalCounts: new Map(),      // key: "weekNum_sort_excludeSodex"
       leaderboardMeta: { data: null, timestamp: 0 },
-      weeklyRewardEstimate: { data: null, timestamp: 0 }
+      weeklyRewardEstimate: { data: null, timestamp: 0 },
+
+      // Spot volume data caches
+      spotAllTimeData: { data: null, timestamp: 0 },  // full parsed spot_vol_data.json
+      spotLocalData: { data: null, timestamp: 0 },     // local public/data/spot_vol_data.json
+      spotUserVolume: new Map()                         // key: accountId -> {volume, timestamp}
     }
 
     this.TTL = {
@@ -398,6 +403,54 @@ class GlobalCache {
     this.caches.weeklyRewardEstimate = { data, timestamp: Date.now() }
   }
 
+  // Spot all-time data cache (GitHub JSON)
+  getSpotAllTimeData() {
+    const cached = this.caches.spotAllTimeData
+    if (!cached.data) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.mainnetPage) {
+      this.caches.spotAllTimeData = { data: null, timestamp: 0 }
+      return null
+    }
+    return cached.data
+  }
+
+  setSpotAllTimeData(data) {
+    this.caches.spotAllTimeData = { data, timestamp: Date.now() }
+  }
+
+  // Spot local data cache (public/data/spot_vol_data.json)
+  getSpotLocalData() {
+    const cached = this.caches.spotLocalData
+    if (!cached.data) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.mainnetPage) {
+      this.caches.spotLocalData = { data: null, timestamp: 0 }
+      return null
+    }
+    return cached.data
+  }
+
+  setSpotLocalData(data) {
+    this.caches.spotLocalData = { data, timestamp: Date.now() }
+  }
+
+  // Spot user volume cache (per account, from API)
+  getSpotUserVolume(accountId) {
+    const cached = this.caches.spotUserVolume.get(accountId)
+    if (!cached) return null
+    const age = Date.now() - cached.timestamp
+    if (age >= this.TTL.tracker) {
+      this.caches.spotUserVolume.delete(accountId)
+      return null
+    }
+    return cached.volume
+  }
+
+  setSpotUserVolume(accountId, volume) {
+    this.caches.spotUserVolume.set(accountId, { volume, timestamp: Date.now() })
+  }
+
   // Clear all caches
   clear() {
     this.caches.leaderboardPages.clear()
@@ -415,6 +468,9 @@ class GlobalCache {
     this.caches.weeklyTotalCounts.clear()
     this.caches.leaderboardMeta = { data: null, timestamp: 0 }
     this.caches.weeklyRewardEstimate = { data: null, timestamp: 0 }
+    this.caches.spotAllTimeData = { data: null, timestamp: 0 }
+    this.caches.spotLocalData = { data: null, timestamp: 0 }
+    this.caches.spotUserVolume.clear()
     if (typeof window !== 'undefined') {
       try { localStorage.removeItem('socialLeaderboardCache') } catch (e) { }
     }

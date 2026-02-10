@@ -1,11 +1,23 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import '../styles/SoPoints.css'
 import { supabase } from '../lib/supabaseClient'
 import { useUserProfile } from '../hooks/useProfile'
 import { globalCache } from '../lib/globalCache'
 import Link from 'next/link'
+
+// Spot volume multiplier (spot is harder to get, worth more)
+const SPOT_MULTIPLIER = 2
+const TOTAL_POOL = 1_000_000
+const SPOT_DATA_URL = 'https://raw.githubusercontent.com/Eliasdegemu61/sodex-spot-volume-data/main/spot_vol_data.json'
+
+// Sodex-owned wallets to exclude from points calculation
+const SODEX_SPOT_WALLETS = new Set([
+    '0xc50e42e7f49881127e8183755be3f281bb687f7b',
+    '0x1f446dfa225d5c9e8a80cd227bf57444fc141332',
+    '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
+])
 
 const SoPointsPage = () => {
     const [timeLeft, setTimeLeft] = useState('')
@@ -19,14 +31,25 @@ const SoPointsPage = () => {
     const [lbMeta, setLbMeta] = useState(null)
     const [rewardEstimate, setRewardEstimate] = useState(null)
     const [rewardLoading, setRewardLoading] = useState(false)
-    const [weeklyStats, setWeeklyStats] = useState({}) // { weekNum: { traders, totalUsers, activeTraders } }
-    const [totalUserCounts, setTotalUserCounts] = useState({}) // { "1": 22189, ... }
+    const [weeklyStats, setWeeklyStats] = useState({})
+    const [totalUserCounts, setTotalUserCounts] = useState({})
+
+    // Spot leaderboard data (for points LB)
+    const [spotAllTime, setSpotAllTime] = useState(null)   // GitHub (all-time)
+    const [spotLocal, setSpotLocal] = useState(null)        // local snapshot (week 1 end)
+    const [spotDataLoading, setSpotDataLoading] = useState(false)
+
+    // Weekly futures data for all users (from weekly LB RPC)
+    const [weeklyFuturesMap, setWeeklyFuturesMap] = useState(null) // addr -> weeklyVol
+    const [futuresLoading, setFuturesLoading] = useState(false)
+
+    // Points leaderboard state
+    const [pointsLbPage, setPointsLbPage] = useState(1)
+    const POINTS_PAGE_SIZE = 20
 
     const { data: profileData } = useUserProfile()
     const ownWallet = profileData?.profile?.own_wallet
 
-    // Week 1 ended at Feb 9 00:00 UTC (snapshot), Week 2 started Feb 9 00:00 UTC
-    // So Week 1 started Feb 2, Week 2 = Feb 9, Week 3 = Feb 16, etc.
     const WEEK1_START = new Date('2026-02-02T00:00:00Z')
 
     const getWeekDateRange = (weekNum) => {
@@ -53,35 +76,103 @@ const SoPointsPage = () => {
         const timer = setInterval(() => {
             const now = new Date().getTime()
             const distance = targetDate - now
-
-            if (distance < 0) {
-                setTimeLeft('DISTRIBUTING...')
-                return
-            }
-
+            if (distance < 0) { setTimeLeft('DISTRIBUTING...'); return }
             const days = Math.floor(distance / (1000 * 60 * 60 * 24))
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
             const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-
             setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`)
         }, 1000)
-
         return () => clearInterval(timer)
     }, [targetDate])
 
-    // Load meta + stats
+    // Load meta + stats + spot data
     useEffect(() => {
         loadMeta()
         loadStats()
+        loadSpotSources()
     }, [])
+
+    // Load weekly futures data once we know the current week
+    useEffect(() => {
+        if (lbMeta) loadWeeklyFutures()
+    }, [lbMeta])
 
     // Load reward estimate when wallet available
     useEffect(() => {
         if (ownWallet) loadRewardEstimate(ownWallet)
     }, [ownWallet])
 
-    // Load per-week trader counts for frozen weeks (after meta + totalUserCounts loaded)
+    // ── Spot data sources (for points leaderboard) ──
+    const loadSpotSources = async () => {
+        setSpotDataLoading(true)
+        try {
+            // Load both in parallel
+            const [allTimeRes, localRes] = await Promise.allSettled([
+                (async () => {
+                    const cached = globalCache.getSpotAllTimeData()
+                    if (cached) return cached
+                    const res = await fetch(SPOT_DATA_URL)
+                    const data = await res.json()
+                    globalCache.setSpotAllTimeData(data)
+                    return data
+                })(),
+                (async () => {
+                    const cached = globalCache.getSpotLocalData()
+                    if (cached) return cached
+                    try {
+                        const res = await fetch('/data/spot_vol_data.json')
+                        if (!res.ok) return null
+                        const data = await res.json()
+                        globalCache.setSpotLocalData(data)
+                        return data
+                    } catch { return null }
+                })()
+            ])
+            if (allTimeRes.status === 'fulfilled') setSpotAllTime(allTimeRes.value)
+            if (localRes.status === 'fulfilled') setSpotLocal(localRes.value)
+        } catch (err) {
+            console.error('Failed to load spot sources:', err)
+        }
+        setSpotDataLoading(false)
+    }
+
+    // Load ALL weekly futures data (paginated RPC, same as leaderboard page uses)
+    const loadWeeklyFutures = async () => {
+        setFuturesLoading(true)
+        try {
+            const map = {}
+            const pageSize = 1000
+            let offset = 0
+            let hasMore = true
+            // Use week 0 (current/live) - same as leaderboard "current week" view
+            while (hasMore) {
+                const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
+                    p_week: 0,
+                    p_sort: 'volume',
+                    p_limit: pageSize,
+                    p_offset: offset,
+                    p_exclude_sodex: true
+                })
+                if (error) throw error
+                if (!data || data.length === 0) { hasMore = false; break }
+                for (const row of data) {
+                    const vol = parseFloat(row.weekly_volume) || 0
+                    if (vol > 0) {
+                        map[row.wallet_address.toLowerCase()] = vol
+                    }
+                }
+                if (data.length < pageSize) hasMore = false
+                else offset += pageSize
+            }
+            setWeeklyFuturesMap(map)
+        } catch (err) {
+            console.error('Failed to load weekly futures:', err)
+        }
+        setFuturesLoading(false)
+    }
+
+    // Load per-week trader counts
     useEffect(() => {
         if (lbMeta && lbMeta.current_week_number > 1) {
             loadWeeklyStats(lbMeta.current_week_number)
@@ -106,9 +197,7 @@ const SoPointsPage = () => {
                     .gte('cumulative_volume', 5000)
                     .not('is_sodex_owned', 'is', true)
 
-                // Total users from stored snapshot counts (captured at freeze time)
                 const storedCount = totalUserCounts[String(w)]
-
                 stats[w] = {
                     traders: traders || 0,
                     totalUsers: storedCount || 0,
@@ -192,6 +281,80 @@ const SoPointsPage = () => {
         }
     }
 
+    // ── Points Leaderboard: merge weekly spot + weekly futures, weighted scoring ──
+    const pointsLeaderboard = useMemo(() => {
+        if (!spotAllTime) return null
+        // Wait for futures data too (unless it failed)
+        if (!weeklyFuturesMap && futuresLoading) return null
+
+        // Build spot weekly diff map: allTime - local = week2 spot volume
+        const spotWeeklyMap = {}
+        for (const [addr, d] of Object.entries(spotAllTime)) {
+            // Exclude sodex-owned wallets
+            if (SODEX_SPOT_WALLETS.has(addr.toLowerCase())) continue
+            const allTimeVol = d.vol || 0
+            const localVol = spotLocal?.[addr]?.vol || 0
+            const weeklySpot = Math.max(0, allTimeVol - localVol)
+            spotWeeklyMap[addr.toLowerCase()] = { weeklySpot, allTimeSpot: allTimeVol, userId: d.userId, originalAddr: addr }
+        }
+
+        // Merge all wallets from both spot and futures (exclude sodex-owned)
+        const allAddrs = new Set([
+            ...Object.keys(spotWeeklyMap),
+            ...(weeklyFuturesMap ? Object.keys(weeklyFuturesMap) : [])
+        ])
+        // Remove sodex wallets from merged set
+        for (const sw of SODEX_SPOT_WALLETS) allAddrs.delete(sw)
+
+        const entries = []
+        for (const addr of allAddrs) {
+            const spot = spotWeeklyMap[addr]
+            const futuresVol = weeklyFuturesMap?.[addr] || 0
+            const weeklySpot = spot?.weeklySpot || 0
+
+            // Skip entries with zero everything
+            if (weeklySpot === 0 && futuresVol === 0) continue
+
+            entries.push({
+                walletAddress: spot?.originalAddr || addr,
+                userId: spot?.userId || '',
+                weeklySpotVol: weeklySpot,
+                allTimeSpotVol: spot?.allTimeSpot || 0,
+                weeklyFuturesVol: futuresVol,
+                weightedVolume: weeklySpot * SPOT_MULTIPLIER + futuresVol
+            })
+        }
+
+        // Sort by weighted volume desc
+        entries.sort((a, b) => b.weightedVolume - a.weightedVolume)
+
+        // First pass: calculate preliminary points to identify <1 point users
+        const totalWeighted = entries.reduce((sum, e) => sum + e.weightedVolume, 0)
+        entries.forEach(e => {
+            e.share = totalWeighted > 0 ? e.weightedVolume / totalWeighted : 0
+            e.points = e.share * TOTAL_POOL
+        })
+
+        // Filter out users with <1 point, redistribute to qualified users
+        const qualified = entries.filter(e => e.points >= 1)
+        const qualifiedWeighted = qualified.reduce((sum, e) => sum + e.weightedVolume, 0)
+
+        // Recalculate with only qualified users
+        qualified.forEach((e, i) => {
+            e.rank = i + 1
+            e.share = qualifiedWeighted > 0 ? e.weightedVolume / qualifiedWeighted : 0
+            e.points = Math.round(e.share * TOTAL_POOL)
+        })
+
+        return { entries: qualified, totalWeighted: qualifiedWeighted }
+    }, [spotAllTime, spotLocal, weeklyFuturesMap, futuresLoading])
+
+    // Find user's position in points LB
+    const userPointsEntry = useMemo(() => {
+        if (!pointsLeaderboard || !ownWallet) return null
+        return pointsLeaderboard.entries.find(e => e.walletAddress.toLowerCase() === ownWallet.toLowerCase())
+    }, [pointsLeaderboard, ownWallet])
+
     const closedAlphaStats = {
         totalUsers: 4708,
         traders: 1800,
@@ -246,16 +409,27 @@ const SoPointsPage = () => {
         return Math.round(num).toLocaleString('en-US')
     }
 
+    const formatVol = (num) => {
+        const absNum = Math.abs(num)
+        if (absNum >= 1000000) return `${(absNum / 1000000).toFixed(2)}M`
+        if (absNum >= 1000) return `${(absNum / 1000).toFixed(1)}K`
+        return absNum.toFixed(0)
+    }
+
     const poolSize = lbMeta?.pool_size ? parseFloat(lbMeta.pool_size) : 1000000
     const currentWeekNum = lbMeta?.current_week_number || 1
 
-    // Get previous week's stats for diff calculation
-    // Week 1 compares vs Closed Alpha, Week N compares vs Week N-1
     const getPrevStats = (weekNum) => {
         if (weekNum <= 1) return closedAlphaStats
         const prev = weeklyStats[weekNum - 1]
         if (prev) return prev
         return { totalUsers: 0, traders: 0, activeTraders: 0 }
+    }
+
+    // Truncate address
+    const truncAddr = (addr) => {
+        if (!addr || addr.length < 12) return addr
+        return `${addr.slice(0, 6)}...${addr.slice(-4)}`
     }
 
     return (
@@ -266,6 +440,9 @@ const SoPointsPage = () => {
                     <div className="pool-label">Week {currentWeekNum} Reward Pool</div>
                     <div className="pool-amount" style={{ fontSize: '32px' }}>
                         {formatNumber(poolSize)} <span style={{ color: 'var(--color-primary)' }}>SoPoints</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+                        Spot volume weighted {SPOT_MULTIPLIER}x vs futures
                     </div>
                     <div className="countdown-container">
                         <div className="countdown-label">Next Snapshot in</div>
@@ -279,14 +456,26 @@ const SoPointsPage = () => {
                 {ownWallet ? (
                     <div className="sopoints-card cta-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         <div className="pool-label" style={{ marginBottom: '8px' }}>Your Estimated Reward</div>
-                        {rewardLoading ? (
+                        {rewardLoading && !userPointsEntry ? (
                             <div className="pool-amount" style={{ fontSize: '28px' }}>...</div>
+                        ) : userPointsEntry ? (
+                            <>
+                                <div className="pool-amount" style={{ fontSize: '28px' }}>
+                                    ~{formatSoPoints(userPointsEntry.points)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
+                                </div>
+                                <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
+                                    <span>Futures: ${formatVol(userPointsEntry.weeklyFuturesVol)}</span>
+                                    <span>Spot: ${formatVol(userPointsEntry.weeklySpotVol)}</span>
+                                    <span>Share: {(userPointsEntry.share * 100).toFixed(2)}%</span>
+                                    <span>Rank: #{userPointsEntry.rank}</span>
+                                </div>
+                            </>
                         ) : rewardEstimate?.found ? (
                             <>
                                 <div className="pool-amount" style={{ fontSize: '28px' }}>
                                     ~{formatSoPoints(rewardEstimate.estimated_reward)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
                                 </div>
-                                <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                                <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
                                     <span>Vol: ${parseFloat(rewardEstimate.weekly_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
                                     <span>Share: {rewardEstimate.total_weekly_volume > 0
                                         ? ((parseFloat(rewardEstimate.weekly_volume) / parseFloat(rewardEstimate.total_weekly_volume)) * 100).toFixed(2)
@@ -294,6 +483,10 @@ const SoPointsPage = () => {
                                     <span>Rank: #{rewardEstimate.volume_rank || '-'}</span>
                                 </div>
                             </>
+                        ) : (spotDataLoading || futuresLoading) ? (
+                            <div className="pool-amount" style={{ fontSize: '28px' }}>
+                                <span className="spot-loading-dot">...</span>
+                            </div>
                         ) : (
                             <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                                 No trading volume this week yet
@@ -347,7 +540,7 @@ const SoPointsPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {/* Current Week Row (Live) — diff vs previous frozen week or closed alpha */}
+                        {/* Current Week Row (Live) */}
                         <tr>
                             <td>
                                 <div className="week-cell">
@@ -370,7 +563,7 @@ const SoPointsPage = () => {
                             <td className="points-cell">{formatNumber(poolSize)}</td>
                         </tr>
 
-                        {/* Frozen Week Rows (reverse chronological) — diff vs previous week */}
+                        {/* Frozen Week Rows */}
                         {Array.from({ length: Math.max(0, currentWeekNum - 1) }, (_, i) => currentWeekNum - 1 - i).map(weekNum => {
                             const ws = weeklyStats[weekNum]
                             const prev = getPrevStats(weekNum)
@@ -399,7 +592,7 @@ const SoPointsPage = () => {
                             )
                         })}
 
-                        {/* Closed Alpha Row — no diff (baseline) */}
+                        {/* Closed Alpha Row */}
                         <tr>
                             <td>
                                 <div className="week-cell">
@@ -424,6 +617,86 @@ const SoPointsPage = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* ─── Points Leaderboard ─── */}
+            {pointsLeaderboard && (
+                <div className="sopoints-table-container" style={{ marginTop: '24px' }}>
+                    <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
+                            Week {currentWeekNum} Points Leaderboard
+                        </h2>
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                            {pointsLeaderboard.entries.length} traders · Spot {SPOT_MULTIPLIER}x weighted
+                        </span>
+                    </div>
+                    <table className="sopoints-table points-lb-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Wallet</th>
+                                <th style={{ textAlign: 'right' }}>Spot Vol</th>
+                                <th style={{ textAlign: 'right' }}>Futures Vol</th>
+                                <th style={{ textAlign: 'right' }}>Est. Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {pointsLeaderboard.entries
+                                .slice((pointsLbPage - 1) * POINTS_PAGE_SIZE, pointsLbPage * POINTS_PAGE_SIZE)
+                                .map((entry) => {
+                                    const isUser = ownWallet && entry.walletAddress.toLowerCase() === ownWallet.toLowerCase()
+                                    return (
+                                        <tr key={entry.walletAddress} style={isUser ? { background: 'rgba(var(--color-primary-rgb), 0.08)' } : {}}>
+                                            <td style={{ fontWeight: 600 }}>#{entry.rank}</td>
+                                            <td style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                                                {isUser ? (
+                                                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                                                        {truncAddr(entry.walletAddress)} <span style={{ fontSize: '10px' }}>(you)</span>
+                                                    </span>
+                                                ) : truncAddr(entry.walletAddress)}
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklySpotVol)}</td>
+                                            <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklyFuturesVol)}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)' }}>
+                                                {formatSoPoints(entry.points)}
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                        </tbody>
+                    </table>
+                    {pointsLeaderboard.entries.length > POINTS_PAGE_SIZE && (
+                        <div style={{ padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-subtle)' }}>
+                            <button
+                                className="points-lb-page-btn"
+                                onClick={() => setPointsLbPage(p => Math.max(1, p - 1))}
+                                disabled={pointsLbPage === 1}
+                            >
+                                &lt; Prev
+                            </button>
+                            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                                Page {pointsLbPage} of {Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE)}
+                            </span>
+                            <button
+                                className="points-lb-page-btn"
+                                onClick={() => setPointsLbPage(p => Math.min(Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE), p + 1))}
+                                disabled={pointsLbPage >= Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE)}
+                            >
+                                Next &gt;
+                            </button>
+                        </div>
+                    )}
+                    <div style={{ padding: '8px 24px 16px', textAlign: 'center', fontSize: '11px', color: '#666' }}>
+                        Spot data by <a href="https://x.com/eliasing__" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>@eliasing__</a>
+                    </div>
+                </div>
+            )}
+
+            {(spotDataLoading || futuresLoading) && !pointsLeaderboard && (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                    <span className="spot-loading-dot">Loading points leaderboard...</span>
+                </div>
+            )}
+
             <style jsx>{`
         .diff-checkbox {
           display: flex;
@@ -524,6 +797,27 @@ const SoPointsPage = () => {
             border-width: 5px;
             border-style: solid;
             border-color: var(--color-border-subtle) transparent transparent transparent;
+        }
+
+        .points-lb-page-btn {
+            background: transparent;
+            border: 1px solid var(--color-border-subtle);
+            color: var(--color-text-secondary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .points-lb-page-btn:hover:not(:disabled) {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .points-lb-page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
       `}</style>
         </div >

@@ -67,6 +67,16 @@ const CopyableAddress = ({ address }) => {
   )
 }
 
+// Spot leaderboard data URL
+const SPOT_DATA_URL = 'https://raw.githubusercontent.com/Eliasdegemu61/sodex-spot-volume-data/main/spot_vol_data.json'
+
+// Sodex-owned wallets to exclude from spot LBs
+const SODEX_SPOT_WALLETS = new Set([
+  '0xc50e42e7f49881127e8183755be3f281bb687f7b',
+  '0x1f446dfa225d5c9e8a80cd227bf57444fc141332',
+  '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
+])
+
 export default function MainnetPage() {
   // Leaderboard data - paginated
   const [leaderboardData, setLeaderboardData] = useState([])
@@ -77,12 +87,34 @@ export default function MainnetPage() {
   const [showSyncStatus, setShowSyncStatus] = useState(false)
   const [excludeSodexOwned, setExcludeSodexOwned] = useState(true)
 
+  // Spot leaderboard state
+  const [spotView, setSpotView] = useState(false) // false = perps, true = spot
+  const [spotData, setSpotData] = useState(null) // full parsed array (all-time)
+  const [spotLocalData, setSpotLocalData] = useState(null) // local snapshot for diff
+  const [spotWeeklyData, setSpotWeeklyData] = useState(null) // computed weekly diff
+  const [spotLoading, setSpotLoading] = useState(false)
+  const [spotPage, setSpotPage] = useState(1)
+  const [spotTimeRange, setSpotTimeRange] = useState('all') // 'all' | 'weekly'
+  const [spotDropdownOpen, setSpotDropdownOpen] = useState(false)
+  const spotDropdownRef = useRef(null)
+  const SPOT_PAGE_SIZE = 20
+
   // Week selector: 'all' | 'current' | 1 | 2 | 3...
   const [timeRange, setTimeRange] = useState('all')
   const [lbMeta, setLbMeta] = useState(null)
   const [weekDropdownOpen, setWeekDropdownOpen] = useState(false)
 
   const weekDropdownRef = useRef(null)
+
+  // Close spot dropdown on click outside
+  useEffect(() => {
+    if (!spotDropdownOpen) return
+    const handleClick = (e) => { if (spotDropdownRef.current && !spotDropdownRef.current.contains(e.target)) setSpotDropdownOpen(false) }
+    const handleEsc = (e) => { if (e.key === 'Escape') setSpotDropdownOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleEsc)
+    return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleEsc) }
+  }, [spotDropdownOpen])
 
   // Close dropdown on click outside or Escape
   useEffect(() => {
@@ -136,6 +168,97 @@ export default function MainnetPage() {
       console.error('Failed to load leaderboard meta:', err)
     }
   }
+
+  // Load spot leaderboard data when spot view selected
+  useEffect(() => {
+    if (spotView && !spotData) loadSpotData()
+  }, [spotView])
+
+  // Reset page when spot time range changes
+  useEffect(() => {
+    setSpotPage(1)
+  }, [spotTimeRange])
+
+  const loadSpotData = async () => {
+    setSpotLoading(true)
+    try {
+      // Load all-time from cache or GitHub
+      let allTimeJson = globalCache.getSpotAllTimeData()
+      if (!allTimeJson) {
+        const res = await fetch(SPOT_DATA_URL)
+        allTimeJson = await res.json()
+        globalCache.setSpotAllTimeData(allTimeJson)
+      }
+      setSpotData(parseSpotJson(allTimeJson))
+
+      // Load local snapshot for weekly diff
+      let localJson = globalCache.getSpotLocalData()
+      if (!localJson) {
+        try {
+          const localRes = await fetch('/data/spot_vol_data.json')
+          if (localRes.ok) {
+            localJson = await localRes.json()
+            globalCache.setSpotLocalData(localJson)
+          }
+        } catch { /* no local file */ }
+      }
+      setSpotLocalData(localJson)
+
+      // Compute weekly diff
+      if (localJson) {
+        const weeklyEntries = Object.entries(allTimeJson)
+          .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
+          .map(([address, d]) => {
+            const allTimeVol = d.vol || 0
+            const localVol = localJson[address]?.vol || 0
+            return {
+              walletAddress: address,
+              accountId: d.userId,
+              volume: Math.max(0, allTimeVol - localVol),
+              lastTs: d.last_ts
+            }
+          }).filter(e => e.volume > 0)
+        weeklyEntries.sort((a, b) => b.volume - a.volume)
+        weeklyEntries.forEach((e, i) => { e.rank = i + 1 })
+        setSpotWeeklyData(weeklyEntries)
+      }
+    } catch (err) {
+      console.error('Failed to load spot data:', err)
+    }
+    setSpotLoading(false)
+  }
+
+  const parseSpotJson = (json) => {
+    const entries = Object.entries(json)
+      .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
+      .map(([address, d]) => ({
+        walletAddress: address,
+        accountId: d.userId,
+        volume: d.vol || 0,
+        lastTs: d.last_ts
+      }))
+    entries.sort((a, b) => b.volume - a.volume)
+    entries.forEach((e, i) => { e.rank = i + 1 })
+    return entries
+  }
+
+  // Export spot data as JSON
+  const exportSpotJSON = () => {
+    const dataToExport = spotTimeRange === 'weekly' ? spotWeeklyData : spotData
+    if (!dataToExport) return
+    const exportObj = {}
+    dataToExport.forEach(e => {
+      exportObj[e.walletAddress] = { userId: e.accountId, vol: e.volume, rank: e.rank }
+    })
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `spot_volume_${spotTimeRange}_${new Date().toISOString().split('T')[0]}.json`
+    link.click()
+  }
+
+  // Active spot data based on time range
+  const activeSpotData = spotTimeRange === 'weekly' ? spotWeeklyData : spotData
 
   // Reload when filters change
   useEffect(() => {
@@ -497,6 +620,132 @@ export default function MainnetPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <h1 className="dashboard-title">Leaderboard</h1>
 
+      {/* Perps / Spot Toggle */}
+      <div className="leaderboard-toggle" style={{ marginBottom: '20px', display: 'inline-flex' }}>
+        <button className={!spotView ? 'active' : ''} onClick={() => setSpotView(false)}>Perps</button>
+        <button className={spotView ? 'active' : ''} onClick={() => setSpotView(true)}>Spot</button>
+      </div>
+
+      {/* ─── SPOT LEADERBOARD ─── */}
+      {spotView ? (
+        <div className="mainnet-leaderboard" style={{ position: 'relative', opacity: spotLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+          <div className="leaderboard-header">
+            <h2>{spotTimeRange === 'weekly' ? `Week ${lbMeta?.current_week_number || 2} Spot Volume` : 'All-Time Spot Volume'}</h2>
+            <div className="leaderboard-controls">
+              {/* Spot Time Range Dropdown */}
+              <div className="week-selector" ref={spotDropdownRef} style={{ position: 'relative' }}>
+                <button
+                  className="week-selector-btn"
+                  onClick={() => setSpotDropdownOpen(!spotDropdownOpen)}
+                  style={{
+                    padding: '10px 16px',
+                    background: 'rgba(30, 30, 30, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    color: 'var(--color-text-main)',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'border-color 0.2s',
+                    minWidth: '140px',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>{spotTimeRange === 'weekly' ? `Week ${lbMeta?.current_week_number || 2}` : 'All Time'}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: spotDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {spotDropdownOpen && (
+                  <div className="week-dropdown" style={{
+                    position: 'absolute', top: '100%', left: 0, marginTop: '4px',
+                    background: 'var(--color-bg-secondary, rgba(25, 25, 25, 0.98))',
+                    border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '8px',
+                    overflow: 'hidden', zIndex: 100, minWidth: '160px',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+                  }}>
+                    {[
+                      { value: 'all', label: 'All Time' },
+                      { value: 'weekly', label: `Week ${lbMeta?.current_week_number || 2}` }
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setSpotTimeRange(opt.value); setSpotDropdownOpen(false) }}
+                        style={{
+                          display: 'block', width: '100%', padding: '10px 16px',
+                          background: opt.value === spotTimeRange ? 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.15)' : 'transparent',
+                          border: 'none',
+                          color: opt.value === spotTimeRange ? 'var(--color-primary)' : 'var(--color-text-main)',
+                          fontSize: '13px', fontWeight: opt.value === spotTimeRange ? '600' : '400',
+                          cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s'
+                        }}
+                        onMouseEnter={(e) => { if (opt.value !== spotTimeRange) e.target.style.background = 'rgba(255, 255, 255, 0.05)' }}
+                        onMouseLeave={(e) => { if (opt.value !== spotTimeRange) e.target.style.background = 'transparent' }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={exportSpotJSON}
+                style={{
+                  padding: '8px 16px', background: 'var(--color-accent)', color: 'white',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer',
+                  fontSize: '13px', fontWeight: '500', transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                onMouseLeave={(e) => e.target.style.opacity = '1'}
+              >
+                Export JSON
+              </button>
+            </div>
+          </div>
+          {spotLoading && !activeSpotData && (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Loading spot leaderboard...</div>
+          )}
+          {spotTimeRange === 'weekly' && !spotWeeklyData && !spotLoading && (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>No local snapshot found. Place week 1 snapshot at <code>/data/spot_vol_data.json</code></div>
+          )}
+          {activeSpotData && (
+            <>
+              <div className="table-wrapper">
+                <table className="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Wallet</th>
+                      <th className="text-right">Spot Volume</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeSpotData.slice((spotPage - 1) * SPOT_PAGE_SIZE, spotPage * SPOT_PAGE_SIZE).map((user) => (
+                      <tr key={user.walletAddress}>
+                        <td className="rank-cell">#{user.rank}</td>
+                        <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
+                        <td className="volume-cell text-right">${formatFullNumber(user.volume)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="pagination">
+                <button className="page-btn" onClick={() => setSpotPage(p => Math.max(1, p - 1))} disabled={spotPage === 1}>&lt; Prev</button>
+                <span className="page-info">Page {spotPage} of {Math.ceil(activeSpotData.length / SPOT_PAGE_SIZE)} ({activeSpotData.length} traders)</span>
+                <button className="page-btn" onClick={() => setSpotPage(p => Math.min(Math.ceil(activeSpotData.length / SPOT_PAGE_SIZE), p + 1))} disabled={spotPage === Math.ceil(activeSpotData.length / SPOT_PAGE_SIZE)}>Next &gt;</button>
+              </div>
+              <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '12px', color: '#666' }}>
+                Data provided by <a href="https://x.com/eliasing__" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>@eliasing__</a>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+      <>
       {/* User Overview Stats */}
       <div className="stats-row">
         <div className="stat-item">
@@ -784,6 +1033,8 @@ export default function MainnetPage() {
 
       {leaderboardLoading && leaderboardData.length === 0 && (
         <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>Loading leaderboard...</div>
+      )}
+      </>
       )}
     </div>
   )
