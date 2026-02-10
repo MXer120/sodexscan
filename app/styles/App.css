@@ -457,3 +457,18 @@ body:has(.announcement-bar) .dashboard,
 body:has(.announcement-bar) .landing-page {
   padding-top: 8px !important;
 }
+
+@media (max-width: 700px) {
+  body {
+    padding-top: 32px;
+    /* Space for fixed Top Status Bar */
+  }
+
+  .dashboard,
+  .landing-page {
+    padding-top: 24px;
+    /* Reduced since Top Navbar is gone */
+    padding-bottom: 90px;
+    /* Space for Bottom Navbar (60px) + Extra */
+  }
+}

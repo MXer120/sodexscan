@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useSessionContext } from '../lib/SessionContext'
 import { useTheme } from '../lib/ThemeContext'
 import { Auth } from './Auth'
+import { Icons } from './CommandPalette'
 import '../styles/Navbar.css'
 
 function Navbar() {
@@ -13,7 +14,14 @@ function Navbar() {
   const { user, setAuthModalCallback } = useSessionContext()
   const { logo } = useTheme()
   const [showAuth, setShowAuth] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false) // Keeping this for backward compatibility if needed, or repurposed
+  const [mobileActiveTab, setMobileActiveTab] = useState(null)
+
+  const openCmdK = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('openCommandPalette'))
+    }
+  }
 
   // Register the auth modal callback with the context
   useEffect(() => {
@@ -256,8 +264,73 @@ function Navbar() {
           </div>
         )}
 
-        {/* Only show glow line on non-landing pages */}
-        {<div className="navbar-glow"></div>}
+        {/* Only show glow line on non-landing pages on Desktop */}
+        <div className="navbar-glow desktop-only"></div>
+
+        {/* MOBILE BOTTOM BAR */}
+        <div className="mobile-bottom-bar">
+          {/* 1. Home */}
+          <Link href="/" className={`mobile-nav-item ${pathname === '/' ? 'active' : ''}`}>
+            <Icons.Home />
+            <span>Home</span>
+          </Link>
+
+          {/* 2. Scan */}
+          <Link href="/tracker" className={`mobile-nav-item ${pathname === '/tracker' ? 'active' : ''}`}>
+            <Icons.Radar />
+            <span>Scan</span>
+          </Link>
+
+          {/* 3. SoPoints */}
+          <Link href="/sopoints" className={`mobile-nav-item ${pathname === '/sopoints' ? 'active' : ''}`}>
+            <Icons.Star />
+            <span>Points</span>
+          </Link>
+
+          {/* 4. Rank */}
+          <Link href="/mainnet" className={`mobile-nav-item ${pathname === '/mainnet' ? 'active' : ''}`}>
+            <Icons.Chart />
+            <span>Rank</span>
+          </Link>
+
+          {/* 5. Search */}
+          <button className="mobile-nav-item" onClick={openCmdK}>
+            <Icons.Scan />
+            <span>Search</span>
+          </button>
+
+          {/* 6. More (Dropdown) */}
+          <div className="mobile-nav-wrapper">
+            {mobileActiveTab === 'more' && (
+              <div className="mobile-popup-menu right-aligned">
+                {user ? (
+                  <Link href="/profile" className="highlight-link" onClick={() => setMobileActiveTab(null)}>Profile</Link>
+                ) : (
+                  <button className="text-link highlight-link" onClick={() => { setMobileActiveTab(null); setShowAuth(true); }}>Login</button>
+                )}
+                <div className="menu-divider"></div>
+
+                {/* Social Links merged here */}
+                <Link href="/social" onClick={() => setMobileActiveTab(null)}>Social Leaderboard</Link>
+                <Link href="/social/stats" onClick={() => setMobileActiveTab(null)}>Social Stats</Link>
+                <Link href="/referral" onClick={() => setMobileActiveTab(null)}>Referral</Link>
+                <div className="menu-divider"></div>
+
+                <Link href="/watchlist" onClick={() => setMobileActiveTab(null)}>Watchlist</Link>
+                <Link href="/platform" onClick={() => setMobileActiveTab(null)}>Platform Stats</Link>
+                <Link href="/incoming" onClick={() => setMobileActiveTab(null)}>Incoming</Link>
+                <Link href="/reverse-search" onClick={() => setMobileActiveTab(null)}>Reverse Search</Link>
+              </div>
+            )}
+            <button
+              className={`mobile-nav-item ${(mobileActiveTab === 'more') ? 'active' : ''}`}
+              onClick={() => setMobileActiveTab(mobileActiveTab === 'more' ? null : 'more')}
+            >
+              <Icons.Filter />
+              <span>More</span>
+            </button>
+          </div>
+        </div>
       </nav>
 
       {/* Auth modal - centered */}
