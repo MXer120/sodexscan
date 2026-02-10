@@ -107,9 +107,6 @@ export default function CommandPalette() {
             }
 
             // Quick Nav Shortcuts (Global, only when palette is closed OR open)
-            // Actually, standard is usually GLOBAL or when Menu is Open. 
-            // User request: "quick inputs like cmd k. for profile cmd p..."
-            // Assuming these are globally active for quick nav.
             if (e.metaKey || e.ctrlKey) {
                 const match = shortcuts.find(s => s.key === e.key.toLowerCase())
                 if (match) {
@@ -207,7 +204,8 @@ export default function CommandPalette() {
             return
         }
 
-        if (!search || search.length < 1) {
+        // If no search AND no active filter, we use the Default View (Popular, etc.)
+        if ((!search || search.length < 1) && !activeFilter) {
             setSearchResults([])
             setLoading(false)
             return
@@ -218,26 +216,26 @@ export default function CommandPalette() {
             const results = []
             const term = search.toLowerCase().trim()
             const filter = activeFilter || 'all'
+            const isEmpty = term === ''
 
             // --- 1. Pages ---
-            if (filter === 'all' || filter === 'pages') {
+            if (filter === 'pages' || (filter === 'all' && !isEmpty)) {
                 pages.forEach(p => {
-                    if (p.name.toLowerCase().includes(term)) {
+                    if (isEmpty || p.name.toLowerCase().includes(term)) {
                         results.push({
                             type: 'page',
                             label: p.name,
                             value: p.path,
                             icon: p.icon,
                             group: 'Pages',
-                            shortcut: p.shortcut // Pass shortcut for display
+                            shortcut: p.shortcut
                         })
                     }
                 })
             }
 
             // --- 2. Stats ---
-            if (filter === 'all' || filter === 'stats') {
-                // We verify against stats keys/labels
+            if (filter === 'stats' || (filter === 'all' && !isEmpty)) {
                 const statItems = [
                     { label: 'Total Users', val: stats.totalUsers },
                     { label: 'Active Traders', val: stats.activeTraders },
@@ -245,12 +243,12 @@ export default function CommandPalette() {
                     { label: 'Traders > $1k Vol', val: stats.usersGt1kVol }
                 ]
                 statItems.forEach(s => {
-                    if (s.label.toLowerCase().includes(term)) {
+                    if (isEmpty || s.label.toLowerCase().includes(term)) {
                         results.push({
                             type: 'stat',
                             label: s.label,
                             detail: s.val.toLocaleString(),
-                            value: '/platform', // redirection
+                            value: '/platform',
                             icon: <Icons.Chart />,
                             group: 'Statistics'
                         })
@@ -258,8 +256,26 @@ export default function CommandPalette() {
                 })
             }
 
-            // --- 3. Direct Address & Ranks ---
-            if ((filter === 'all' || filter === 'address') && term.startsWith('0x')) {
+            // --- 3. Direct Address & Ranks & Tags ---
+
+            // Tags allow all if empty
+            if (filter === 'tag' || (filter === 'all' && !isEmpty)) {
+                userTags.forEach(t => {
+                    if (isEmpty || (t.tag_name && t.tag_name.toLowerCase().includes(term))) {
+                        results.push({
+                            type: 'tag',
+                            label: t.tag_name,
+                            value: t.wallet_address,
+                            detail: t.wallet_address,
+                            icon: <Icons.Wallet />,
+                            group: 'Tags'
+                        })
+                    }
+                })
+            }
+
+            // Address - only if term is present
+            if ((filter === 'all' || filter === 'address') && term.startsWith('0x') && !isEmpty) {
                 results.push({
                     type: 'address',
                     label: 'Go to Address',
@@ -270,8 +286,8 @@ export default function CommandPalette() {
                 })
             }
 
-            // --- 4. Rank Lookups (PnL / Vol) ---
-            if ((filter === 'pnl_rank' || filter === 'volume_rank') && !isNaN(parseInt(term))) {
+            // Rank Lookups - only if term is present and number
+            if ((filter === 'pnl_rank' || filter === 'volume_rank') && !isNaN(parseInt(term)) && !isEmpty) {
                 const rank = parseInt(term)
                 const col = filter === 'pnl_rank' ? 'pnl_rank' : 'volume_rank'
                 const { data: rankData } = await supabase
@@ -292,34 +308,17 @@ export default function CommandPalette() {
                 }
             }
 
-            // --- 5. Tags ---
-            if (filter === 'all' || filter === 'tag') {
-                userTags.forEach(t => {
-                    if (t.tag_name && t.tag_name.toLowerCase().includes(term)) {
-                        results.push({
-                            type: 'tag',
-                            label: t.tag_name,
-                            value: t.wallet_address,
-                            detail: t.wallet_address,
-                            icon: <Icons.Wallet />,
-                            group: 'Tags'
-                        })
-                    }
-                })
-            }
-
             // --- 6. Socials / DNS ---
+            // Requires input (wildcard search on huge DB is not enabled for empty)
             const needsSocial = ['all', 'socials', 'discord', 'telegram', 'refcode', 'address'].includes(filter)
             if (needsSocial && term.length > 1) {
                 let query = supabase.from('publicdns').select('wallet_address, dc_username, tg_username, ref_code')
 
-                // Construct Query based on filter
                 if (filter === 'discord') query = query.ilike('dc_username', `%${term}%`)
                 else if (filter === 'telegram') query = query.or(`tg_username.ilike.%${term}%,tg_displayname.ilike.%${term}%`)
                 else if (filter === 'refcode') query = query.ilike('ref_code', `%${term}%`)
                 else if (filter === 'address') query = query.ilike('wallet_address', `%${term}%`)
                 else {
-                    // all or socials
                     query = query.or(`dc_username.ilike.%${term}%,tg_username.ilike.%${term}%,tg_displayname.ilike.%${term}%,ref_code.ilike.%${term}%,wallet_address.ilike.%${term}%`)
                 }
 
@@ -370,6 +369,7 @@ export default function CommandPalette() {
         return () => clearTimeout(timer)
     }, [search, activeFilter, userTags, pages])
 
+
     const runCommand = (command) => {
         setOpen(false)
         command()
@@ -416,7 +416,7 @@ export default function CommandPalette() {
 
                     <Command.List>
 
-                        {/* Filter Selection Mode */}
+                        {/* Filter Selection Mode (explicitly via /) */}
                         {search === '/' && !activeFilter && (
                             <>
                                 {/* Top Filters (No Number) */}
@@ -453,15 +453,14 @@ export default function CommandPalette() {
                                                 <span className="command-icon">{f.icon}</span>
                                                 <span>{f.label}</span>
                                             </div>
-                                            <div className="command-shortcut-hint">
-                                                {i + 1}
+                                            <div className="command-shortcut-wrapper">
+                                                <span className="key-cap">{i + 1}</span>
                                             </div>
                                         </Command.Item>
                                     ))}
                                 </Command.Group>
                             </>
                         )}
-
                         {/* Empty States */}
                         {!loading && search && search !== '/' && searchResults.length === 0 && (
                             <div className="command-empty">No results found.</div>
@@ -559,7 +558,6 @@ export default function CommandPalette() {
                                             </div>
                                         </div>
                                     </Command.Item>
-                                    {/* Removed Active Traders and others to reduce dupes if needed, but per request keeping 'stats' distinct */}
                                     <Command.Item onSelect={() => navigateTo('/platform')} className="command-item">
                                         <div className="command-item-content">
                                             <span className="command-icon"><Icons.Chart /></span>
