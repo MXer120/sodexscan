@@ -3,6 +3,7 @@ import './styles/App.css'
 import Navbar from './components/Navbar'
 import AnnouncementBar from './components/AnnouncementBar'
 import StatusBar from './components/StatusBar'
+import CommandPalette from './components/CommandPalette'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from './providers'
@@ -62,6 +63,7 @@ export default function RootLayout({ children }) {
           <AnnouncementBar />
           {children}
           <StatusBar />
+          <CommandPalette />
         </Providers>
         <Analytics />
         <SpeedInsights />

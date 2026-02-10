@@ -26,7 +26,9 @@
       "Bash(npx supabase db push:*)",
       "Bash(npx supabase:*)",
       "Bash(rd:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git push:*)"
     ]
   }
 }

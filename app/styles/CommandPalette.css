@@ -1,0 +1,274 @@
+/* Command Palette Styles */
+
+/* Overlay */
+.command-palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fadeIn 0.15s ease-out;
+}
+
+/* Container */
+.command-palette-container {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Command Root */
+.command-root {
+    width: 100%;
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-inter, sans-serif);
+}
+
+.command-input-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+    height: 60px;
+}
+
+.search-icon {
+    display: flex;
+    color: rgba(255, 255, 255, 0.4);
+    margin-right: 12px;
+}
+
+[cmdk-input] {
+    font-family: inherit;
+    border: none;
+    width: 100%;
+    font-size: 16px;
+    padding: 16px 0;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    height: 100%;
+}
+
+[cmdk-input]::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.active-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(var(--color-primary-rgb, 59, 130, 246), 0.2);
+    color: var(--color-primary, #3b82f6);
+    border: 1px solid rgba(var(--color-primary-rgb, 59, 130, 246), 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 8px;
+    white-space: nowrap;
+    text-transform: capitalize;
+}
+
+/* List */
+[cmdk-list] {
+    height: 380px;
+    max-height: 380px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 8px;
+    scroll-padding-block-end: 8px;
+}
+
+[cmdk-list]::-webkit-scrollbar {
+    width: 6px;
+}
+
+[cmdk-list]::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.command-item {
+    content-visibility: auto;
+    cursor: pointer;
+    height: 44px;
+    border-radius: 6px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Added for shortcut alignment */
+    gap: 12px;
+    padding: 0 12px;
+    color: rgba(255, 255, 255, 0.7);
+    user-select: none;
+    will-change: background, color;
+    transition: all 0.1s ease;
+}
+
+.command-item[aria-selected="true"] {
+    background: rgba(var(--color-primary-rgb, 59, 130, 246), 0.15);
+    color: #fff;
+}
+
+.command-item[aria-disabled="true"] {
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+}
+
+[cmdk-group-heading] {
+    user-select: none;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 8px 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    font-weight: 700;
+}
+
+.command-empty {
+    font-size: 14px;
+    text-align: center;
+    white-space: pre-wrap;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.command-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.command-icon {
+    display: flex;
+    align-items: center;
+    /* Center SVG vertically */
+    justify-content: center;
+    font-size: 16px;
+    opacity: 0.7;
+    color: var(--color-primary);
+    width: 16px;
+    height: 16px;
+}
+
+.command-item[aria-selected="true"] .command-icon {
+    opacity: 1;
+}
+
+.wallet-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2;
+    overflow: hidden;
+    flex: 1;
+}
+
+.wallet-label {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wallet-detail {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+}
+
+/* Shortcut UI (Key Caps) */
+.command-shortcut-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.key-cap {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    font-size: 11px;
+}
+
+.command-item[aria-selected="true"] .wallet-detail {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+
+/* Legend Footer */
+.command-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Left and Right split */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.footer-item {
+    display: flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.5);
+    /* Text color */
+}
+
+.footer-item.separate-arrows {
+    gap: 4px;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
