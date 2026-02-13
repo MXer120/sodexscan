@@ -77,6 +77,14 @@ const SODEX_SPOT_WALLETS = new Set([
   '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
 ])
 
+const WEEK1_START = new Date('2026-02-02T00:00:00Z')
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const getCurrentWeekNumber = () => {
+  const elapsed = Date.now() - WEEK1_START.getTime()
+  if (elapsed < 0) return 1
+  return Math.floor(elapsed / WEEK_MS) + 1
+}
+
 export default function MainnetPage() {
   // Leaderboard data - paginated
   const [leaderboardData, setLeaderboardData] = useState([])
@@ -191,8 +199,19 @@ export default function MainnetPage() {
       }
       setSpotData(parseSpotJson(allTimeJson))
 
-      // Load local snapshot for weekly diff
+      // Load previous week snapshot from DB
+      const prevWeek = getCurrentWeekNumber() - 1
       let localJson = globalCache.getSpotLocalData()
+      if (!localJson && prevWeek >= 1) {
+        try {
+          const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: prevWeek })
+          if (!error && data && Object.keys(data).length > 0) {
+            localJson = data
+            globalCache.setSpotLocalData(localJson)
+          }
+        } catch { /* no DB snapshot */ }
+      }
+      // Fallback to local file
       if (!localJson) {
         try {
           const localRes = await fetch('/data/spot_vol_data.json')
@@ -210,7 +229,7 @@ export default function MainnetPage() {
           .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
           .map(([address, d]) => {
             const allTimeVol = d.vol || 0
-            const localVol = localJson[address]?.vol || 0
+            const localVol = localJson[address]?.vol || localJson[address.toLowerCase()]?.vol || 0
             return {
               walletAddress: address,
               accountId: d.userId,

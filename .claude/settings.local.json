@@ -28,7 +28,8 @@
       "Bash(rd:*)",
       "Bash(git status:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(node:*)"
     ]
   }
 }

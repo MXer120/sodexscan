@@ -51,32 +51,48 @@ const SoPointsPage = () => {
     const ownWallet = profileData?.profile?.own_wallet
 
     const WEEK1_START = new Date('2026-02-02T00:00:00Z')
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+    // Dynamically compute current week from wall clock
+    const getCurrentWeekNumber = () => {
+        const now = Date.now()
+        const elapsed = now - WEEK1_START.getTime()
+        if (elapsed < 0) return 1
+        return Math.floor(elapsed / WEEK_MS) + 1
+    }
 
     const getWeekDateRange = (weekNum) => {
-        const start = new Date(WEEK1_START.getTime() + (weekNum - 1) * 7 * 24 * 60 * 60 * 1000)
-        const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const start = new Date(WEEK1_START.getTime() + (weekNum - 1) * WEEK_MS)
+        const end = new Date(start.getTime() + WEEK_MS)
         const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
         return `${fmt(start)} - ${fmt(end)}`
     }
 
-    // Next Monday 00:00 UTC countdown
-    const getNextMonday = () => {
+    // Next Saturday 00:00 UTC countdown
+    const getNextSaturday = () => {
         const now = new Date()
         const day = now.getUTCDay()
-        const daysUntilMonday = day === 0 ? 1 : (8 - day)
+        const daysUntilSat = day === 6 ? 7 : (6 - day)
         const next = new Date(now)
-        next.setUTCDate(now.getUTCDate() + daysUntilMonday)
+        next.setUTCDate(now.getUTCDate() + daysUntilSat)
         next.setUTCHours(0, 0, 0, 0)
         return next.getTime()
     }
 
-    const [targetDate] = useState(() => getNextMonday())
+    const [targetDate, setTargetDate] = useState(() => getNextSaturday())
 
     useEffect(() => {
         const timer = setInterval(() => {
             const now = new Date().getTime()
             const distance = targetDate - now
-            if (distance < 0) { setTimeLeft('DISTRIBUTING...'); return }
+            if (distance < 0) {
+                // Week rolled over — reset countdown & reload data
+                setTargetDate(getNextSaturday())
+                setTimeLeft('DISTRIBUTING...')
+                loadMeta()
+                loadSpotSources()
+                return
+            }
             const days = Math.floor(distance / (1000 * 60 * 60 * 24))
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
@@ -107,28 +123,39 @@ const SoPointsPage = () => {
     const loadSpotSources = async () => {
         setSpotDataLoading(true)
         try {
-            // Load both in parallel
-            const [allTimeRes, localRes] = await Promise.allSettled([
-                (async () => {
-                    const cached = globalCache.getSpotAllTimeData()
-                    if (cached) return cached
-                    const res = await fetch(SPOT_DATA_URL)
-                    const data = await res.json()
-                    globalCache.setSpotAllTimeData(data)
+            // Load all-time from GitHub
+            const allTimePromise = (async () => {
+                const cached = globalCache.getSpotAllTimeData()
+                if (cached) return cached
+                const res = await fetch(SPOT_DATA_URL)
+                const data = await res.json()
+                globalCache.setSpotAllTimeData(data)
+                return data
+            })()
+
+            // Load previous week snapshot from DB (prev week = current - 1)
+            const prevWeek = getCurrentWeekNumber() - 1
+            const snapshotPromise = (async () => {
+                if (prevWeek < 1) return null
+                const cached = globalCache.getSpotLocalData()
+                if (cached) return cached
+                const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: prevWeek })
+                if (error) { console.error('Spot snapshot RPC error:', error); return null }
+                if (data && Object.keys(data).length > 0) {
+                    globalCache.setSpotLocalData(data)
                     return data
-                })(),
-                (async () => {
-                    const cached = globalCache.getSpotLocalData()
-                    if (cached) return cached
-                    try {
-                        const res = await fetch('/data/spot_vol_data.json')
-                        if (!res.ok) return null
-                        const data = await res.json()
-                        globalCache.setSpotLocalData(data)
-                        return data
-                    } catch { return null }
-                })()
-            ])
+                }
+                // Fallback to local file if no DB snapshot
+                try {
+                    const res = await fetch('/data/spot_vol_data.json')
+                    if (!res.ok) return null
+                    const fileData = await res.json()
+                    globalCache.setSpotLocalData(fileData)
+                    return fileData
+                } catch { return null }
+            })()
+
+            const [allTimeRes, localRes] = await Promise.allSettled([allTimePromise, snapshotPromise])
             if (allTimeRes.status === 'fulfilled') setSpotAllTime(allTimeRes.value)
             if (localRes.status === 'fulfilled') setSpotLocal(localRes.value)
         } catch (err) {
@@ -293,7 +320,7 @@ const SoPointsPage = () => {
             // Exclude sodex-owned wallets
             if (SODEX_SPOT_WALLETS.has(addr.toLowerCase())) continue
             const allTimeVol = d.vol || 0
-            const localVol = spotLocal?.[addr]?.vol || 0
+            const localVol = spotLocal?.[addr]?.vol || spotLocal?.[addr.toLowerCase()]?.vol || 0
             const weeklySpot = Math.max(0, allTimeVol - localVol)
             spotWeeklyMap[addr.toLowerCase()] = { weeklySpot, allTimeSpot: allTimeVol, userId: d.userId, originalAddr: addr }
         }
@@ -417,7 +444,8 @@ const SoPointsPage = () => {
     }
 
     const poolSize = lbMeta?.pool_size ? parseFloat(lbMeta.pool_size) : 1000000
-    const currentWeekNum = lbMeta?.current_week_number || 1
+    // Use dynamic week calc so UI auto-updates even if DB cron hasn't run yet
+    const currentWeekNum = getCurrentWeekNumber()
 
     const getPrevStats = (weekNum) => {
         if (weekNum <= 1) return closedAlphaStats
