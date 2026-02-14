@@ -36,14 +36,15 @@ const SoPointsPage = () => {
 
     // Spot leaderboard data (for points LB)
     const [spotAllTime, setSpotAllTime] = useState(null)   // GitHub (all-time)
-    const [spotLocal, setSpotLocal] = useState(null)        // local snapshot (week 1 end)
+    const [spotSnapshots, setSpotSnapshots] = useState({})  // weekNum -> snapshot data
     const [spotDataLoading, setSpotDataLoading] = useState(false)
 
     // Weekly futures data for all users (from weekly LB RPC)
-    const [weeklyFuturesMap, setWeeklyFuturesMap] = useState(null) // addr -> weeklyVol
+    const [futuresDataByWeek, setFuturesDataByWeek] = useState({}) // weekNum -> addr->vol map
     const [futuresLoading, setFuturesLoading] = useState(false)
 
     // Points leaderboard state
+    const [selectedPointsWeek, setSelectedPointsWeek] = useState(null) // null = current week (set after meta loads)
     const [pointsLbPage, setPointsLbPage] = useState(1)
     const POINTS_PAGE_SIZE = 20
 
@@ -51,19 +52,11 @@ const SoPointsPage = () => {
     const ownWallet = profileData?.profile?.own_wallet
 
     const WEEK1_START = new Date('2026-02-02T00:00:00Z')
-    const WEEK_MS = 7 * 24 * 60 * 60 * 1000
-
-    // Dynamically compute current week from wall clock
-    const getCurrentWeekNumber = () => {
-        const now = Date.now()
-        const elapsed = now - WEEK1_START.getTime()
-        if (elapsed < 0) return 1
-        return Math.floor(elapsed / WEEK_MS) + 1
-    }
+    const WEEK_DURATION = 7 * 24 * 60 * 60 * 1000
 
     const getWeekDateRange = (weekNum) => {
-        const start = new Date(WEEK1_START.getTime() + (weekNum - 1) * WEEK_MS)
-        const end = new Date(start.getTime() + WEEK_MS)
+        const start = new Date(WEEK1_START.getTime() + (weekNum - 1) * WEEK_DURATION)
+        const end = new Date(start.getTime() + WEEK_DURATION)
         const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
         return `${fmt(start)} - ${fmt(end)}`
     }
@@ -86,11 +79,15 @@ const SoPointsPage = () => {
             const now = new Date().getTime()
             const distance = targetDate - now
             if (distance < 0) {
-                // Week rolled over — reset countdown & reload data
+                // Week rolled over — reset countdown & reload all data
                 setTargetDate(getNextSaturday())
                 setTimeLeft('DISTRIBUTING...')
+                globalCache.caches.leaderboardMeta = { data: null, timestamp: 0 }
+                globalCache.caches.spotAllTimeData = { data: null, timestamp: 0 }
+                setSpotSnapshots({})
+                setFuturesDataByWeek({})
+                setSelectedPointsWeek(null)
                 loadMeta()
-                loadSpotSources()
                 return
             }
             const days = Math.floor(distance / (1000 * 60 * 60 * 24))
@@ -102,80 +99,77 @@ const SoPointsPage = () => {
         return () => clearInterval(timer)
     }, [targetDate])
 
-    // Load meta + stats + spot data
+    // Load meta + stats on mount
     useEffect(() => {
         loadMeta()
         loadStats()
-        loadSpotSources()
     }, [])
 
-    // Load weekly futures data once we know the current week
+    // Set default selected week + load data once meta is available
     useEffect(() => {
-        if (lbMeta) loadWeeklyFutures()
+        if (lbMeta) {
+            const week = selectedPointsWeek || lbMeta.current_week_number
+            if (!selectedPointsWeek) setSelectedPointsWeek(week)
+            loadPointsWeekData(week)
+        }
     }, [lbMeta])
+
+    // When selected week changes, load its data
+    useEffect(() => {
+        if (selectedPointsWeek && lbMeta) {
+            setPointsLbPage(1)
+            loadPointsWeekData(selectedPointsWeek)
+        }
+    }, [selectedPointsWeek])
 
     // Load reward estimate when wallet available
     useEffect(() => {
         if (ownWallet) loadRewardEstimate(ownWallet)
     }, [ownWallet])
 
-    // ── Spot data sources (for points leaderboard) ──
-    const loadSpotSources = async () => {
-        setSpotDataLoading(true)
+    // ── Load all-time spot data from GitHub ──
+    const loadSpotAllTime = async () => {
+        const cached = globalCache.getSpotAllTimeData()
+        if (cached) { setSpotAllTime(cached); return }
         try {
-            // Load all-time from GitHub
-            const allTimePromise = (async () => {
-                const cached = globalCache.getSpotAllTimeData()
-                if (cached) return cached
-                const res = await fetch(SPOT_DATA_URL)
-                const data = await res.json()
-                globalCache.setSpotAllTimeData(data)
-                return data
-            })()
-
-            // Load previous week snapshot from DB (prev week = current - 1)
-            const prevWeek = getCurrentWeekNumber() - 1
-            const snapshotPromise = (async () => {
-                if (prevWeek < 1) return null
-                const cached = globalCache.getSpotLocalData()
-                if (cached) return cached
-                const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: prevWeek })
-                if (error) { console.error('Spot snapshot RPC error:', error); return null }
-                if (data && Object.keys(data).length > 0) {
-                    globalCache.setSpotLocalData(data)
-                    return data
-                }
-                // Fallback to local file if no DB snapshot
-                try {
-                    const res = await fetch('/data/spot_vol_data.json')
-                    if (!res.ok) return null
-                    const fileData = await res.json()
-                    globalCache.setSpotLocalData(fileData)
-                    return fileData
-                } catch { return null }
-            })()
-
-            const [allTimeRes, localRes] = await Promise.allSettled([allTimePromise, snapshotPromise])
-            if (allTimeRes.status === 'fulfilled') setSpotAllTime(allTimeRes.value)
-            if (localRes.status === 'fulfilled') setSpotLocal(localRes.value)
+            const res = await fetch(SPOT_DATA_URL)
+            const data = await res.json()
+            globalCache.setSpotAllTimeData(data)
+            setSpotAllTime(data)
         } catch (err) {
-            console.error('Failed to load spot sources:', err)
+            console.error('Failed to load spot all-time:', err)
         }
-        setSpotDataLoading(false)
     }
 
-    // Load ALL weekly futures data (paginated RPC, same as leaderboard page uses)
-    const loadWeeklyFutures = async () => {
-        setFuturesLoading(true)
+    // ── Load a spot snapshot for a given week (cached in state) ──
+    const loadSpotSnapshot = async (weekNum) => {
+        if (weekNum < 1) return null
+        if (spotSnapshots[weekNum]) return spotSnapshots[weekNum]
+        try {
+            const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: weekNum })
+            if (error) { console.error('Spot snapshot RPC error:', error); return null }
+            if (data && Object.keys(data).length > 0) {
+                setSpotSnapshots(prev => ({ ...prev, [weekNum]: data }))
+                return data
+            }
+        } catch (err) {
+            console.error('Failed to load spot snapshot:', err)
+        }
+        return null
+    }
+
+    // ── Load futures data for a given week (cached in state) ──
+    const loadFuturesForWeek = async (weekNum) => {
+        // weekNum: 0 = current live, 1+ = frozen
+        if (futuresDataByWeek[weekNum] !== undefined) return futuresDataByWeek[weekNum]
         try {
             const map = {}
             const pageSize = 1000
             let offset = 0
             let hasMore = true
-            // Use week 0 (current/live) - same as leaderboard "current week" view
             while (hasMore) {
                 const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-                    p_week: 0,
+                    p_week: weekNum,
                     p_sort: 'volume',
                     p_limit: pageSize,
                     p_offset: offset,
@@ -192,10 +186,38 @@ const SoPointsPage = () => {
                 if (data.length < pageSize) hasMore = false
                 else offset += pageSize
             }
-            setWeeklyFuturesMap(map)
+            setFuturesDataByWeek(prev => ({ ...prev, [weekNum]: map }))
+            return map
         } catch (err) {
             console.error('Failed to load weekly futures:', err)
+            return null
         }
+    }
+
+    // ── Load all data needed for the selected points week ──
+    const loadPointsWeekData = async (weekNum) => {
+        if (!lbMeta) return
+        setSpotDataLoading(true)
+        setFuturesLoading(true)
+        const currentWeek = lbMeta.current_week_number
+        const isLive = weekNum === currentWeek
+
+        try {
+            // Always need all-time data for live week
+            if (isLive) await loadSpotAllTime()
+
+            // Load spot snapshot for previous week (base for diff)
+            await loadSpotSnapshot(weekNum - 1)
+
+            // For historical weeks, also load the week's own snapshot
+            if (!isLive) await loadSpotSnapshot(weekNum)
+
+            // Load futures: week 0 for live, weekNum for historical
+            await loadFuturesForWeek(isLive ? 0 : weekNum)
+        } catch (err) {
+            console.error('Failed to load points week data:', err)
+        }
+        setSpotDataLoading(false)
         setFuturesLoading(false)
     }
 
@@ -310,36 +332,44 @@ const SoPointsPage = () => {
 
     // ── Points Leaderboard: merge weekly spot + weekly futures, weighted scoring ──
     const pointsLeaderboard = useMemo(() => {
-        if (!spotAllTime) return null
-        // Wait for futures data too (unless it failed)
-        if (!weeklyFuturesMap && futuresLoading) return null
+        if (!lbMeta || !selectedPointsWeek) return null
+        const isLive = selectedPointsWeek === lbMeta.current_week_number
+        const prevWeek = selectedPointsWeek - 1
 
-        // Build spot weekly diff map: allTime - local = week2 spot volume
+        // Determine spot data sources based on live vs historical
+        const baseSnapshot = prevWeek >= 1 ? spotSnapshots[prevWeek] : null
+        const weekFutures = isLive ? futuresDataByWeek[0] : futuresDataByWeek[selectedPointsWeek]
+
+        // For live week: need allTime. For historical: need the week's own snapshot
+        if (isLive && !spotAllTime) return null
+        if (!isLive && !spotSnapshots[selectedPointsWeek]) return null
+        if (!weekFutures && futuresLoading) return null
+
+        // Build spot weekly diff map
         const spotWeeklyMap = {}
-        for (const [addr, d] of Object.entries(spotAllTime)) {
-            // Exclude sodex-owned wallets
+        const spotSource = isLive ? spotAllTime : spotSnapshots[selectedPointsWeek]
+
+        for (const [addr, d] of Object.entries(spotSource)) {
             if (SODEX_SPOT_WALLETS.has(addr.toLowerCase())) continue
-            const allTimeVol = d.vol || 0
-            const localVol = spotLocal?.[addr]?.vol || spotLocal?.[addr.toLowerCase()]?.vol || 0
-            const weeklySpot = Math.max(0, allTimeVol - localVol)
-            spotWeeklyMap[addr.toLowerCase()] = { weeklySpot, allTimeSpot: allTimeVol, userId: d.userId, originalAddr: addr }
+            const vol = d.vol || 0
+            const baseVol = baseSnapshot?.[addr]?.vol || baseSnapshot?.[addr.toLowerCase()]?.vol || 0
+            const weeklySpot = Math.max(0, vol - baseVol)
+            spotWeeklyMap[addr.toLowerCase()] = { weeklySpot, allTimeSpot: vol, userId: d.userId, originalAddr: addr }
         }
 
         // Merge all wallets from both spot and futures (exclude sodex-owned)
         const allAddrs = new Set([
             ...Object.keys(spotWeeklyMap),
-            ...(weeklyFuturesMap ? Object.keys(weeklyFuturesMap) : [])
+            ...(weekFutures ? Object.keys(weekFutures) : [])
         ])
-        // Remove sodex wallets from merged set
         for (const sw of SODEX_SPOT_WALLETS) allAddrs.delete(sw)
 
         const entries = []
         for (const addr of allAddrs) {
             const spot = spotWeeklyMap[addr]
-            const futuresVol = weeklyFuturesMap?.[addr] || 0
+            const futuresVol = weekFutures?.[addr] || 0
             const weeklySpot = spot?.weeklySpot || 0
 
-            // Skip entries with zero everything
             if (weeklySpot === 0 && futuresVol === 0) continue
 
             entries.push({
@@ -352,21 +382,17 @@ const SoPointsPage = () => {
             })
         }
 
-        // Sort by weighted volume desc
         entries.sort((a, b) => b.weightedVolume - a.weightedVolume)
 
-        // First pass: calculate preliminary points to identify <1 point users
         const totalWeighted = entries.reduce((sum, e) => sum + e.weightedVolume, 0)
         entries.forEach(e => {
             e.share = totalWeighted > 0 ? e.weightedVolume / totalWeighted : 0
             e.points = e.share * TOTAL_POOL
         })
 
-        // Filter out users with <1 point, redistribute to qualified users
         const qualified = entries.filter(e => e.points >= 1)
         const qualifiedWeighted = qualified.reduce((sum, e) => sum + e.weightedVolume, 0)
 
-        // Recalculate with only qualified users
         qualified.forEach((e, i) => {
             e.rank = i + 1
             e.share = qualifiedWeighted > 0 ? e.weightedVolume / qualifiedWeighted : 0
@@ -374,7 +400,7 @@ const SoPointsPage = () => {
         })
 
         return { entries: qualified, totalWeighted: qualifiedWeighted }
-    }, [spotAllTime, spotLocal, weeklyFuturesMap, futuresLoading])
+    }, [spotAllTime, spotSnapshots, futuresDataByWeek, futuresLoading, selectedPointsWeek, lbMeta])
 
     // Find user's position in points LB
     const userPointsEntry = useMemo(() => {
@@ -444,8 +470,7 @@ const SoPointsPage = () => {
     }
 
     const poolSize = lbMeta?.pool_size ? parseFloat(lbMeta.pool_size) : 1000000
-    // Use dynamic week calc so UI auto-updates even if DB cron hasn't run yet
-    const currentWeekNum = getCurrentWeekNumber()
+    const currentWeekNum = lbMeta?.current_week_number || 1
 
     const getPrevStats = (weekNum) => {
         if (weekNum <= 1) return closedAlphaStats
@@ -649,10 +674,31 @@ const SoPointsPage = () => {
             {/* ─── Points Leaderboard ─── */}
             {pointsLeaderboard && (
                 <div className="sopoints-table-container" style={{ marginTop: '24px' }}>
-                    <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
-                            Week {currentWeekNum} Points Leaderboard
-                        </h2>
+                    <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
+                                Points Leaderboard
+                            </h2>
+                            <select
+                                value={selectedPointsWeek || currentWeekNum}
+                                onChange={(e) => setSelectedPointsWeek(parseInt(e.target.value))}
+                                style={{
+                                    background: 'var(--color-bg-secondary)',
+                                    border: '1px solid var(--color-border-subtle)',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    fontSize: '13px',
+                                    color: 'var(--color-text-main)',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {Array.from({ length: currentWeekNum }, (_, i) => currentWeekNum - i).map(w => (
+                                    <option key={w} value={w}>
+                                        Week {w}{w === currentWeekNum ? ' (Live)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                             {pointsLeaderboard.entries.length} traders · Spot {SPOT_MULTIPLIER}x weighted
                         </span>

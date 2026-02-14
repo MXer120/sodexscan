@@ -77,13 +77,6 @@ const SODEX_SPOT_WALLETS = new Set([
   '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
 ])
 
-const WEEK1_START = new Date('2026-02-02T00:00:00Z')
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000
-const getCurrentWeekNumber = () => {
-  const elapsed = Date.now() - WEEK1_START.getTime()
-  if (elapsed < 0) return 1
-  return Math.floor(elapsed / WEEK_MS) + 1
-}
 
 export default function MainnetPage() {
   // Leaderboard data - paginated
@@ -98,11 +91,11 @@ export default function MainnetPage() {
   // Spot leaderboard state
   const [spotView, setSpotView] = useState(false) // false = perps, true = spot
   const [spotData, setSpotData] = useState(null) // full parsed array (all-time)
-  const [spotLocalData, setSpotLocalData] = useState(null) // local snapshot for diff
+  const [spotSnapshots, setSpotSnapshots] = useState({}) // weekNum -> snapshot json
   const [spotWeeklyData, setSpotWeeklyData] = useState(null) // computed weekly diff
   const [spotLoading, setSpotLoading] = useState(false)
   const [spotPage, setSpotPage] = useState(1)
-  const [spotTimeRange, setSpotTimeRange] = useState('all') // 'all' | 'weekly'
+  const [spotTimeRange, setSpotTimeRange] = useState('all') // 'all' | weekNumber (int)
   const [spotDropdownOpen, setSpotDropdownOpen] = useState(false)
   const spotDropdownRef = useRef(null)
   const SPOT_PAGE_SIZE = 20
@@ -182,15 +175,32 @@ export default function MainnetPage() {
     if (spotView && !spotData) loadSpotData()
   }, [spotView])
 
-  // Reset page when spot time range changes
+  // When spot time range changes, reset page and compute weekly if needed
   useEffect(() => {
     setSpotPage(1)
+    if (typeof spotTimeRange === 'number' && lbMeta) {
+      computeSpotWeekly(spotTimeRange)
+    }
   }, [spotTimeRange])
+
+  // Load a spot snapshot from DB (cached in state)
+  const loadSpotSnapshot = async (weekNum) => {
+    if (weekNum < 1) return null
+    if (spotSnapshots[weekNum]) return spotSnapshots[weekNum]
+    try {
+      const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: weekNum })
+      if (!error && data && Object.keys(data).length > 0) {
+        setSpotSnapshots(prev => ({ ...prev, [weekNum]: data }))
+        return data
+      }
+    } catch { /* no snapshot */ }
+    return null
+  }
 
   const loadSpotData = async () => {
     setSpotLoading(true)
     try {
-      // Load all-time from cache or GitHub
+      // Always load all-time from GitHub
       let allTimeJson = globalCache.getSpotAllTimeData()
       if (!allTimeJson) {
         const res = await fetch(SPOT_DATA_URL)
@@ -199,50 +209,53 @@ export default function MainnetPage() {
       }
       setSpotData(parseSpotJson(allTimeJson))
 
-      // Load previous week snapshot from DB
-      const prevWeek = getCurrentWeekNumber() - 1
-      let localJson = globalCache.getSpotLocalData()
-      if (!localJson && prevWeek >= 1) {
-        try {
-          const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: prevWeek })
-          if (!error && data && Object.keys(data).length > 0) {
-            localJson = data
-            globalCache.setSpotLocalData(localJson)
-          }
-        } catch { /* no DB snapshot */ }
-      }
-      // Fallback to local file
-      if (!localJson) {
-        try {
-          const localRes = await fetch('/data/spot_vol_data.json')
-          if (localRes.ok) {
-            localJson = await localRes.json()
-            globalCache.setSpotLocalData(localJson)
-          }
-        } catch { /* no local file */ }
-      }
-      setSpotLocalData(localJson)
-
-      // Compute weekly diff
-      if (localJson) {
-        const weeklyEntries = Object.entries(allTimeJson)
-          .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
-          .map(([address, d]) => {
-            const allTimeVol = d.vol || 0
-            const localVol = localJson[address]?.vol || localJson[address.toLowerCase()]?.vol || 0
-            return {
-              walletAddress: address,
-              accountId: d.userId,
-              volume: Math.max(0, allTimeVol - localVol),
-              lastTs: d.last_ts
-            }
-          }).filter(e => e.volume > 0)
-        weeklyEntries.sort((a, b) => b.volume - a.volume)
-        weeklyEntries.forEach((e, i) => { e.rank = i + 1 })
-        setSpotWeeklyData(weeklyEntries)
-      }
+      // Preload current week's base snapshot
+      const currentWeek = lbMeta?.current_week_number || 1
+      await loadSpotSnapshot(currentWeek - 1)
     } catch (err) {
       console.error('Failed to load spot data:', err)
+    }
+    setSpotLoading(false)
+  }
+
+  // Compute weekly spot diff for a given week
+  const computeSpotWeekly = async (weekNum) => {
+    setSpotLoading(true)
+    const currentWeek = lbMeta?.current_week_number || 1
+    const isLive = weekNum === currentWeek
+
+    // Load base snapshot (week - 1)
+    const baseSnap = await loadSpotSnapshot(weekNum - 1)
+
+    // For live: use allTime from GitHub. For historical: load week's own snapshot
+    let topSnap
+    if (isLive) {
+      topSnap = globalCache.getSpotAllTimeData()
+      if (!topSnap) {
+        const res = await fetch(SPOT_DATA_URL)
+        topSnap = await res.json()
+        globalCache.setSpotAllTimeData(topSnap)
+      }
+    } else {
+      topSnap = await loadSpotSnapshot(weekNum)
+    }
+
+    if (topSnap) {
+      const weeklyEntries = Object.entries(topSnap)
+        .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
+        .map(([address, d]) => {
+          const vol = d.vol || 0
+          const baseVol = baseSnap?.[address]?.vol || baseSnap?.[address.toLowerCase()]?.vol || 0
+          return {
+            walletAddress: address,
+            accountId: d.userId,
+            volume: Math.max(0, vol - baseVol),
+            lastTs: d.last_ts
+          }
+        }).filter(e => e.volume > 0)
+      weeklyEntries.sort((a, b) => b.volume - a.volume)
+      weeklyEntries.forEach((e, i) => { e.rank = i + 1 })
+      setSpotWeeklyData(weeklyEntries)
     }
     setSpotLoading(false)
   }
@@ -263,7 +276,7 @@ export default function MainnetPage() {
 
   // Export spot data as JSON
   const exportSpotJSON = () => {
-    const dataToExport = spotTimeRange === 'weekly' ? spotWeeklyData : spotData
+    const dataToExport = typeof spotTimeRange === 'number' ? spotWeeklyData : spotData
     if (!dataToExport) return
     const exportObj = {}
     dataToExport.forEach(e => {
@@ -277,7 +290,7 @@ export default function MainnetPage() {
   }
 
   // Active spot data based on time range
-  const activeSpotData = spotTimeRange === 'weekly' ? spotWeeklyData : spotData
+  const activeSpotData = typeof spotTimeRange === 'number' ? spotWeeklyData : spotData
 
   // Reload when filters change
   useEffect(() => {
@@ -649,7 +662,7 @@ export default function MainnetPage() {
       {spotView ? (
         <div className="mainnet-leaderboard" style={{ position: 'relative', opacity: spotLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
           <div className="leaderboard-header">
-            <h2>{spotTimeRange === 'weekly' ? `Week ${lbMeta?.current_week_number || 2} Spot Volume` : 'All-Time Spot Volume'}</h2>
+            <h2>{typeof spotTimeRange === 'number' ? `Week ${spotTimeRange}${spotTimeRange === (lbMeta?.current_week_number) ? ' (Live)' : ''} Spot Volume` : 'All-Time Spot Volume'}</h2>
             <div className="leaderboard-controls">
               {/* Spot Time Range Dropdown */}
               <div className="week-selector" ref={spotDropdownRef} style={{ position: 'relative' }}>
@@ -673,7 +686,7 @@ export default function MainnetPage() {
                     justifyContent: 'space-between'
                   }}
                 >
-                  <span>{spotTimeRange === 'weekly' ? `Week ${lbMeta?.current_week_number || 2}` : 'All Time'}</span>
+                  <span>{typeof spotTimeRange === 'number' ? `Week ${spotTimeRange}${spotTimeRange === (lbMeta?.current_week_number) ? ' (Live)' : ''}` : 'All Time'}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: spotDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
@@ -688,7 +701,10 @@ export default function MainnetPage() {
                   }}>
                     {[
                       { value: 'all', label: 'All Time' },
-                      { value: 'weekly', label: `Week ${lbMeta?.current_week_number || 2}` }
+                      ...Array.from({ length: lbMeta?.current_week_number || 1 }, (_, i) => {
+                        const w = (lbMeta?.current_week_number || 1) - i
+                        return { value: w, label: `Week ${w}${w === lbMeta?.current_week_number ? ' (Live)' : ''}` }
+                      })
                     ].map(opt => (
                       <button
                         key={opt.value}
@@ -727,7 +743,7 @@ export default function MainnetPage() {
           {spotLoading && !activeSpotData && (
             <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Loading spot leaderboard...</div>
           )}
-          {spotTimeRange === 'weekly' && !spotWeeklyData && !spotLoading && (
+          {typeof spotTimeRange === 'number' && !spotWeeklyData && !spotLoading && (
             <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>No local snapshot found. Place week 1 snapshot at <code>/data/spot_vol_data.json</code></div>
           )}
           {activeSpotData && (

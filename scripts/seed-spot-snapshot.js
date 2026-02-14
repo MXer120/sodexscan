@@ -15,9 +15,10 @@ const SODEX_SPOT_WALLETS = new Set([
 
 async function main() {
   const weekNumber = parseInt(process.argv[2] || '1', 10)
-  console.log(`Seeding spot snapshot for week ${weekNumber}...`)
+  const fileArg = process.argv[3] || 'public/data/spot_vol_data.json'
+  console.log(`Seeding spot snapshot for week ${weekNumber} from ${fileArg}...`)
 
-  const filePath = resolve('public/data/spot_vol_data.json')
+  const filePath = resolve(fileArg)
   const spotData = JSON.parse(readFileSync(filePath, 'utf-8'))
 
   const rows = []
