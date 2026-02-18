@@ -4,28 +4,24 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
-function AuthDoneInner() {
+function CallbackInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [status, setStatus] = useState('Signing you in...')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const code = searchParams.get('code')
     const next = sessionStorage.getItem('authRedirect') ?? '/'
     sessionStorage.removeItem('authRedirect')
 
-    console.log('[auth/done] code:', code, 'next:', next)
-
     if (!code) {
-      console.log('[auth/done] no code, redirecting to', next)
       router.replace(next)
       return
     }
 
-    supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
-      console.log('[auth/done] exchange result:', { user: data?.user?.email, error: error?.message })
+    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
-        setStatus('Sign in failed: ' + error.message)
+        setError(error.message)
         setTimeout(() => router.replace('/'), 3000)
       } else {
         router.replace(next)
@@ -33,17 +29,19 @@ function AuthDoneInner() {
     })
   }, [router, searchParams])
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#fff', fontSize: '16px' }}>
-      {status}
+  if (error) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#f44336', fontSize: '14px' }}>
+      {error}
     </div>
   )
+
+  return null
 }
 
-export default function AuthDone() {
+export default function AuthCallback() {
   return (
     <Suspense>
-      <AuthDoneInner />
+      <CallbackInner />
     </Suspense>
   )
 }
