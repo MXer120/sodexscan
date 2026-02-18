@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
+import { useTheme } from '../lib/ThemeContext'
 import '../styles/SoPoints.css'
 import { supabase } from '../lib/supabaseClient'
 import { useUserProfile } from '../hooks/useProfile'
@@ -20,6 +22,8 @@ const SODEX_SPOT_WALLETS = new Set([
 ])
 
 const SoPointsPage = () => {
+    const { theme } = useTheme()
+    const [showWarning, setShowWarning] = useState(true)
     const [timeLeft, setTimeLeft] = useState('')
     const [globalStats, setGlobalStats] = useState({
         totalUsers: 0,
@@ -894,7 +898,143 @@ const SoPointsPage = () => {
             cursor: not-allowed;
         }
       `}</style>
-        </div >
+            {showWarning && (
+                <WarningModal onClose={() => setShowWarning(false)} theme={theme} />
+            )}
+
+            <style jsx>{`
+                @keyframes modalFadeIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                @keyframes overlayFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+            `}</style>
+        </div>
+    )
+}
+
+function WarningModal({ onClose, theme }) {
+    useEffect(() => {
+        document.body.style.overflow = 'hidden'
+        return () => { document.body.style.overflow = 'unset' }
+    }, [])
+
+    if (typeof document === 'undefined') return null
+
+    return createPortal(
+        <div
+            onClick={onClose}
+            style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.85)',
+                backdropFilter: 'blur(12px)',
+                zIndex: 100000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                animation: 'overlayFadeIn 0.3s ease-out'
+            }}>
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    background: '#111',
+                    border: `1px solid ${theme.accentColor}33`,
+                    borderRadius: '24px',
+                    width: '100%',
+                    maxWidth: '440px',
+                    boxShadow: `0 24px 80px rgba(0,0,0,0.9), 0 0 40px ${theme.accentColor}11`,
+                    overflow: 'hidden',
+                    animation: 'modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                    position: 'relative'
+                }}>
+                {/* Decorative background element */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-50px',
+                    right: '-50px',
+                    width: '150px',
+                    height: '150px',
+                    background: theme.accentColor,
+                    filter: 'blur(70px)',
+                    opacity: 0.15,
+                    pointerEvents: 'none'
+                }} />
+
+                <div style={{ padding: '40px 32px', textAlign: 'center' }}>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        background: `${theme.accentColor}15`,
+                        borderRadius: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 24px',
+                        border: `1px solid ${theme.accentColor}33`
+                    }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={theme.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+
+                    <h2 style={{
+                        fontSize: '24px',
+                        fontWeight: '800',
+                        color: '#fff',
+                        marginBottom: '16px',
+                        letterSpacing: '-0.02em'
+                    }}>
+                        Information & Disclaimer
+                    </h2>
+
+                    <p style={{
+                        fontSize: '15px',
+                        lineHeight: '1.6',
+                        color: 'rgba(255,255,255,0.7)',
+                        marginBottom: '32px'
+                    }}>
+                        Please note that this is a <strong>very rudimentary calculation</strong>, not close to the official Sodex one.
+                        <br /><br />
+                        It is <strong>guaranteed to be inaccurate</strong> and should be used for informational purposes only.
+                    </p>
+
+                    <button
+                        onClick={onClose}
+                        style={{
+                            width: '100%',
+                            background: theme.accentColor,
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: '14px',
+                            padding: '16px',
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: `0 8px 24px ${theme.accentColor}44`
+                        }}
+                        onMouseOver={e => {
+                            e.currentTarget.style.transform = 'translateY(-2px)'
+                            e.currentTarget.style.boxShadow = `0 12px 28px ${theme.accentColor}66`
+                        }}
+                        onMouseOut={e => {
+                            e.currentTarget.style.transform = 'translateY(0)'
+                            e.currentTarget.style.boxShadow = `0 8px 24px ${theme.accentColor}44`
+                        }}
+                    >
+                        I Understand
+                    </button>
+                </div>
+            </div>
+        </div>
+        , document.body
     )
 }
 
