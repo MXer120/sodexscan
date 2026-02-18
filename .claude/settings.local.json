@@ -30,7 +30,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git push:*)",
       "Bash(node:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }

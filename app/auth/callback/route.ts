@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -6,14 +5,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
 
   if (code) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { flowType: 'pkce' } }
-    )
-    await supabase.auth.exchangeCodeForSession(code)
+    return NextResponse.redirect(`${origin}/auth/done?code=${code}`)
   }
 
-  // next is read client-side from sessionStorage in the redirect page
-  return NextResponse.redirect(`${origin}/auth/done`)
+  return NextResponse.redirect(`${origin}/`)
 }
