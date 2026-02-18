@@ -1,47 +1,34 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
-function CallbackInner() {
+export default function AuthCallback() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const code = searchParams.get('code')
     const next = sessionStorage.getItem('authRedirect') ?? '/'
     sessionStorage.removeItem('authRedirect')
 
-    if (!code) {
-      router.replace(next)
-      return
-    }
-
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        setError(error.message)
-        setTimeout(() => router.replace('/'), 3000)
-      } else {
+    // Supabase auto-parses the hash and fires onAuthStateChange
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        subscription.unsubscribe()
         router.replace(next)
       }
     })
-  }, [router, searchParams])
 
-  if (error) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#f44336', fontSize: '14px' }}>
-      {error}
-    </div>
-  )
+    // Fallback: if already signed in (hash already processed)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        subscription.unsubscribe()
+        router.replace(next)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router])
 
   return null
-}
-
-export default function AuthCallback() {
-  return (
-    <Suspense>
-      <CallbackInner />
-    </Suspense>
-  )
 }

@@ -54,7 +54,7 @@ export const Auth = () => {
     sessionStorage.setItem('authRedirect', next)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
+      options: { redirectTo: `${window.location.origin}/auth/callback`, scopes: 'email profile' }
     })
     if (error) {
       setMessage(error.message)
