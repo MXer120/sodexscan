@@ -1,7 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+// Uses @supabase/ssr browser client so PKCE code verifier is stored in cookies
+// (survives server-side redirects, no tokens in URL)
+import { createBrowserClient } from '@supabase/ssr'
 
-export const supabase = createClient(
+export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  { auth: { flowType: 'implicit' } }
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
