@@ -51,9 +51,10 @@ export const Auth = () => {
     setLoading(true)
     setMessage('')
     const next = window.location.pathname === '/auth/callback' ? '/' : window.location.pathname
+    sessionStorage.setItem('authRedirect', next)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` }
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     })
     if (error) {
       setMessage(error.message)
