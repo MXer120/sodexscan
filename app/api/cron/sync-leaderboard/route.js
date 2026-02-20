@@ -41,10 +41,10 @@ export async function GET(request) {
           const totalVolume = volumeRes?.data?.total || 0
 
           return {
-            wallet_address: account.wallet_address,
             account_id: account.account_id,
-            pnl: totalPnl,
-            volume: totalVolume
+            wallet_address: account.wallet_address,
+            cumulative_pnl: totalPnl,
+            cumulative_volume: totalVolume
           }
         } catch (err) {
           console.error(`Error fetching stats for ${account.account_id}:`, err)
@@ -60,7 +60,7 @@ export async function GET(request) {
     if (leaderboardData.length > 0) {
       await supabase
         .from('leaderboard')
-        .upsert(leaderboardData, { onConflict: 'wallet_address' })
+        .upsert(leaderboardData, { onConflict: 'account_id' })
     }
 
     return Response.json({

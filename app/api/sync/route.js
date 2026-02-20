@@ -132,8 +132,8 @@ async function syncLeaderboard() {
             .upsert({
               account_id: account.account_id,
               wallet_address: account.wallet_address,
-              total_pnl: parseFloat(data.data.total_pnl || 0),
-              total_volume: parseFloat(data.data.total_volume || 0)
+              cumulative_pnl: parseFloat(data.data.total_pnl || 0),
+              cumulative_volume: parseFloat(data.data.total_volume || 0)
             }, { onConflict: 'account_id' })
           totalUpdated++
         }
