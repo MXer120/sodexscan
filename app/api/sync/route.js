@@ -116,7 +116,7 @@ async function syncLeaderboard() {
     return { success: true, updated: 0 }
   }
 
-  let totalUpdated = 0
+  const leaderboardData = []
 
   for (let i = 0; i < accounts.length; i += 10) {
     const batch = accounts.slice(i, i + 10)
@@ -127,15 +127,12 @@ async function syncLeaderboard() {
         const data = await res.json()
 
         if (data?.code === 0 && data?.data) {
-          await supabase
-            .from('leaderboard')
-            .upsert({
-              account_id: account.account_id,
-              wallet_address: account.wallet_address,
-              cumulative_pnl: parseFloat(data.data.total_pnl || 0),
-              cumulative_volume: parseFloat(data.data.total_volume || 0)
-            }, { onConflict: 'account_id' })
-          totalUpdated++
+          leaderboardData.push({
+            account_id: account.account_id,
+            wallet_address: account.wallet_address,
+            cumulative_pnl: parseFloat(data.data.total_pnl || 0),
+            cumulative_volume: parseFloat(data.data.total_volume || 0)
+          })
         }
       } catch (err) {
         console.error(`Error syncing leaderboard for ${account.account_id}:`, err)
@@ -143,7 +140,15 @@ async function syncLeaderboard() {
     }))
   }
 
-  return { success: true, updated: totalUpdated }
+  // Use RPC that skips no-op updates to avoid dead tuple bloat
+  if (leaderboardData.length > 0) {
+    const { error } = await supabase.rpc('upsert_leaderboard_batch', {
+      rows: leaderboardData
+    })
+    if (error) throw error
+  }
+
+  return { success: true, updated: leaderboardData.length }
 }
 
 async function syncPositions() {

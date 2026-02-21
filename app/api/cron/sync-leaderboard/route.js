@@ -56,11 +56,12 @@ export async function GET(request) {
       leaderboardData.push(...results.filter(Boolean))
     }
 
-    // Upsert to leaderboard table
+    // Use RPC that skips no-op updates to avoid dead tuple bloat
     if (leaderboardData.length > 0) {
-      await supabase
-        .from('leaderboard')
-        .upsert(leaderboardData, { onConflict: 'account_id' })
+      const { error } = await supabase.rpc('upsert_leaderboard_batch', {
+        rows: leaderboardData
+      })
+      if (error) throw error
     }
 
     return Response.json({
