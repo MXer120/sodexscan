@@ -28,7 +28,9 @@ export async function GET(request) {
       .single()
     if (metaErr) throw metaErr
 
-    const weekNumber = meta.current_week_number
+    // After freeze, current_week_number is already incremented.
+    // Snapshot belongs to the just-frozen week = current - 1.
+    const weekNumber = meta.current_week_number - 1
 
     // Fetch spot volume data from GitHub
     const res = await fetch(SPOT_DATA_URL)
