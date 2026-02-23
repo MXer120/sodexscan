@@ -42,7 +42,7 @@ function exportCSV(tickets) {
     t.account_id || '',
     t.tx_id || '',
     t.progress || '',
-    t.assigned || '',
+    (Array.isArray(t.assigned) ? t.assigned.join('; ') : t.assigned) || '',
   ])
   const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -92,7 +92,7 @@ export default function TicketTable({ tickets, loading }) {
       (t.issue_type || '').toLowerCase().includes(q) ||
       (t.wallet_address || '').toLowerCase().includes(q) ||
       (t.tx_id || '').toLowerCase().includes(q) ||
-      (t.assigned || '').toLowerCase().includes(q)
+      (Array.isArray(t.assigned) ? t.assigned.join(' ') : (t.assigned || '')).toLowerCase().includes(q)
     )
   }, [tickets, filterText])
 
@@ -180,7 +180,11 @@ export default function TicketTable({ tickets, loading }) {
                       {ticket.progress || 'new'}
                     </span>
                   </td>
-                  <td>{ticket.assigned || '—'}</td>
+                  <td>
+                    {Array.isArray(ticket.responding_mods) && ticket.responding_mods.length > 0
+                      ? `${ticket.responding_mods.length} mod${ticket.responding_mods.length > 1 ? 's' : ''}`
+                      : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

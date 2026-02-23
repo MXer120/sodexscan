@@ -5,7 +5,7 @@ import { useSessionContext } from '../lib/SessionContext'
 import { supabase } from '../lib/supabaseClient'
 import { useEffect } from 'react'
 
-export type TicketFilter = 'starred' | 'active' | 'inactive' | 'archived'
+export type TicketFilter = 'starred' | 'active' | 'inactive' | 'archived' | 'overview' | 'users'
 
 export interface Ticket {
   id: number
@@ -22,12 +22,14 @@ export interface Ticket {
   account_id: string | null
   tx_id: string | null
   progress: string | null
-  assigned: string | null
+  assigned: string[] | null
   created_at: string
   updated_at: string
   last_opener_message: string | null
+  last_non_mod_message: string | null
   last_message: string | null
   message_count: number
+  responding_mods: string[] | null
   is_starred?: boolean
 }
 
@@ -63,18 +65,21 @@ export function useTickets(filter: TicketFilter) {
         case 'active': {
           const open = enriched.filter((t: Ticket) => t.status === 'open')
           return open.filter((t: Ticket) => {
-            if (!t.last_opener_message) return true
-            return now - new Date(t.last_opener_message).getTime() <= FORTY_EIGHT_HOURS
+            if (!t.last_non_mod_message) return true
+            return now - new Date(t.last_non_mod_message).getTime() <= FORTY_EIGHT_HOURS
           })
         }
         case 'inactive':
           return enriched.filter((t: Ticket) => {
             if (t.status !== 'open') return false
-            if (!t.last_opener_message) return false
-            return now - new Date(t.last_opener_message).getTime() > FORTY_EIGHT_HOURS
+            if (!t.last_non_mod_message) return false
+            return now - new Date(t.last_non_mod_message).getTime() > FORTY_EIGHT_HOURS
           })
         case 'archived':
           return enriched.filter((t: Ticket) => t.status === 'closed')
+        case 'overview':
+        case 'users':
+          return enriched
         default:
           return enriched
       }

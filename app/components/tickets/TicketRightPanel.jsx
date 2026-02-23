@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useDiscordUser } from '../../hooks/useDiscordUser'
 import { useUpdateTicket } from '../../hooks/useUpdateTicket'
 
+const PROJECT_OPTIONS = ['SoDEX', 'SoSoValue', 'SSI']
+const PROGRESS_OPTIONS = ['new', 'waiting', 'escalated', 'solved']
+
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleString('en-US', {
@@ -51,10 +54,52 @@ function EditableField({ label, value, field, ticketId }) {
   )
 }
 
-export default function TicketRightPanel({ ticket, lastMessage }) {
+function SelectField({ label, value, field, ticketId, options }) {
+  const updateTicket = useUpdateTicket()
+
+  const handleChange = (e) => {
+    const val = e.target.value
+    updateTicket.mutate({ ticketId, fields: { [field]: val || null } })
+  }
+
+  return (
+    <div className="ticket-right-section">
+      <div className="ticket-right-label">{label}</div>
+      <select
+        className="ticket-editable-field"
+        value={value || ''}
+        onChange={handleChange}
+      >
+        <option value="">— Select —</option>
+        {options.map(opt => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function ModChip({ modId, discordUsers }) {
+  const mod = discordUsers?.find(u => u.id === modId)
+  const name = mod?.display_name || mod?.username || modId
+  return (
+    <Link href={`/tickets/mod/${modId}`} className="ticket-mod-chip">
+      {mod?.avatar_url ? (
+        <img src={mod.avatar_url} alt="" className="ticket-mod-chip-avatar" />
+      ) : (
+        <span className="ticket-mod-chip-initial">{name[0]?.toUpperCase()}</span>
+      )}
+      <span>{name}</span>
+    </Link>
+  )
+}
+
+export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) {
   const { data: opener } = useDiscordUser(ticket?.opener_discord_id)
 
   if (!ticket) return null
+
+  const respondingMods = ticket.responding_mods || ticket.assigned || []
 
   return (
     <div className="ticket-right-panel">
@@ -89,10 +134,29 @@ export default function TicketRightPanel({ ticket, lastMessage }) {
 
         <hr className="ticket-right-divider" />
 
-        {/* Editable fields */}
-        <EditableField label="Assigned" value={ticket.assigned} field="assigned" ticketId={ticket.id} />
-        <EditableField label="Progress" value={ticket.progress} field="progress" ticketId={ticket.id} />
-        <EditableField label="Project" value={ticket.project} field="project" ticketId={ticket.id} />
+        {/* Assigned (auto-detected responding mods) */}
+        <div className="ticket-right-section">
+          <div className="ticket-right-label">Responding Mods</div>
+          {respondingMods.length > 0 ? (
+            <div className="ticket-mod-chips">
+              {respondingMods.map(modId => (
+                <ModChip key={modId} modId={modId} discordUsers={discordUsers} />
+              ))}
+            </div>
+          ) : (
+            <div className="ticket-right-value" style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+              No mods responded
+            </div>
+          )}
+        </div>
+
+        {/* Progress (select) */}
+        <SelectField label="Progress" value={ticket.progress} field="progress" ticketId={ticket.id} options={PROGRESS_OPTIONS} />
+
+        {/* Project (select) */}
+        <SelectField label="Project" value={ticket.project} field="project" ticketId={ticket.id} options={PROJECT_OPTIONS} />
+
+        {/* Issue Type (editable text) */}
         <EditableField label="Issue Type" value={ticket.issue_type} field="issue_type" ticketId={ticket.id} />
 
         <hr className="ticket-right-divider" />

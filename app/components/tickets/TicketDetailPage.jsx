@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTickets } from '../../hooks/useTickets'
 import { useTicketMessages } from '../../hooks/useTicketMessages'
 import { useToggleStar } from '../../hooks/useTicketStars'
+import { useDiscordUsers } from '../../hooks/useDiscordUser'
 import TicketChat from './TicketChat'
 import TicketRightPanel from './TicketRightPanel'
 import '../../styles/TicketDetail.css'
@@ -37,6 +38,13 @@ export default function TicketDetailPage({ ticketId }) {
   }, [activeQ.data, archivedQ.data, inactiveQ.data, starredQ.data, id])
 
   const { data: messages, isLoading: msgsLoading } = useTicketMessages(id)
+
+  // Get unique author IDs to fetch discord users (for mod detection)
+  const authorIds = useMemo(() => {
+    if (!messages) return []
+    return [...new Set(messages.map(m => m.author_id))]
+  }, [messages])
+  const { data: discordUsers } = useDiscordUsers(authorIds)
 
   const lastMessage = useMemo(() => {
     if (!messages || messages.length === 0) return null
@@ -92,9 +100,9 @@ export default function TicketDetailPage({ ticketId }) {
 
       <div className="ticket-detail-layout">
         <div className="ticket-chat-area">
-          <TicketChat messages={messages} loading={msgsLoading} />
+          <TicketChat messages={messages} loading={msgsLoading} discordUsers={discordUsers} />
         </div>
-        <TicketRightPanel ticket={ticket} lastMessage={lastMessage} />
+        <TicketRightPanel ticket={ticket} lastMessage={lastMessage} discordUsers={discordUsers} />
       </div>
     </div>
   )
