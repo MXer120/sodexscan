@@ -1,15 +1,25 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useTickets } from '../../hooks/useTickets'
 import TicketSidebar from './TicketSidebar'
 import TicketTable from './TicketTable'
 import TicketOverview from './TicketOverview'
 import TicketUsers from './TicketUsers'
+import TicketExport from './TicketExport'
 import '../../styles/TicketsPage.css'
 
 export default function TicketsPage() {
-  const [filter, setFilter] = useState('overview')
+  const searchParams = useSearchParams()
+  const initialSection = searchParams.get('section') || 'overview'
+  const [filter, setFilter] = useState(initialSection)
+
+  // Sync filter when URL changes (back navigation)
+  useEffect(() => {
+    const section = searchParams.get('section')
+    if (section && section !== filter) setFilter(section)
+  }, [searchParams])
 
   // Fetch all filters to get counts
   const starred = useTickets('starred')
@@ -49,19 +59,30 @@ export default function TicketsPage() {
     inactive: 'Inactive Tickets',
     archived: 'Archived Tickets',
     users: 'Users',
+    export: 'Export',
   }
 
   const renderContent = () => {
     if (filter === 'overview') {
-      return <TicketOverview counts={counts} tickets={allTickets} />
+      return <TicketOverview counts={counts} tickets={allTickets} onFilterChange={setFilter} />
     }
     if (filter === 'users') {
       return <TicketUsers />
+    }
+    if (filter === 'export') {
+      const sectionData = {
+        starred: starred.data || [],
+        active: active.data || [],
+        inactive: inactive.data || [],
+        archived: archived.data || [],
+      }
+      return <TicketExport allTickets={allTickets} sectionData={sectionData} currentFilter={filter} />
     }
     return (
       <TicketTable
         tickets={current?.data || []}
         loading={current?.isLoading}
+        currentFilter={filter}
       />
     )
   }

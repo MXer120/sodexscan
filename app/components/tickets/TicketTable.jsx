@@ -3,8 +3,11 @@
 import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToggleStar } from '../../hooks/useTicketStars'
+import { useDiscordUsers } from '../../hooks/useDiscordUser'
 
-const COLUMNS = [
+const DISCORD_GUILD = '1009323027256848405'
+
+const ALL_COLUMNS = [
   { key: 'star', label: '', sortable: false, width: '40px' },
   { key: 'channel_name', label: 'Ticket', sortable: true },
   { key: 'open_date', label: 'Opened', sortable: true },
@@ -18,6 +21,54 @@ const COLUMNS = [
   { key: 'assigned', label: 'Assigned', sortable: true },
 ]
 
+const PROJECT_COLORS = {
+  sodex: { bg: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' },
+  sosovalue: { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' },
+  ssi: { bg: 'rgba(249, 115, 22, 0.15)', color: '#fb923c' },
+}
+
+function truncateWallet(addr) {
+  if (!addr) return '—'
+  if (addr.length <= 12) return addr
+  return `${addr.slice(0, 4)}...${addr.slice(-4)}`
+}
+
+function CopyableWallet({ value }) {
+  const [copied, setCopied] = useState(false)
+  if (!value) return <span>—</span>
+  const handleCopy = (e) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <span className="ticket-wallet-cell" title={value}>
+      {truncateWallet(value)}
+      <span className="ticket-wallet-copy" onClick={handleCopy}>
+        {copied ? '✓' : (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        )}
+      </span>
+    </span>
+  )
+}
+
+function DiscordLinkIcon({ channelId }) {
+  return (
+    <a
+      href={`https://discord.com/channels/${DISCORD_GUILD}/${channelId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="ticket-discord-link"
+      title="Open in Discord"
+      onClick={e => e.stopPropagation()}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
+  )
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
@@ -29,7 +80,16 @@ function truncate(str, len = 30) {
   return str.length > len ? str.slice(0, len) + '...' : str
 }
 
-function exportCSV(tickets) {
+/** Resolve mod usernames for CSV export */
+function resolveModNames(modIds, discordUsers) {
+  if (!modIds || !discordUsers) return ''
+  return modIds.map(id => {
+    const u = discordUsers.find(du => du.id === id)
+    return u?.display_name || u?.username || id
+  }).join('; ')
+}
+
+function exportCSV(tickets, discordUsers) {
   const headers = ['Ticket', 'Open Date', 'Close Date', 'Details', 'Project', 'Type', 'Wallet', 'Account ID', 'TX ID', 'Progress', 'Assigned']
   const rows = tickets.map(t => [
     t.channel_name || t.channel_id,
@@ -42,7 +102,7 @@ function exportCSV(tickets) {
     t.account_id || '',
     t.tx_id || '',
     t.progress || '',
-    (Array.isArray(t.assigned) ? t.assigned.join('; ') : t.assigned) || '',
+    resolveModNames(t.responding_mods, discordUsers),
   ])
   const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -64,12 +124,62 @@ function exportJSON(tickets) {
   URL.revokeObjectURL(url)
 }
 
-export default function TicketTable({ tickets, loading }) {
+/** Overlapping mod avatar stack */
+function ModAvatarStack({ modIds, discordUsers }) {
+  if (!modIds || modIds.length === 0) return <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+
+  return (
+    <div className="mod-avatar-stack" onClick={e => e.stopPropagation()}>
+      {modIds.slice(0, 5).map((modId, i) => {
+        const mod = discordUsers?.find(u => u.id === modId)
+        const name = mod?.display_name || mod?.username || modId
+        return (
+          <div
+            key={modId}
+            className="mod-avatar-stack-item"
+            style={{ zIndex: modIds.length - i }}
+            title={name}
+          >
+            {mod?.avatar_url ? (
+              <img src={mod.avatar_url} alt="" />
+            ) : (
+              <span>{name[0]?.toUpperCase()}</span>
+            )}
+          </div>
+        )
+      })}
+      {modIds.length > 5 && (
+        <div className="mod-avatar-stack-item mod-avatar-stack-more" style={{ zIndex: 0 }}>
+          +{modIds.length - 5}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function TicketTable({ tickets, loading, currentFilter }) {
   const router = useRouter()
   const toggleStar = useToggleStar()
   const [sortKey, setSortKey] = useState('open_date')
   const [sortDir, setSortDir] = useState('desc')
   const [filterText, setFilterText] = useState('')
+
+  // Hide 'closed' column in active section
+  const COLUMNS = useMemo(() => {
+    if (currentFilter === 'active') return ALL_COLUMNS.filter(c => c.key !== 'close_date')
+    return ALL_COLUMNS
+  }, [currentFilter])
+
+  // Collect all unique mod IDs across tickets for batch fetch
+  const allModIds = useMemo(() => {
+    const ids = new Set()
+    ;(tickets || []).forEach(t => {
+      (t.responding_mods || []).forEach(id => ids.add(id))
+    })
+    return [...ids]
+  }, [tickets])
+
+  const { data: discordUsers } = useDiscordUsers(allModIds)
 
   const handleSort = (key) => {
     if (!COLUMNS.find(c => c.key === key)?.sortable) return
@@ -126,10 +236,6 @@ export default function TicketTable({ tickets, loading }) {
             onChange={e => setFilterText(e.target.value)}
           />
         </div>
-        <div className="ticket-export-btns">
-          <button className="ticket-export-btn" onClick={() => exportCSV(sorted)}>CSV</button>
-          <button className="ticket-export-btn" onClick={() => exportJSON(sorted)}>JSON</button>
-        </div>
       </div>
 
       <div className="ticket-table-wrapper">
@@ -158,7 +264,7 @@ export default function TicketTable({ tickets, loading }) {
             </thead>
             <tbody>
               {sorted.map(ticket => (
-                <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}`)}>
+                <tr key={ticket.id} onClick={() => router.push(`/tickets/${ticket.id}?from=${currentFilter || 'active'}`)}>
                   <td onClick={e => e.stopPropagation()}>
                     <button
                       className={`ticket-star-btn ${ticket.is_starred ? 'starred' : ''}`}
@@ -167,13 +273,24 @@ export default function TicketTable({ tickets, loading }) {
                       {ticket.is_starred ? '★' : '☆'}
                     </button>
                   </td>
-                  <td className="ticket-name">{ticket.channel_name || ticket.channel_id}</td>
+                  <td className="ticket-name">
+                    {ticket.channel_name || ticket.channel_id}
+                    <DiscordLinkIcon channelId={ticket.channel_id} />
+                  </td>
                   <td className="ticket-date">{formatDate(ticket.open_date)}</td>
-                  <td className="ticket-date">{formatDate(ticket.close_date)}</td>
+                  {currentFilter !== 'active' && (
+                    <td className="ticket-date">{formatDate(ticket.close_date)}</td>
+                  )}
                   <td>{truncate(ticket.details)}</td>
-                  <td>{ticket.project || '—'}</td>
+                  <td>
+                    {ticket.project ? (
+                      <span className={`ticket-project-badge ${ticket.project.toLowerCase().replace(/\s+/g, '')}`}>
+                        {ticket.project}
+                      </span>
+                    ) : '—'}
+                  </td>
                   <td>{ticket.issue_type || '—'}</td>
-                  <td>{truncate(ticket.wallet_address || ticket.account_id, 16)}</td>
+                  <td><CopyableWallet value={ticket.wallet_address || ticket.account_id} /></td>
                   <td>{truncate(ticket.tx_id, 16)}</td>
                   <td>
                     <span className={`ticket-progress ${(ticket.progress || 'new').replace(/\s+/g, '-').toLowerCase()}`}>
@@ -181,9 +298,7 @@ export default function TicketTable({ tickets, loading }) {
                     </span>
                   </td>
                   <td>
-                    {Array.isArray(ticket.responding_mods) && ticket.responding_mods.length > 0
-                      ? `${ticket.responding_mods.length} mod${ticket.responding_mods.length > 1 ? 's' : ''}`
-                      : '—'}
+                    <ModAvatarStack modIds={ticket.responding_mods} discordUsers={discordUsers} />
                   </td>
                 </tr>
               ))}

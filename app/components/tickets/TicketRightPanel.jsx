@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useDiscordUser } from '../../hooks/useDiscordUser'
 import { useUpdateTicket } from '../../hooks/useUpdateTicket'
@@ -8,12 +8,37 @@ import { useUpdateTicket } from '../../hooks/useUpdateTicket'
 const PROJECT_OPTIONS = ['SoDEX', 'SoSoValue', 'SSI']
 const PROGRESS_OPTIONS = ['new', 'waiting', 'escalated', 'solved']
 
+const OPTION_COLORS = {
+  // Progress
+  new: { bg: 'rgba(96, 165, 250, 0.25)', color: '#60a5fa' },
+  waiting: { bg: 'rgba(251, 191, 36, 0.25)', color: '#fbbf24' },
+  escalated: { bg: 'rgba(248, 113, 113, 0.25)', color: '#f87171' },
+  solved: { bg: 'rgba(74, 222, 128, 0.25)', color: '#4ade80' },
+  closed: { bg: 'rgba(168, 162, 158, 0.25)', color: '#a8a29e' },
+  // Projects
+  sodex: { bg: 'rgba(129, 140, 248, 0.25)', color: '#818cf8' },
+  sosovalue: { bg: 'rgba(74, 222, 128, 0.25)', color: '#4ade80' },
+  ssi: { bg: 'rgba(251, 146, 60, 0.25)', color: '#fb923c' },
+}
+
+function getOptionColor(val) {
+  if (!val) return null
+  return OPTION_COLORS[val.toLowerCase().replace(/\s+/g, '')] || null
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: false,
   })
+}
+
+/** Extract username from ticket channel name: "ticket-ghormesabzi" → "ghormesabzi" */
+function extractOpenerName(channelName) {
+  if (!channelName) return null
+  const match = channelName.match(/^ticket-(.+)$/i)
+  return match ? match[1] : null
 }
 
 function EditableField({ label, value, field, ticketId }) {
@@ -54,27 +79,128 @@ function EditableField({ label, value, field, ticketId }) {
   )
 }
 
-function SelectField({ label, value, field, ticketId, options }) {
+function EditableTextArea({ label, value, field, ticketId }) {
+  const [editing, setEditing] = useState(false)
+  const [localVal, setLocalVal] = useState(value || '')
   const updateTicket = useUpdateTicket()
 
-  const handleChange = (e) => {
-    const val = e.target.value
-    updateTicket.mutate({ ticketId, fields: { [field]: val || null } })
+  const save = () => {
+    if (localVal !== (value || '')) {
+      updateTicket.mutate({ ticketId, fields: { [field]: localVal || null } })
+    }
+    setEditing(false)
   }
 
   return (
     <div className="ticket-right-section">
       <div className="ticket-right-label">{label}</div>
-      <select
-        className="ticket-editable-field"
-        value={value || ''}
-        onChange={handleChange}
-      >
-        <option value="">— Select —</option>
-        {options.map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
+      {editing ? (
+        <textarea
+          className="ticket-editable-field"
+          value={localVal}
+          onChange={e => setLocalVal(e.target.value)}
+          onBlur={save}
+          autoFocus
+          rows={4}
+          style={{ resize: 'vertical', minHeight: '60px' }}
+        />
+      ) : (
+        <div
+          className="ticket-right-value"
+          style={{ cursor: 'pointer', minHeight: '20px', whiteSpace: 'pre-wrap', fontSize: '13px' }}
+          onClick={() => { setLocalVal(value || ''); setEditing(true) }}
+          title="Click to edit"
+        >
+          {value || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Click to set details</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SelectField({ label, value, field, ticketId, options, allowNone = false, multi = false }) {
+  const updateTicket = useUpdateTicket()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  // For multi-select, value is comma-separated string
+  const selected = multi ? (value || '').split(',').map(s => s.trim()).filter(Boolean) : []
+
+  useEffect(() => {
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const handleSelect = (val) => {
+    if (multi) {
+      let next
+      if (val === '') {
+        next = ''
+      } else if (selected.includes(val)) {
+        next = selected.filter(s => s !== val).join(',')
+      } else {
+        next = [...selected, val].join(',')
+      }
+      updateTicket.mutate({ ticketId, fields: { [field]: next || null } })
+    } else {
+      updateTicket.mutate({ ticketId, fields: { [field]: val || null } })
+      setOpen(false)
+    }
+  }
+
+  const currentColor = getOptionColor(value)
+
+  return (
+    <div className="ticket-right-section">
+      <div className="ticket-right-label">{label}</div>
+      <div className="ticket-custom-select" ref={ref}>
+        <div
+          className="ticket-custom-select-trigger"
+          onClick={() => setOpen(!open)}
+        >
+          {multi && selected.length > 0 ? (
+            <span className="ticket-custom-select-multi">
+              {selected.map(s => {
+                const c = getOptionColor(s)
+                return (
+                  <span key={s} className="ticket-custom-select-badge" style={c ? { background: c.bg, color: c.color } : undefined}>
+                    {s}
+                  </span>
+                )
+              })}
+            </span>
+          ) : value && !multi ? (
+            <span className="ticket-custom-select-badge" style={currentColor ? { background: currentColor.bg, color: currentColor.color } : undefined}>
+              {value}
+            </span>
+          ) : (
+            <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>— Select —</span>
+          )}
+          <svg className="ticket-custom-select-arrow" width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12L2 6h12z"/></svg>
+        </div>
+        {open && (
+          <div className="ticket-custom-select-dropdown">
+            {allowNone && (
+              <div className="ticket-custom-select-option" onClick={() => handleSelect('')}>
+                <span style={{ color: 'var(--color-text-muted)' }}>— None —</span>
+              </div>
+            )}
+            {options.map(opt => {
+              const c = getOptionColor(opt)
+              const isActive = multi ? selected.includes(opt) : value === opt
+              return (
+                <div key={opt} className={`ticket-custom-select-option ${isActive ? 'active' : ''}`} onClick={() => handleSelect(opt)}>
+                  {multi && <span className="ticket-custom-select-check">{isActive ? '✓' : ''}</span>}
+                  <span className="ticket-custom-select-badge" style={c ? { background: c.bg, color: c.color } : undefined}>
+                    {opt}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -101,6 +227,11 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
 
   const respondingMods = ticket.responding_mods || ticket.assigned || []
 
+  // Extract opener name from channel name if no discord user found
+  const openerName = opener
+    ? (opener.display_name || opener.username || 'Unknown')
+    : extractOpenerName(ticket.channel_name) || ticket.opener_discord_id || '—'
+
   return (
     <div className="ticket-right-panel">
       <div className="ticket-right-card">
@@ -122,7 +253,7 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
               </div>
             </Link>
           ) : (
-            <div className="ticket-right-value">{ticket.opener_discord_id || '—'}</div>
+            <div className="ticket-right-value">{openerName}</div>
           )}
         </div>
 
@@ -150,14 +281,19 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
           )}
         </div>
 
-        {/* Progress (select) */}
+        {/* Progress (select — no None option) */}
         <SelectField label="Progress" value={ticket.progress} field="progress" ticketId={ticket.id} options={PROGRESS_OPTIONS} />
 
-        {/* Project (select) */}
-        <SelectField label="Project" value={ticket.project} field="project" ticketId={ticket.id} options={PROJECT_OPTIONS} />
+        {/* Project (select — allow None + multi-select) */}
+        <SelectField label="Project" value={ticket.project} field="project" ticketId={ticket.id} options={PROJECT_OPTIONS} allowNone multi />
 
         {/* Issue Type (editable text) */}
         <EditableField label="Issue Type" value={ticket.issue_type} field="issue_type" ticketId={ticket.id} />
+
+        <hr className="ticket-right-divider" />
+
+        {/* Details (editable textarea) */}
+        <EditableTextArea label="Details" value={ticket.details} field="details" ticketId={ticket.id} />
 
         <hr className="ticket-right-divider" />
 
@@ -178,15 +314,6 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
 
         <EditableField label="Account ID" value={ticket.account_id} field="account_id" ticketId={ticket.id} />
         <EditableField label="TX ID" value={ticket.tx_id} field="tx_id" ticketId={ticket.id} />
-
-        <hr className="ticket-right-divider" />
-
-        <div className="ticket-right-section">
-          <div className="ticket-right-label">Details</div>
-          <div className="ticket-right-value" style={{ whiteSpace: 'pre-wrap', fontSize: '13px' }}>
-            {ticket.details || '—'}
-          </div>
-        </div>
       </div>
     </div>
   )

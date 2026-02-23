@@ -51,9 +51,8 @@ export default function DiscordProfilePage({ discordId }) {
             }
           </div>
           <div>
-            <div className="discord-profile-name">
+            <div className="discord-profile-name" style={discordUser?.is_mod ? { color: '#b15d14' } : undefined}>
               {discordUser?.display_name || discordUser?.username || discordId}
-              {discordUser?.is_mod && <span className="discord-profile-mod-badge">MOD</span>}
             </div>
             {discordUser?.username && (
               <div className="discord-profile-username">@{discordUser.username}</div>

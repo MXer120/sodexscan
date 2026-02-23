@@ -33,6 +33,46 @@ export interface Ticket {
   is_starred?: boolean
 }
 
+/**
+ * Auto-compute progress if not manually set:
+ * - "new" = no messages at all
+ * - "waiting" = most recent message is by the opener (not a mod)
+ * - Otherwise keep whatever is set
+ */
+function autoProgress(ticket: Ticket): string {
+  // Closed tickets default to 'closed' progress
+  if (ticket.status === 'closed') {
+    return ticket.progress || 'closed'
+  }
+
+  // If manually set to escalated/solved, respect it
+  if (ticket.progress === 'escalated' || ticket.progress === 'solved') {
+    return ticket.progress
+  }
+
+  // No messages = new
+  if (!ticket.message_count || ticket.message_count === 0) {
+    return 'new'
+  }
+
+  // If last non-mod message is more recent than last message from a mod = waiting
+  // We can approximate: if responding_mods is empty = new/waiting
+  if (!ticket.responding_mods || ticket.responding_mods.length === 0) {
+    return 'waiting'
+  }
+
+  // If last_non_mod_message > last_message by a mod → waiting
+  // Since we have last_non_mod_message and last_message, if they're equal it means
+  // the last message was from a non-mod user
+  if (ticket.last_non_mod_message && ticket.last_message) {
+    if (ticket.last_non_mod_message === ticket.last_message) {
+      return 'waiting'
+    }
+  }
+
+  return ticket.progress || 'new'
+}
+
 export function useTickets(filter: TicketFilter) {
   const { user, isMod } = useSessionContext()
 
@@ -54,6 +94,8 @@ export function useTickets(filter: TicketFilter) {
       const enriched = (tickets || []).map((t: any) => ({
         ...t,
         is_starred: starredIds.has(t.id),
+        // Auto-compute progress
+        progress: autoProgress(t),
       }))
 
       const now = Date.now()
@@ -61,25 +103,34 @@ export function useTickets(filter: TicketFilter) {
 
       switch (filter) {
         case 'starred':
+          // Starred is independent — tickets can be starred AND in any section
           return enriched.filter((t: Ticket) => t.is_starred)
+
         case 'active': {
-          const open = enriched.filter((t: Ticket) => t.status === 'open')
-          return open.filter((t: Ticket) => {
-            if (!t.last_non_mod_message) return true
+          // Active = OPEN + last non-mod message within 48h (or no non-mod message yet)
+          return enriched.filter((t: Ticket) => {
+            if (t.status !== 'open') return false // closed = archived, not active
+            if (!t.last_non_mod_message) return true // no non-mod msg yet = still active
             return now - new Date(t.last_non_mod_message).getTime() <= FORTY_EIGHT_HOURS
           })
         }
+
         case 'inactive':
+          // Inactive = OPEN + last non-mod message older than 48h
           return enriched.filter((t: Ticket) => {
-            if (t.status !== 'open') return false
-            if (!t.last_non_mod_message) return false
+            if (t.status !== 'open') return false // closed tickets go to archived
+            if (!t.last_non_mod_message) return false // no msg = active, not inactive
             return now - new Date(t.last_non_mod_message).getTime() > FORTY_EIGHT_HOURS
           })
+
         case 'archived':
+          // Archived = ONLY closed tickets (closed in Discord)
           return enriched.filter((t: Ticket) => t.status === 'closed')
+
         case 'overview':
         case 'users':
           return enriched
+
         default:
           return enriched
       }

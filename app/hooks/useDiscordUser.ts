@@ -70,6 +70,54 @@ export function useAllMods() {
   })
 }
 
+// Mod responders: mods who responded to tickets (unique tickets responded count)
+export function useModResponders() {
+  const { user, isMod } = useSessionContext()
+
+  return useQuery({
+    queryKey: ['mod-responders'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_mod_responders')
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!user && isMod,
+    staleTime: 60_000,
+  })
+}
+
+// Search ticket openers by query string
+export function useSearchTicketOpeners(query: string) {
+  const { user, isMod } = useSessionContext()
+
+  return useQuery({
+    queryKey: ['search-ticket-openers', query],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_ticket_openers', { p_query: query })
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!user && isMod,
+    staleTime: 15_000,
+  })
+}
+
+// Get all tickets for a specific user
+export function useUserTickets(discordId: string | null) {
+  const { user, isMod } = useSessionContext()
+
+  return useQuery({
+    queryKey: ['user-tickets', discordId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_user_tickets', { p_discord_id: discordId })
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!discordId && !!user && isMod,
+    staleTime: 30_000,
+  })
+}
+
 export function useTopTicketOpeners(limit = 20) {
   const { user, isMod } = useSessionContext()
 

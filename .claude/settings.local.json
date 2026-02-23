@@ -31,7 +31,17 @@
       "Bash(git push:*)",
       "Bash(node:*)",
       "Bash(del:*)",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(where:*)",
+      "Bash(npx vercel:*)",
+      "Bash(timeout:*)",
+      "Bash(PGPASSWORD=\"REDACTED_DB_PASSWORD\" psql:*)",
+      "Bash(set NEXT_PUBLIC_SUPABASE_URL=https://yifkydhsbflzfprteots.supabase.co:*)",
+      "Bash(set SUPABASE_SERVICE_ROLE_KEY=REDACTED_SUPABASE_SECRET_KEY)",
+      "Bash(wc:*)",
+      "Bash(python -m venv:*)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(venv/Scripts/python:*)"
     ]
   }
 }

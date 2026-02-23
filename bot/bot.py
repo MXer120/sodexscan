@@ -307,16 +307,27 @@ async def before_full_sync():
 
 
 async def do_full_sync():
-    """Sync all ticket channels: ensure tickets exist, fetch history."""
+    """Sync all ticket channels: ensure tickets exist, fetch history.
+    Also detect and close tickets whose channels no longer exist in Discord.
+    """
     log.info("[SYNC] Starting full sync...")
     count = 0
+
+    # Collect all current Discord ticket channel IDs
+    live_channel_ids = set()
 
     for guild in bot.guilds:
         for channel in guild.text_channels:
             if not is_ticket_channel(channel):
                 continue
 
-            ticket_id = await ensure_ticket(channel)
+            live_channel_ids.add(str(channel.id))
+
+            try:
+                ticket_id = await ensure_ticket(channel)
+            except Exception as e:
+                log.error(f"[SYNC] ensure_ticket failed for #{channel.name}: {e}")
+                continue
             if not ticket_id:
                 continue
 
@@ -355,7 +366,16 @@ async def do_full_sync():
             except Exception as e:
                 log.error(f"[SYNC] Error in #{channel.name}: {e}")
 
-    log.info(f"[SYNC] Done. Processed {count} messages.")
+    # Close stale tickets: open in DB but channel no longer exists in Discord
+    stale_closed = 0
+    open_channel_ids = get_all_ticket_channel_ids()
+    for ch_id in open_channel_ids:
+        if ch_id not in live_channel_ids:
+            close_ticket(ch_id)
+            stale_closed += 1
+            log.info(f"[SYNC] Auto-closed stale ticket (channel {ch_id} gone)")
+
+    log.info(f"[SYNC] Done. {count} msgs processed, {stale_closed} stale tickets closed.")
 
 
 # ── Entry point ─────────────────────────────────────────────
