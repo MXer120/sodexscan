@@ -7,16 +7,15 @@ import os
 from datetime import datetime, timezone
 from supabase import create_client, Client
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
-
 _client: Client | None = None
 
 
 def get_client() -> Client:
     global _client
     if _client is None:
-        _client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        url = os.getenv("SUPABASE_URL", "")
+        key = os.getenv("SUPABASE_SERVICE_KEY", "")
+        _client = create_client(url, key)
     return _client
 
 
@@ -61,14 +60,19 @@ def upsert_ticket(
 
 def get_ticket_by_channel(channel_id: str) -> dict | None:
     sb = get_client()
-    result = (
-        sb.table("tickets")
-        .select("*")
-        .eq("channel_id", channel_id)
-        .maybe_single()
-        .execute()
-    )
-    return result.data
+    try:
+        result = (
+            sb.table("tickets")
+            .select("*")
+            .eq("channel_id", channel_id)
+            .limit(1)
+            .execute()
+        )
+        if result and result.data and len(result.data) > 0:
+            return result.data[0]
+    except Exception as e:
+        print(f"[db] get_ticket_by_channel error: {e}")
+    return None
 
 
 def close_ticket(channel_id: str):
@@ -83,18 +87,22 @@ def close_ticket(channel_id: str):
 def update_ticket_extracted(ticket_id: int, wallets: list[str], tx_ids: list[str]):
     """Update ticket with extracted wallet/tx if not already set."""
     sb = get_client()
-    ticket = sb.table("tickets").select("wallet_address, tx_id").eq("id", ticket_id).single().execute()
-    if not ticket.data:
-        return
+    try:
+        result = sb.table("tickets").select("wallet_address, tx_id").eq("id", ticket_id).limit(1).execute()
+        if not result or not result.data or len(result.data) == 0:
+            return
+        ticket_data = result.data[0]
 
-    updates = {}
-    if not ticket.data.get("wallet_address") and wallets:
-        updates["wallet_address"] = wallets[0]
-    if not ticket.data.get("tx_id") and tx_ids:
-        updates["tx_id"] = tx_ids[0]
+        updates = {}
+        if not ticket_data.get("wallet_address") and wallets:
+            updates["wallet_address"] = wallets[0]
+        if not ticket_data.get("tx_id") and tx_ids:
+            updates["tx_id"] = tx_ids[0]
 
-    if updates:
-        sb.table("tickets").update(updates).eq("id", ticket_id).execute()
+        if updates:
+            sb.table("tickets").update(updates).eq("id", ticket_id).execute()
+    except Exception as e:
+        print(f"[db] update_ticket_extracted error: {e}")
 
 
 def get_all_ticket_channel_ids() -> list[str]:

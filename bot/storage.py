@@ -4,13 +4,18 @@ import httpx
 import os
 from supabase import create_client
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 BUCKET = "ticket-attachments"
+
+_storage_client = None
 
 
 def get_storage_client():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    global _storage_client
+    if _storage_client is None:
+        url = os.getenv("SUPABASE_URL", "")
+        key = os.getenv("SUPABASE_SERVICE_KEY", "")
+        _storage_client = create_client(url, key)
+    return _storage_client
 
 
 async def proxy_attachment(
