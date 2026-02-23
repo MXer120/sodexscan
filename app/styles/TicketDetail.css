@@ -1,0 +1,501 @@
+/* ============================================
+   Ticket Detail Page
+   ============================================ */
+
+.ticket-detail-container {
+  min-height: 100vh;
+  padding-top: 80px;
+  background: var(--color-bg-main);
+  padding-bottom: 60px;
+}
+
+.ticket-detail-layout {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  gap: 24px;
+}
+
+/* ============================================
+   Back button + header
+   ============================================ */
+
+.ticket-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  transition: color 0.15s;
+}
+
+.ticket-detail-back:hover {
+  color: var(--color-text-main);
+}
+
+.ticket-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ticket-detail-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.ticket-detail-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ticket-detail-status.open {
+  background: rgba(var(--color-success-rgb), 0.15);
+  color: var(--color-success);
+}
+
+.ticket-detail-status.closed {
+  background: rgba(var(--color-error-rgb), 0.15);
+  color: var(--color-error);
+}
+
+/* ============================================
+   Chat Area
+   ============================================ */
+
+.ticket-chat-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.ticket-chat-messages {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ============================================
+   Chat Message
+   ============================================ */
+
+.chat-msg {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background 0.1s;
+}
+
+.chat-msg:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chat-msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(var(--color-primary-rgb), 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.chat-msg-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-msg-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-msg-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.chat-msg-author {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.chat-msg-author.mod {
+  color: var(--color-warning);
+}
+
+.chat-msg-time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.chat-msg-edit-badge {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.chat-msg-deleted {
+  font-style: italic;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.chat-msg-content {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-msg-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* Attachments */
+.chat-msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chat-msg-image {
+  max-width: 300px;
+  max-height: 200px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.chat-msg-image:hover {
+  opacity: 0.85;
+}
+
+.chat-msg-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  color: var(--color-primary);
+  font-size: 12px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.chat-msg-file:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   Right Panel
+   ============================================ */
+
+.ticket-right-panel {
+  width: 280px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 100px;
+  height: fit-content;
+}
+
+.ticket-right-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ticket-right-section {
+  margin-bottom: 20px;
+}
+
+.ticket-right-section:last-child {
+  margin-bottom: 0;
+}
+
+.ticket-right-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.ticket-right-value {
+  font-size: 14px;
+  color: var(--color-text-main);
+  word-break: break-all;
+}
+
+.ticket-right-value a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.ticket-right-value a:hover {
+  text-decoration: underline;
+}
+
+.ticket-right-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.ticket-right-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(var(--color-primary-rgb), 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.ticket-right-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ticket-right-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.ticket-right-user-link {
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ticket-right-user-link:hover {
+  text-decoration: underline;
+}
+
+/* Editable field */
+.ticket-editable-field {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--color-text-main);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.ticket-editable-field:focus {
+  border-color: var(--color-primary);
+}
+
+/* Divider */
+.ticket-right-divider {
+  border: none;
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 16px 0;
+}
+
+/* ============================================
+   Discord Profile Page
+   ============================================ */
+
+.discord-profile-container {
+  min-height: 100vh;
+  padding-top: 80px;
+  background: var(--color-bg-main);
+  padding-bottom: 60px;
+}
+
+.discord-profile-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.discord-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.discord-profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(var(--color-primary-rgb), 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  font-size: 24px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.discord-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.discord-profile-name {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.discord-profile-username {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.discord-profile-mod-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(var(--color-warning-rgb), 0.15);
+  color: var(--color-warning);
+  margin-left: 8px;
+}
+
+.discord-profile-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.discord-profile-stat {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  padding: 16px 24px;
+  text-align: center;
+}
+
+.discord-profile-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.discord-profile-stat-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.discord-profile-tickets {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.discord-profile-tickets-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.discord-profile-ticket-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.discord-profile-ticket-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.discord-profile-ticket-name {
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.discord-profile-ticket-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+
+@media (max-width: 768px) {
+  .ticket-detail-layout {
+    flex-direction: column;
+    padding: 16px 12px;
+  }
+
+  .ticket-right-panel {
+    width: 100%;
+    position: static;
+  }
+
+  .ticket-chat-messages {
+    max-height: 60vh;
+  }
+
+  .discord-profile-stats {
+    flex-direction: column;
+  }
+}

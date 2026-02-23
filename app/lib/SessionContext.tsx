@@ -8,6 +8,8 @@ interface SessionContextType {
   session: Session | null
   user: User | null
   loading: boolean
+  role: string | null
+  isMod: boolean
   openAuthModal: () => void
   setAuthModalCallback: (callback: (() => void) | null) => void
 }
@@ -16,6 +18,8 @@ const SessionContext = createContext<SessionContextType>({
   session: null,
   user: null,
   loading: true,
+  role: null,
+  isMod: false,
   openAuthModal: () => { },
   setAuthModalCallback: () => { },
 })
@@ -24,7 +28,10 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState<string | null>(null)
   const [authModalCallback, setAuthModalCallback] = useState<(() => void) | null>(null)
+
+  const isMod = role === 'mod'
 
   const openAuthModal = () => {
     if (authModalCallback) {
@@ -33,10 +40,16 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   }
 
   useEffect(() => {
+    const fetchRole = (userId: string) => {
+      supabaseClient.from('profiles').select('role').eq('id', userId).single()
+        .then(({ data }) => setRole(data?.role ?? 'user'))
+    }
+
     // Get initial session
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.user) fetchRole(session.user.id)
       setLoading(false)
     })
 
@@ -46,6 +59,8 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
     } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.user) fetchRole(session.user.id)
+      else setRole(null)
       setLoading(false)
     })
 
@@ -53,7 +68,7 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   }, [supabaseClient])
 
   return (
-    <SessionContext.Provider value={{ session, user, loading, openAuthModal, setAuthModalCallback }}>
+    <SessionContext.Provider value={{ session, user, loading, role, isMod, openAuthModal, setAuthModalCallback }}>
       {children}
     </SessionContext.Provider>
   )

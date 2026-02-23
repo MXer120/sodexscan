@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Command } from 'cmdk'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
+import { useSessionContext } from '../lib/SessionContext'
 import '../styles/CommandPalette.css'
 
 /* Icons */
@@ -39,7 +40,8 @@ const NUMBERED_FILTERS = [
     { id: 'telegram', label: 'Telegram', icon: <Icons.Telegram /> },
     { id: 'refcode', label: 'Ref Code', icon: <Icons.File /> },
     { id: 'pnl_rank', label: 'PnL Rank', icon: <Icons.Chart /> },
-    { id: 'volume_rank', label: 'Volume Rank', icon: <Icons.Chart /> }
+    { id: 'volume_rank', label: 'Volume Rank', icon: <Icons.Chart /> },
+    { id: 'ticket', label: 'Tickets', icon: <Icons.File />, modOnly: true }
 ]
 
 const ALL_FILTERS = [...TOP_FILTERS, ...NUMBERED_FILTERS]
@@ -60,17 +62,20 @@ export default function CommandPalette() {
     const [userTags, setUserTags] = useState([])
     const inputRef = useRef(null)
     const router = useRouter()
+    const { isMod } = useSessionContext()
 
     // Shortcuts Map
     const shortcuts = [
         { key: 'p', path: '/profile', label: 'Profile' },
         { key: 's', path: '/tracker', label: 'Switch to Scan' },
-        { key: 'l', path: '/mainnet', label: 'Leaderboard' }
+        { key: 'l', path: '/mainnet', label: 'Leaderboard' },
+        ...(isMod ? [{ key: 't', path: '/tickets', label: 'Tickets' }] : [])
     ]
 
     // Global Shortcuts & Init
     useEffect(() => {
-        // Defines all pages
+        // Defines all pages (filtered by mod mode)
+        const modHidden = ['/sopoints', '/social', '/social/stats', '/incoming']
         const allPages = [
             { name: 'Home', path: '/', icon: <Icons.Home /> },
             { name: 'Scanner', path: '/tracker', icon: <Icons.Scan />, shortcut: 'S' },
@@ -82,8 +87,9 @@ export default function CommandPalette() {
             { name: 'Watchlist', path: '/watchlist', icon: <Icons.Wallet /> },
             { name: 'Incoming', path: '/incoming', icon: <Icons.Scan /> },
             { name: 'Reverse Search', path: '/reverse-search', icon: <Icons.Scan /> },
-            { name: 'Profile', path: '/profile', icon: <Icons.Users />, shortcut: 'P' }
-        ]
+            { name: 'Profile', path: '/profile', icon: <Icons.Users />, shortcut: 'P' },
+            ...(isMod ? [{ name: 'Tickets', path: '/tickets', icon: <Icons.File />, shortcut: 'T' }] : [])
+        ].filter(p => !(isMod && modHidden.includes(p.path)))
         setPages(allPages)
 
         loadStats()
@@ -133,7 +139,7 @@ export default function CommandPalette() {
             document.removeEventListener('keydown', down)
             if (typeof window !== 'undefined') window.removeEventListener('openCommandPalette', handleOpenEvent)
         }
-    }, [open, router])
+    }, [open, router, isMod])
 
     // Focus input when opened
     useEffect(() => {
@@ -376,12 +382,35 @@ export default function CommandPalette() {
                 }
             }
 
+            // --- Ticket search (mod-only) ---
+            if (isMod && (filter === 'ticket' || (filter === 'all' && term.length > 1))) {
+                try {
+                    const { data: ticketData } = await supabase
+                        .from('tickets')
+                        .select('id, channel_name, channel_id, details, wallet_address')
+                        .or(`channel_name.ilike.%${term}%,channel_id.ilike.%${term}%,details.ilike.%${term}%,wallet_address.ilike.%${term}%`)
+                        .limit(5)
+                    if (ticketData) {
+                        ticketData.forEach(t => {
+                            results.push({
+                                type: 'ticket',
+                                label: t.channel_name || t.channel_id,
+                                value: `/tickets/${t.id}`,
+                                detail: t.details ? t.details.slice(0, 50) : t.wallet_address || '',
+                                icon: <Icons.File />,
+                                group: 'Tickets'
+                            })
+                        })
+                    }
+                } catch (e) { /* silently fail for non-mods */ }
+            }
+
             setSearchResults(results)
             setLoading(false)
         }, 300)
 
         return () => clearTimeout(timer)
-    }, [search, activeFilter, userTags, pages])
+    }, [search, activeFilter, userTags, pages, isMod])
 
 
     const runCommand = (command) => {
@@ -390,7 +419,9 @@ export default function CommandPalette() {
     }
 
     const navigateTo = (path) => {
-        if (path.startsWith('0x') || path.length > 30) {
+        if (path.startsWith('/tickets/') || path.startsWith('/')) {
+            router.push(path)
+        } else if (path.startsWith('0x') || path.length > 30) {
             router.push(`/tracker?wallet=${path}`)
         } else {
             router.push(path)
@@ -454,7 +485,7 @@ export default function CommandPalette() {
 
                                 {/* Numbered Filters */}
                                 <Command.Group heading="Specific Filters">
-                                    {NUMBERED_FILTERS.map((f, i) => (
+                                    {NUMBERED_FILTERS.filter(f => !f.modOnly || isMod).map((f, i) => (
                                         <Command.Item
                                             key={f.id}
                                             onSelect={() => {
@@ -602,7 +633,7 @@ export default function CommandPalette() {
 
                                 {/* Filters List (Standard View) */}
                                 <Command.Group heading="Filters">
-                                    {NUMBERED_FILTERS.map((f, i) => (
+                                    {NUMBERED_FILTERS.filter(f => !f.modOnly || isMod).map((f, i) => (
                                         <Command.Item
                                             key={f.id}
                                             onSelect={() => {
