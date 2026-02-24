@@ -206,6 +206,89 @@ function SelectField({ label, value, field, ticketId, options, allowNone = false
   )
 }
 
+const SCANNER_EAAS = [
+  { name: 'BscScan', root: 'bscscan.com' },
+  { name: 'Polygonscan', root: 'polygonscan.com' },
+  { name: 'Arbiscan', root: 'arbiscan.io' },
+  { name: 'Optimism', root: 'optimistic.etherscan.io' },
+  { name: 'Snowscan', root: 'snowscan.xyz' },
+  { name: 'Lineascan', root: 'lineascan.build' },
+  { name: 'Scrollscan', root: 'scrollscan.com' },
+  { name: 'Ftmscan', root: 'ftmscan.com' },
+  { name: 'Moonscan', root: 'moonscan.io' },
+  { name: 'Celoscan', root: 'celoscan.io' },
+  { name: 'Gnosisscan', root: 'gnosisscan.io' },
+  { name: 'Cronoscan', root: 'cronoscan.com' },
+  { name: 'Blastscan', root: 'blastscan.io' },
+  { name: 'Taikoscan', root: 'taikoscan.io' },
+  { name: 'Sonicscan', root: 'sonicscan.org' },
+  { name: 'Uniscan', root: 'uniscan.xyz' },
+]
+
+function ScannerLinks({ address, txId }) {
+  const [showMore, setShowMore] = useState(false)
+  const moreRef = useRef(null)
+
+  useEffect(() => {
+    function click(e) { if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false) }
+    document.addEventListener('mousedown', click)
+    return () => document.removeEventListener('mousedown', click)
+  }, [])
+
+  if (!address && !txId) return null
+
+  const mainScanners = [
+    {
+      name: 'CommunityScan',
+      url: address ? `https://www.communityscan-sodex.com/tracker/${address}` : null,
+      icon: <img src="/favicon.png" alt="CommunityScan" style={{ width: 14, height: 14, borderRadius: 2 }} />
+    },
+    {
+      name: 'Blockscan',
+      url: address ? `https://blockscan.com/address/${address}` : (txId ? `https://blockscan.com/tx/${txId}` : null),
+      icon: <img src="/icons/blockscan.png" alt="Blockscan" style={{ width: 14, height: 14 }} />
+    },
+    {
+      name: 'Etherscan',
+      url: address ? `https://etherscan.io/address/${address}` : (txId ? `https://etherscan.io/tx/${txId}` : null),
+      icon: <img src="/icons/etherscan.png" alt="Etherscan" style={{ width: 14, height: 14 }} />
+    },
+    {
+      name: 'Basescan',
+      url: address ? `https://basescan.org/address/${address}` : (txId ? `https://basescan.org/tx/${txId}` : null),
+      icon: <img src="/icons/basescan.png" alt="Basescan" style={{ width: 14, height: 14 }} />
+    },
+  ]
+
+  return (
+    <div className="ticket-scanner-row">
+      {mainScanners.map(s => s.url && (
+        <a key={s.name} href={s.url} target="_blank" rel="noreferrer" className="ticket-scanner-icon" title={s.name}>
+          {s.icon}
+        </a>
+      ))}
+      <div className="ticket-scanner-more" onClick={() => setShowMore(!showMore)} ref={moreRef}>
+        More <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12L2 6h12z" /></svg>
+        {showMore && (
+          <div className="ticket-scanner-dropdown">
+            {SCANNER_EAAS.map(s => (
+              <a
+                key={s.name}
+                href={address ? `https://${s.root}/address/${address}` : `https://${s.root}/tx/${txId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="ticket-scanner-dropdown-item"
+              >
+                {s.name}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ModChip({ modId, discordUsers }) {
   const mod = discordUsers?.find(u => u.id === modId)
   const name = mod?.display_name || mod?.username || modId
@@ -301,20 +384,12 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
         {/* Wallet / TX */}
         <EditableField label="Wallet Address" value={ticket.wallet_address} field="wallet_address" ticketId={ticket.id} />
 
-        {ticket.wallet_address && (
-          <div className="ticket-right-section" style={{ marginTop: -12 }}>
-            <Link
-              href={`/tracker/${ticket.wallet_address}`}
-              className="ticket-right-value"
-              style={{ color: 'var(--color-primary)', fontSize: '12px' }}
-            >
-              View in Scanner →
-            </Link>
-          </div>
-        )}
+        <ScannerLinks address={ticket.wallet_address} />
 
         <EditableField label="Account ID" value={ticket.account_id} field="account_id" ticketId={ticket.id} />
         <EditableField label="TX ID" value={ticket.tx_id} field="tx_id" ticketId={ticket.id} />
+
+        <ScannerLinks txId={ticket.tx_id} />
       </div>
     </div>
   )
