@@ -189,7 +189,7 @@ function SelectField({ label, value, field, ticketId, options, allowNone = false
           <div className="ticket-custom-select-dropdown">
             {allowNone && (
               <div className="ticket-custom-select-option" onClick={() => handleSelect('')}>
-                <span style={{ color: 'var(--color-text-muted)' }}>— None —</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>— Deselect All —</span>
               </div>
             )}
             {options.map(opt => {
@@ -313,13 +313,19 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
   const { data: opener } = useDiscordUser(ticket?.opener_discord_id)
   const updateTicket = useUpdateTicket()
 
+  const lastResolvedRef = useRef(null)
+
   useEffect(() => {
-    if (ticket?.wallet_address && !ticket.account_id) {
+    // Only scan if we have a wallet and haven't scanned this specific pair (wallet+ticket) yet
+    const resolveKey = `${ticket?.id}-${ticket?.wallet_address}`
+    if (ticket?.wallet_address && lastResolvedRef.current !== resolveKey) {
       getSodexIdFromWallet(ticket.wallet_address).then(id => {
-        if (id && id !== ticket.account_id) {
+        lastResolvedRef.current = resolveKey
+        // If the resolved ID (even if null) differs from current, update it
+        if (id !== (ticket.account_id || null)) {
           updateTicket.mutate({
             ticketId: ticket.id,
-            fields: { account_id: id }
+            fields: { account_id: id || null }
           })
         }
       })
