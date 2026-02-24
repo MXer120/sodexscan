@@ -30,6 +30,9 @@ export interface Ticket {
   last_message: string | null
   message_count: number
   responding_mods: string[] | null
+  opener_username?: string | null
+  opener_display_name?: string | null
+  opener_avatar_url?: string | null
   is_starred?: boolean
 }
 
@@ -55,22 +58,20 @@ function autoProgress(ticket: Ticket): string {
     return 'new'
   }
 
-  // If last non-mod message is more recent than last message from a mod = waiting
-  // We can approximate: if responding_mods is empty = new/waiting
+  // If we have messages, but no mod has ever responded = waiting
   if (!ticket.responding_mods || ticket.responding_mods.length === 0) {
     return 'waiting'
   }
 
-  // If last_non_mod_message > last_message by a mod → waiting
-  // Since we have last_non_mod_message and last_message, if they're equal it means
-  // the last message was from a non-mod user
+  // If last non-mod message is the latest message = waiting
   if (ticket.last_non_mod_message && ticket.last_message) {
-    if (ticket.last_non_mod_message === ticket.last_message) {
+    if (new Date(ticket.last_non_mod_message).getTime() === new Date(ticket.last_message).getTime()) {
       return 'waiting'
     }
   }
 
-  return ticket.progress || 'new'
+  // Otherwise, a mod responded last = attended
+  return 'attended'
 }
 
 export function useTickets(filter: TicketFilter) {

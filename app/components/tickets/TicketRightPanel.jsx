@@ -6,12 +6,13 @@ import { useDiscordUser } from '../../hooks/useDiscordUser'
 import { useUpdateTicket } from '../../hooks/useUpdateTicket'
 
 const PROJECT_OPTIONS = ['SoDEX', 'SoSoValue', 'SSI']
-const PROGRESS_OPTIONS = ['new', 'waiting', 'escalated', 'solved']
+const PROGRESS_OPTIONS = ['new', 'waiting', 'attended', 'escalated', 'solved']
 
 const OPTION_COLORS = {
   // Progress
   new: { bg: 'rgba(96, 165, 250, 0.25)', color: '#60a5fa' },
   waiting: { bg: 'rgba(251, 191, 36, 0.25)', color: '#fbbf24' },
+  attended: { bg: 'rgba(134, 239, 172, 0.2)', color: '#86efac' },
   escalated: { bg: 'rgba(248, 113, 113, 0.25)', color: '#f87171' },
   solved: { bg: 'rgba(74, 222, 128, 0.25)', color: '#4ade80' },
   closed: { bg: 'rgba(168, 162, 158, 0.25)', color: '#a8a29e' },
@@ -177,7 +178,7 @@ function SelectField({ label, value, field, ticketId, options, allowNone = false
           ) : (
             <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>— Select —</span>
           )}
-          <svg className="ticket-custom-select-arrow" width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12L2 6h12z"/></svg>
+          <svg className="ticket-custom-select-arrow" width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12L2 6h12z" /></svg>
         </div>
         {open && (
           <div className="ticket-custom-select-dropdown">

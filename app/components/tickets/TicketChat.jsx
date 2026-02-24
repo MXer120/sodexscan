@@ -121,10 +121,16 @@ export default function TicketChat({ messages, loading, discordUsers }) {
     <div className="ticket-chat-messages">
       {messages.map(msg => {
         const isMod = modSet.has(msg.author_id)
+        const user = discordUsers?.find(u => u.id === msg.author_id)
+        const avatarUrl = user?.avatar_url
         return (
           <div key={msg.id} className="chat-msg">
             <div className={`chat-msg-avatar ${isMod ? 'mod' : ''}`}>
-              {msg.author_name?.[0]?.toUpperCase() || '?'}
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="chat-msg-avatar-img" />
+              ) : (
+                msg.author_name?.[0]?.toUpperCase() || '?'
+              )}
             </div>
             <div className="chat-msg-body">
               <div className="chat-msg-header">

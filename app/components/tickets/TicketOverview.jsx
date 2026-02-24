@@ -6,13 +6,27 @@ import { useUpdateTicket } from '../../hooks/useUpdateTicket'
 
 const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
 
-/** Sort order: unanswered(0) → waiting(1) → new(2) → escalated(3) → solved(4) */
+/** 
+ * Effective tag logic:
+ * 1. No mod response AND opener wrote message -> unattended (Red)
+ * 2. No mod response AND opener NO message -> new (Blue)
+ * 3. Mod responded -> use t.progress (waiting, attended, etc)
+ */
+function getTicketTag(t) {
+  const hasMod = t.responding_mods && t.responding_mods.length > 0
+  const hasOpener = !!t.last_opener_message
+
+  if (!hasMod) {
+    return hasOpener ? 'unattended' : 'new'
+  }
+  return (t.progress || 'new').toLowerCase()
+}
+
+/** Sort order: unattended(0) → waiting(1) → new(2) → attended(3) → escalated(4) → solved(5) */
 function todoSortOrder(ticket) {
-  const isUnanswered = !ticket.responding_mods || ticket.responding_mods.length === 0
-  if (isUnanswered) return 0
-  const p = (ticket.progress || 'new').toLowerCase()
-  const order = { waiting: 1, new: 2, escalated: 3, solved: 4 }
-  return order[p] ?? 99
+  const tag = getTicketTag(ticket)
+  const order = { unattended: 0, waiting: 1, new: 2, attended: 3, escalated: 4, solved: 5 }
+  return order[tag] ?? 99
 }
 
 export default function TicketOverview({ counts, tickets, onFilterChange }) {
@@ -21,10 +35,11 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
   const [todoSort, setTodoSort] = useState('progress') // 'progress' | 'time' | 'name'
   const [todoDir, setTodoDir] = useState('asc')
 
-  // Unanswered: open tickets where no mod has responded
-  const unanswered = (tickets || []).filter(t =>
+  // Unattended: open tickets where opener wrote but no mod has responded
+  const unattendedTickets = (tickets || []).filter(t =>
     t.status === 'open' &&
-    (!t.responding_mods || t.responding_mods.length === 0)
+    (!t.responding_mods || t.responding_mods.length === 0) &&
+    !!t.last_opener_message
   )
 
   // Inactive: open + last non-mod msg > 48h
@@ -35,8 +50,8 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
       if (!t.last_non_mod_message) return false
       return now - new Date(t.last_non_mod_message).getTime() > FORTY_EIGHT_HOURS
     }).sort((a, b) => new Date(a.last_non_mod_message || 0).getTime() - new Date(b.last_non_mod_message || 0).getTime())
-    .slice(0, 10)
-  , [tickets])
+      .slice(0, 10)
+    , [tickets])
 
   // ToDo: open tickets, default sort: unanswered → waiting → new → escalated → solved
   const todoTickets = useMemo(() => {
@@ -66,11 +81,16 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
     updateTicket.mutate({ ticketId, fields: { progress: 'solved' } })
   }
 
+  // Waiting: open tickets where it's the customer's turn to speak (progress === 'waiting')
+  const waitingCount = (tickets || []).filter(t =>
+    t.status === 'open' && t.progress === 'waiting'
+  ).length
+
   const statCards = [
-    { label: 'Active', value: counts.active || 0, filter: 'active', className: '' },
-    { label: 'Inactive', value: counts.inactive || 0, filter: 'inactive', className: 'warning' },
-    { label: 'Unanswered', value: unanswered.length, filter: 'active', className: 'error' },
-    { label: 'Archived', value: counts.archived || 0, filter: 'archived', className: 'muted' },
+    { label: 'Active', value: counts.active || 0, filter: 'active', className: 'active' },
+    { label: 'Waiting', value: waitingCount, filter: 'active', className: 'waiting' },
+    { label: 'Unattended', value: unattendedTickets.length, filter: 'active', className: 'error' },
+    { label: 'Inactive', value: counts.inactive || 0, filter: 'inactive', className: 'inactive' },
   ]
 
   return (
@@ -110,17 +130,20 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
             {todoTickets.length === 0 ? (
               <div className="ticket-empty">No open tickets</div>
             ) : (
-              todoTickets.map(t => (
-                <div key={t.id} className="ticket-overview-row" onClick={() => router.push(`/tickets/${t.id}?from=overview`)}>
-                  <span className="ticket-overview-row-name">{t.channel_name || t.channel_id}</span>
-                  <span className={`ticket-progress ${(t.progress || 'new').toLowerCase()}`}>
-                    {t.responding_mods?.length === 0 ? 'unanswered' : (t.progress || 'new')}
-                  </span>
-                  <span className="ticket-overview-row-time">
-                    {t.last_message ? new Date(t.last_message).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
-                  </span>
-                </div>
-              ))
+              todoTickets.map(t => {
+                const tag = getTicketTag(t)
+                return (
+                  <div key={t.id} className="ticket-overview-row" onClick={() => router.push(`/tickets/${t.id}?from=overview`)}>
+                    <span className="ticket-overview-row-name">{t.channel_name || t.channel_id}</span>
+                    <span className={`ticket-progress ${tag}`}>
+                      {tag}
+                    </span>
+                    <span className="ticket-overview-row-time">
+                      {t.last_message ? new Date(t.last_message).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>
@@ -132,21 +155,27 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
             {inactiveTickets.length === 0 ? (
               <div className="ticket-empty">No inactive tickets</div>
             ) : (
-              inactiveTickets.map(t => (
-                <div key={t.id} className="ticket-overview-row" onClick={() => router.push(`/tickets/${t.id}?from=inactive`)}>
-                  <span className="ticket-overview-row-name">{t.channel_name || t.channel_id}</span>
-                  <span className="ticket-overview-row-time">
-                    {t.last_non_mod_message ? new Date(t.last_non_mod_message).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
-                  </span>
-                  <button
-                    className="ticket-ready-close-btn"
-                    onClick={(e) => handleReadyToClose(e, t.id)}
-                    title="Mark as solved"
-                  >
-                    ✓ Close
-                  </button>
-                </div>
-              ))
+              inactiveTickets.map(t => {
+                const tag = getTicketTag(t)
+                return (
+                  <div key={t.id} className="ticket-overview-row" onClick={() => router.push(`/tickets/${t.id}?from=inactive`)}>
+                    <span className="ticket-overview-row-name">{t.channel_name || t.channel_id}</span>
+                    <span className={`ticket-progress ${tag}`}>
+                      {tag}
+                    </span>
+                    <span className="ticket-overview-row-time">
+                      {t.last_non_mod_message ? new Date(t.last_non_mod_message).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                    <button
+                      className="ticket-ready-close-btn"
+                      onClick={(e) => handleReadyToClose(e, t.id)}
+                      title="Mark as solved"
+                    >
+                      ✓ Close
+                    </button>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>

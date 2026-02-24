@@ -228,6 +228,7 @@
   color: var(--color-text-muted);
 }
 
+
 .ticket-star-btn {
   background: none;
   border: none;
@@ -258,6 +259,17 @@
   color: #60a5fa;
 }
 
+.ticket-progress.unattended {
+  background: rgba(153, 27, 27, 0.25);
+  color: #ef4444;
+  transition: all 0.15s ease;
+}
+
+.ticket-progress.unattended:hover {
+  border: 1px solid #ef4444;
+  background: rgba(153, 27, 27, 0.35);
+}
+
 .ticket-progress.waiting {
   background: rgba(251, 191, 36, 0.25);
   color: #fbbf24;
@@ -271,6 +283,11 @@
 .ticket-progress.solved {
   background: rgba(74, 222, 128, 0.25);
   color: #4ade80;
+}
+
+.ticket-progress.attended {
+  background: rgba(134, 239, 172, 0.2);
+  color: #86efac;
 }
 
 .ticket-progress.closed {
@@ -329,6 +346,10 @@
   font-size: 13px;
 }
 
+.ticket-overview {
+  padding-top: 12px;
+}
+
 /* ============================================
    Overview
    ============================================ */
@@ -337,41 +358,77 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .ticket-overview-stat-card {
   background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px 20px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  transition: all 0.2s ease;
+}
+
+.ticket-overview-stat-card:hover {
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
+}
+
+.ticket-overview-stat-card.active:hover {
+  border-color: rgba(72, 203, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(72, 203, 255, 0.05);
+}
+
+.ticket-overview-stat-card.waiting:hover {
+  border-color: rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.05);
+}
+
+.ticket-overview-stat-card.error:hover {
+  border-color: #ef4444 !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+}
+
+.ticket-overview-stat-card.inactive:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
 }
 
 .ticket-overview-stat-value {
   font-size: 32px;
   font-weight: 800;
+  line-height: 1.2;
+}
+
+.ticket-overview-stat-card.active .ticket-overview-stat-value {
   color: var(--color-primary);
 }
 
-.ticket-overview-stat-card.warning .ticket-overview-stat-value {
-  color: var(--color-warning);
+.ticket-overview-stat-card.waiting .ticket-overview-stat-value {
+  color: #fbbf24;
 }
 
 .ticket-overview-stat-card.error .ticket-overview-stat-value {
-  color: var(--color-error);
+  color: #ef4444;
 }
 
-.ticket-overview-stat-card.muted .ticket-overview-stat-value {
-  color: var(--color-text-muted);
+.ticket-overview-stat-card.inactive .ticket-overview-stat-value {
+  color: #ffffff;
 }
 
 .ticket-overview-stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 4px;
+  letter-spacing: 0.8px;
+  margin-top: 6px;
+  font-weight: 600;
 }
 
 .ticket-overview-section {
@@ -625,16 +682,20 @@
 .ticket-overview-stat-card {
   transition: all 0.15s;
 }
+
 .ticket-overview-stat-card:hover {
   border-color: var(--color-primary);
   background: rgba(255, 255, 255, 0.02);
 }
+
 .ticket-overview-stat-card.warning:hover {
   border-color: var(--color-warning);
 }
+
 .ticket-overview-stat-card.error:hover {
   border-color: var(--color-error);
 }
+
 .ticket-overview-stat-card.muted:hover {
   border-color: var(--color-text-muted);
 }

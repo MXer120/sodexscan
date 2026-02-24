@@ -86,14 +86,19 @@ export function useModResponders() {
   })
 }
 
-// Search ticket openers by query string
-export function useSearchTicketOpeners(query: string) {
+// Search ticket openers by query string with pagination and status filter
+export function useSearchTicketOpeners(query: string, status: string = '', page: number = 0, pageSize: number = 10) {
   const { user, isMod } = useSessionContext()
 
   return useQuery({
-    queryKey: ['search-ticket-openers', query],
+    queryKey: ['search-ticket-openers', query, status, page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('search_ticket_openers', { p_query: query })
+      const { data, error } = await supabase.rpc('search_ticket_openers', {
+        p_query: query,
+        p_status: status,
+        p_page: page,
+        p_page_size: pageSize
+      })
       if (error) throw error
       return data || []
     },
