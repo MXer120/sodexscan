@@ -317,6 +317,10 @@
   margin-bottom: 20px;
 }
 
+.ticket-right-section.compact {
+  margin-bottom: 4px;
+}
+
 .ticket-right-section:last-child {
   margin-bottom: 0;
 }

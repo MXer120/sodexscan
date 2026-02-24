@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useDiscordUser } from '../../hooks/useDiscordUser'
 import { useUpdateTicket } from '../../hooks/useUpdateTicket'
+import { getSodexIdFromWallet } from '../../lib/accountResolver'
 
 const PROJECT_OPTIONS = ['SoDEX', 'SoSoValue', 'SSI']
 const PROGRESS_OPTIONS = ['new', 'waiting', 'attended', 'escalated', 'solved']
@@ -42,7 +43,7 @@ function extractOpenerName(channelName) {
   return match ? match[1] : null
 }
 
-function EditableField({ label, value, field, ticketId }) {
+function EditableField({ label, value, field, ticketId, truncate = false, compact = false }) {
   const [editing, setEditing] = useState(false)
   const [localVal, setLocalVal] = useState(value || '')
   const updateTicket = useUpdateTicket()
@@ -54,8 +55,12 @@ function EditableField({ label, value, field, ticketId }) {
     setEditing(false)
   }
 
+  const displayValue = (truncate && value && value.length > 20)
+    ? `${value.slice(0, 6)}...${value.slice(-4)}`
+    : value;
+
   return (
-    <div className="ticket-right-section">
+    <div className={`ticket-right-section ${compact ? 'compact' : ''}`}>
       <div className="ticket-right-label">{label}</div>
       {editing ? (
         <input
@@ -73,7 +78,7 @@ function EditableField({ label, value, field, ticketId }) {
           onClick={() => { setLocalVal(value || ''); setEditing(true) }}
           title="Click to edit"
         >
-          {value || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Click to set</span>}
+          {displayValue || <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Click to set</span>}
         </div>
       )}
     </div>
@@ -246,17 +251,17 @@ function ScannerLinks({ address, txId }) {
     {
       name: 'Blockscan',
       url: address ? `https://blockscan.com/address/${address}` : (txId ? `https://blockscan.com/tx/${txId}` : null),
-      icon: <img src="/icons/blockscan.png" alt="Blockscan" style={{ width: 14, height: 14 }} />
+      icon: <img src="/icons/blockscan.svg" alt="Blockscan" style={{ width: 14, height: 14 }} />
     },
     {
       name: 'Etherscan',
       url: address ? `https://etherscan.io/address/${address}` : (txId ? `https://etherscan.io/tx/${txId}` : null),
-      icon: <img src="/icons/etherscan.png" alt="Etherscan" style={{ width: 14, height: 14 }} />
+      icon: <img src="/icons/etherscan.svg" alt="Etherscan" style={{ width: 14, height: 14 }} />
     },
     {
       name: 'Basescan',
       url: address ? `https://basescan.org/address/${address}` : (txId ? `https://basescan.org/tx/${txId}` : null),
-      icon: <img src="/icons/basescan.png" alt="Basescan" style={{ width: 14, height: 14 }} />
+      icon: <img src="/icons/basescan.svg" alt="Basescan" style={{ width: 14, height: 14 }} />
     },
   ]
 
@@ -306,6 +311,20 @@ function ModChip({ modId, discordUsers }) {
 
 export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) {
   const { data: opener } = useDiscordUser(ticket?.opener_discord_id)
+  const updateTicket = useUpdateTicket()
+
+  useEffect(() => {
+    if (ticket?.wallet_address && !ticket.account_id) {
+      getSodexIdFromWallet(ticket.wallet_address).then(id => {
+        if (id && id !== ticket.account_id) {
+          updateTicket.mutate({
+            ticketId: ticket.id,
+            fields: { account_id: id }
+          })
+        }
+      })
+    }
+  }, [ticket?.wallet_address, ticket?.id, ticket?.account_id, updateTicket])
 
   if (!ticket) return null
 
@@ -382,12 +401,14 @@ export default function TicketRightPanel({ ticket, lastMessage, discordUsers }) 
         <hr className="ticket-right-divider" />
 
         {/* Wallet / TX */}
-        <EditableField label="Wallet Address" value={ticket.wallet_address} field="wallet_address" ticketId={ticket.id} />
+        <EditableField label="Wallet Address" value={ticket.wallet_address} field="wallet_address" ticketId={ticket.id} truncate={true} compact={true} />
 
         <ScannerLinks address={ticket.wallet_address} />
 
-        <EditableField label="Account ID" value={ticket.account_id} field="account_id" ticketId={ticket.id} />
-        <EditableField label="TX ID" value={ticket.tx_id} field="tx_id" ticketId={ticket.id} />
+        <div style={{ height: '12px' }} />
+
+        <EditableField label="Account ID" value={ticket.account_id} field="account_id" ticketId={ticket.id} truncate={true} />
+        <EditableField label="TX ID" value={ticket.tx_id} field="tx_id" ticketId={ticket.id} truncate={true} compact={true} />
 
         <ScannerLinks txId={ticket.tx_id} />
       </div>
