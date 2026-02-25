@@ -76,9 +76,11 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
     else { setTodoSort(key); setTodoDir('asc') }
   }
 
-  const handleReadyToClose = (e, ticketId) => {
+  const handleReadyToClose = (e, ticket) => {
     e.stopPropagation()
-    updateTicket.mutate({ ticketId, fields: { progress: 'solved' } })
+    const DISCORD_GUILD = '1009323027256848405'
+    window.open(`https://discord.com/channels/${DISCORD_GUILD}/${ticket.channel_id}`, '_blank')
+    updateTicket.mutate({ ticketId: ticket.id, fields: { progress: 'solved' } })
   }
 
   // Waiting: open tickets where it's the customer's turn to speak (progress === 'waiting')
@@ -168,7 +170,7 @@ export default function TicketOverview({ counts, tickets, onFilterChange }) {
                     </span>
                     <button
                       className="ticket-ready-close-btn"
-                      onClick={(e) => handleReadyToClose(e, t.id)}
+                      onClick={(e) => handleReadyToClose(e, t)}
                       title="Mark as solved"
                     >
                       ✓ Close

@@ -35,24 +35,7 @@ function Navbar() {
   }, [pathname])
 
   const navLinks = useMemo(() => {
-    if (isMod) {
-      return [
-        { path: '/tracker', label: 'Scan', protected: false },
-        { path: '/mainnet', label: 'Leaderboard', protected: true },
-        { path: '/tickets', label: 'Tickets', protected: true },
-        { path: '/reverse-search', label: 'Reverse Search', protected: true },
-        { path: '/watchlist', label: 'Watchlist', protected: true },
-        {
-          path: '/more',
-          label: 'More',
-          protected: false,
-          children: [
-            { path: '/platform', label: 'Platform', protected: false },
-          ]
-        }
-      ]
-    }
-    return [
+    const base = [
       { path: '/tracker', label: 'Scan', protected: false },
       { path: '/mainnet', label: 'Leaderboard', protected: true },
       { path: '/sopoints', label: 'SoPoints', protected: true, isNew: true },
@@ -67,17 +50,24 @@ function Navbar() {
         ]
       },
       { path: '/watchlist', label: 'Watchlist', protected: true },
-      {
-        path: '/more',
-        label: 'More',
-        protected: false,
-        children: [
-          { path: '/platform', label: 'Platform', protected: false },
-          { path: '/incoming', label: 'Incoming', protected: true },
-          { path: '/reverse-search', label: 'Reverse Search', protected: true }
-        ]
-      }
     ]
+
+    if (isMod) {
+      base.push({ path: '/tickets', label: 'Tickets', protected: true })
+    }
+
+    base.push({
+      path: '/more',
+      label: 'More',
+      protected: false,
+      children: [
+        { path: '/platform', label: 'Platform', protected: false },
+        { path: '/incoming', label: 'Incoming', protected: true },
+        { path: '/reverse-search', label: 'Reverse Search', protected: true }
+      ]
+    })
+
+    return base
   }, [isMod])
 
   const isLandingPage = pathname === '/'
@@ -300,18 +290,11 @@ function Navbar() {
             <span>Scan</span>
           </Link>
 
-          {/* 3. SoPoints or Tickets (mod) */}
-          {isMod ? (
-            <Link href="/tickets" className={`mobile-nav-item ${pathname.startsWith('/tickets') ? 'active' : ''}`}>
-              <Icons.File />
-              <span>Tickets</span>
-            </Link>
-          ) : (
-            <Link href="/sopoints" className={`mobile-nav-item ${pathname === '/sopoints' ? 'active' : ''}`}>
-              <Icons.Star />
-              <span>Points</span>
-            </Link>
-          )}
+          {/* 3. SoPoints */}
+          <Link href="/sopoints" className={`mobile-nav-item ${pathname === '/sopoints' ? 'active' : ''}`}>
+            <Icons.Star />
+            <span>Points</span>
+          </Link>
 
           {/* 4. Rank */}
           <Link href="/mainnet" className={`mobile-nav-item ${pathname === '/mainnet' ? 'active' : ''}`}>
@@ -336,24 +319,21 @@ function Navbar() {
                 )}
                 <div className="menu-divider"></div>
 
-                {isMod ? (
-                  <>
-                    <Link href="/reverse-search" onClick={() => setMobileActiveTab(null)}>Reverse Search</Link>
-                    <Link href="/watchlist" onClick={() => setMobileActiveTab(null)}>Watchlist</Link>
-                    <Link href="/platform" onClick={() => setMobileActiveTab(null)}>Platform Stats</Link>
-                  </>
-                ) : (
-                  <>
-                    {/* Social Links */}
-                    <Link href="/social" onClick={() => setMobileActiveTab(null)}>Social Leaderboard</Link>
-                    <Link href="/social/stats" onClick={() => setMobileActiveTab(null)}>Social Stats</Link>
-                    <Link href="/referral" onClick={() => setMobileActiveTab(null)}>Referral</Link>
-                    <div className="menu-divider"></div>
+                {/* Standard Links (for everyone) */}
+                <Link href="/social" onClick={() => setMobileActiveTab(null)}>Social Leaderboard</Link>
+                <Link href="/social/stats" onClick={() => setMobileActiveTab(null)}>Social Stats</Link>
+                <Link href="/referral" onClick={() => setMobileActiveTab(null)}>Referral</Link>
+                <div className="menu-divider"></div>
 
-                    <Link href="/watchlist" onClick={() => setMobileActiveTab(null)}>Watchlist</Link>
-                    <Link href="/platform" onClick={() => setMobileActiveTab(null)}>Platform Stats</Link>
-                    <Link href="/incoming" onClick={() => setMobileActiveTab(null)}>Incoming</Link>
-                    <Link href="/reverse-search" onClick={() => setMobileActiveTab(null)}>Reverse Search</Link>
+                <Link href="/watchlist" onClick={() => setMobileActiveTab(null)}>Watchlist</Link>
+                <Link href="/platform" onClick={() => setMobileActiveTab(null)}>Platform Stats</Link>
+                <Link href="/incoming" onClick={() => setMobileActiveTab(null)}>Incoming</Link>
+                <Link href="/reverse-search" onClick={() => setMobileActiveTab(null)}>Reverse Search</Link>
+
+                {isMod && (
+                  <>
+                    <div className="menu-divider"></div>
+                    <Link href="/tickets" onClick={() => setMobileActiveTab(null)}>Moderator Tickets</Link>
                   </>
                 )}
               </div>
