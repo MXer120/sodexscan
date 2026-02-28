@@ -20,6 +20,10 @@ QUIET_START_HOUR = 6
 QUIET_END_HOUR = 7
 
 # Polling intervals (seconds)
-FALLBACK_POLL_INTERVAL = 60      # 1 min fallback poll
-FULL_SYNC_INTERVAL = 300         # 5 min full channel sweep
+FALLBACK_POLL_INTERVAL = 300     # 5 min fallback poll (on_message handles realtime)
+FULL_SYNC_INTERVAL = 900         # 15 min full channel sweep
 HISTORY_FETCH_LIMIT = 200        # Max messages per history fetch
+
+# Set True to disable background polling/sync (0 DB egress from tickets).
+# on_message / on_message_edit / on_message_delete still work normally.
+PAUSE_TICKET_SYNC = True

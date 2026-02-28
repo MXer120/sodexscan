@@ -137,25 +137,13 @@ export function useTickets(filter: TicketFilter) {
       }
     },
     enabled: !!user && isMod,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   })
 
-  // Realtime subscription for live updates
-  useEffect(() => {
-    if (!user || !isMod) return
-
-    const channel = supabase
-      .channel('tickets-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
-        query.refetch()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_messages' }, () => {
-        query.refetch()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [user, isMod])
+  // TODO: Realtime disabled — investigating update issue. Manual refresh or staleTime handles updates for now.
 
   return query
 }

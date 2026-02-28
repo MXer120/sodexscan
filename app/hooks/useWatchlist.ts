@@ -195,6 +195,8 @@ export function useWatchlist() {
       }) as WatchlistItem[]
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000,   // 30 minutes
   })
 
   // Add to watchlist - only wallet_address column

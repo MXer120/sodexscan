@@ -189,10 +189,10 @@ export default function CommandPalette() {
                 { count: tradersGt2k },
                 { count: usersGt1kVol }
             ] = await Promise.all([
-                supabase.from('leaderboard').select('*', { count: 'exact', head: true }),
-                supabase.from('leaderboard').select('*', { count: 'exact', head: true }).or('cumulative_pnl.neq.0,cumulative_volume.gt.0'),
-                supabase.from('leaderboard').select('*', { count: 'exact', head: true }).gt('cumulative_volume', 2000),
-                supabase.from('leaderboard').select('*', { count: 'exact', head: true }).gt('cumulative_volume', 1000)
+                supabase.from('leaderboard').select('id', { count: 'exact', head: true }),
+                supabase.from('leaderboard').select('id', { count: 'exact', head: true }).or('cumulative_pnl.neq.0,cumulative_volume.gt.0'),
+                supabase.from('leaderboard').select('id', { count: 'exact', head: true }).gt('cumulative_volume', 2000),
+                supabase.from('leaderboard').select('id', { count: 'exact', head: true }).gt('cumulative_volume', 1000)
             ])
 
             setStats({
@@ -210,7 +210,7 @@ export default function CommandPalette() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
-            const { data } = await supabase.from('wallet_tags').select('*').eq('user_id', user.id)
+            const { data } = await supabase.from('wallet_tags').select('wallet_address, tag_name, is_group, group_name').eq('user_id', user.id)
             if (data) setUserTags(data)
         } catch (e) { console.error(e) }
     }

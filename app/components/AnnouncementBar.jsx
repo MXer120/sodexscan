@@ -24,7 +24,7 @@ const AnnouncementBar = () => {
             try {
                 const { data, error } = await supabase
                     .from('announcement_status')
-                    .select('*')
+                    .select('id, content, type, created_at')
                     .eq('enabled', true)
                     .order('created_at', { ascending: false })
 

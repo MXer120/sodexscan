@@ -157,7 +157,7 @@ export default function MainnetPage() {
     try {
       const { data, error } = await supabase
         .from('leaderboard_meta')
-        .select('*')
+        .select('id, current_week_number, pool_size, total_user_counts')
         .eq('id', 1)
         .single()
       if (error) throw error
@@ -380,7 +380,7 @@ export default function MainnetPage() {
       if (totalCount === null) {
         let countQuery = supabase
           .from('leaderboard_smart')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
         if (excludeSodex) countQuery = countQuery.not('is_sodex_owned', 'is', true)
         if (!showZero) countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
         const { count } = await countQuery

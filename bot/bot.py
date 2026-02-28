@@ -30,6 +30,7 @@ from config import (
     FALLBACK_POLL_INTERVAL,
     FULL_SYNC_INTERVAL,
     HISTORY_FETCH_LIMIT,
+    PAUSE_TICKET_SYNC,
 )
 from db import (
     upsert_ticket,
@@ -174,17 +175,21 @@ async def on_ready():
     log.info(f"Ignoring channels: {IGNORE_CHANNELS}")
 
     # Start background tasks
-    if not fallback_poll.is_running():
-        fallback_poll.start()
-    if not full_sync.is_running():
-        full_sync.start()
-
-    # Do an initial full sync
-    await do_full_sync()
+    if not PAUSE_TICKET_SYNC:
+        if not fallback_poll.is_running():
+            fallback_poll.start()
+        if not full_sync.is_running():
+            full_sync.start()
+        # Do an initial full sync
+        await do_full_sync()
+    else:
+        log.info("[SYNC] PAUSE_TICKET_SYNC=True — background polling disabled")
 
 
 @bot.event
 async def on_message(message: discord.Message):
+    if PAUSE_TICKET_SYNC:
+        return
     if is_quiet_hour():
         return
     if message.author.bot:
@@ -212,6 +217,8 @@ async def on_message(message: discord.Message):
 
 @bot.event
 async def on_message_edit(before: discord.Message, after: discord.Message):
+    if PAUSE_TICKET_SYNC:
+        return
     if is_quiet_hour():
         return
     if after.author.bot:
@@ -231,6 +238,8 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 
 @bot.event
 async def on_message_delete(message: discord.Message):
+    if PAUSE_TICKET_SYNC:
+        return
     if is_quiet_hour():
         return
     if not isinstance(message.channel, discord.TextChannel):
@@ -244,7 +253,8 @@ async def on_message_delete(message: discord.Message):
 
 @bot.event
 async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
-    """When a ticket channel is deleted, close the ticket."""
+    if PAUSE_TICKET_SYNC:
+        return
     if is_quiet_hour():
         return
     if not isinstance(channel, discord.TextChannel):
@@ -332,8 +342,9 @@ async def do_full_sync():
                 continue
 
             # Detect opener from first message if not set
-            ticket = get_ticket_by_channel(str(channel.id))
-            if ticket and not ticket.get("opener_discord_id"):
+            # Reuse ensure_ticket's lookup instead of querying again
+            existing = get_ticket_by_channel(str(channel.id))
+            if existing and not existing.get("opener_discord_id"):
                 try:
                     async for msg in channel.history(limit=1, oldest_first=True):
                         if not msg.author.bot:

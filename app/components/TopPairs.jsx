@@ -86,7 +86,7 @@ export default function TopPairs() {
     try {
       let query = supabase
         .from('tickers')
-        .select('*')
+        .select('symbol, market_type, volume_24h')
         .order('volume_24h', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1)
 
@@ -137,7 +137,7 @@ export default function TopPairs() {
     try {
       const { data, error } = await supabase
         .from('leaderboard')
-        .select('*')
+        .select('wallet_address, first_trade_ts_ms')
         .order('first_trade_ts_ms', { ascending: false, nullsFirst: false })
         .limit(10)
 

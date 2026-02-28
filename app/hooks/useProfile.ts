@@ -10,16 +10,15 @@ export function useUserProfile() {
   return useQuery({
     queryKey: ['user-profile', user?.id],
     queryFn: async () => {
-      // 1. Get current user
       if (!user) return null;
 
-      // 2. Fetch profile and wallet tags in parallel
       const [profile, tags] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('profiles').select('id, own_wallet, show_zero_data, role, email, created_at').eq('id', user.id).single(),
         supabase.from('wallet_tags').select('wallet_address, tag_name').eq('user_id', user.id)
       ]);
 
-      // 3. Create a map of wallet addresses to tag names for quick lookup
+      if (profile.error) throw profile.error
+
       const tagMap = new Map<string, string>()
       if (tags.data) {
         tags.data.forEach(tag => {
@@ -27,25 +26,21 @@ export function useUserProfile() {
         })
       }
 
-      // 4. If own_wallet is set, fetch leaderboard stats
       let leaderboardStats = null
       if (profile.data?.own_wallet) {
         const { data: leaderboard } = await supabase
           .from('leaderboard')
-          .select('*')
+          .select('cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
           .eq('wallet_address', profile.data.own_wallet)
           .single()
-        
         leaderboardStats = leaderboard
       }
 
-      return {
-        profile: profile.data,
-        leaderboardStats,
-        tagMap
-      };
+      return { profile: profile.data, leaderboardStats, tagMap };
     },
-    enabled: !!user // Only fetch when user is logged in
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
 

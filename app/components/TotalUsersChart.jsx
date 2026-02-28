@@ -26,7 +26,6 @@ const TIMEFRAME_OPTIONS = [
   { label: 'ALL', days: null }
 ]
 
-// Cool milestone numbers only
 const COOL_MILESTONES = [
   10000, 20000, 50000,
   100000, 200000, 250000, 300000, 400000, 500000, 600000, 700000, 750000, 800000, 900000,
@@ -35,80 +34,41 @@ const COOL_MILESTONES = [
   10000000, 11000000, 12500000, 15000000, 17500000, 20000000, 25000000, 30000000, 40000000, 50000000
 ]
 
-// Generate dynamic milestones using only cool numbers
 const generateMilestones = (currentCount, projectionEndCount) => {
-  // Filter cool milestones that are above current count
   const available = COOL_MILESTONES.filter(m => m > currentCount)
-
   if (available.length === 0) return []
-
-  // Find milestones within and beyond projection
   const withinProjection = available.filter(m => m <= projectionEndCount)
   const beyondProjection = available.filter(m => m > projectionEndCount)
-
-  // Take up to 3 within projection, then 1 beyond
   const result = []
   result.push(...withinProjection.slice(0, 3))
-
-  // Always add at least one beyond projection
-  if (beyondProjection.length > 0) {
-    result.push(beyondProjection[0])
-  }
-
-  // If we don't have 4 yet, add more from beyond
+  if (beyondProjection.length > 0) result.push(beyondProjection[0])
   while (result.length < 4 && beyondProjection.length > result.length - withinProjection.length) {
     const nextIdx = result.length - withinProjection.length
     if (nextIdx < beyondProjection.length && !result.includes(beyondProjection[nextIdx])) {
       result.push(beyondProjection[nextIdx])
-    } else {
-      break
-    }
+    } else break
   }
-
   return result.slice(0, 4)
 }
 
-// Calculate nice Y-axis ticks - tighter fit to max value
 const calculateYAxisDomain = (data) => {
   if (!data || data.length === 0) return { domain: [0, 1000], ticks: [0, 500, 1000] }
-
   const values = data.map(d => d.totalUsers || d.actualTotal || d.predictedTotal || 0).filter(v => v > 0)
   if (values.length === 0) return { domain: [0, 1000], ticks: [0, 500, 1000] }
-
   const maxVal = Math.max(...values)
-  const minVal = Math.min(...values)
-
-  // Find nice step size - aim for 4-6 ticks
   const niceSteps = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000, 250000, 500000, 1000000]
-
   let bestStep = niceSteps[0]
   for (const step of niceSteps) {
     const tickCount = Math.ceil(maxVal / step)
-    if (tickCount >= 3 && tickCount <= 6) {
-      bestStep = step
-      break
-    }
-    if (tickCount < 3) {
-      // Previous step was too big, use this one
-      break
-    }
+    if (tickCount >= 3 && tickCount <= 6) { bestStep = step; break }
+    if (tickCount < 3) break
     bestStep = step
   }
-
-  // Generate ticks from 0, with tight upper bound
   const ticks = []
   let tick = 0
-  // Only add ~10-15% padding above max
   const maxTick = Math.ceil(maxVal * 1.1 / bestStep) * bestStep
-  while (tick <= maxTick && ticks.length < 7) {
-    ticks.push(tick)
-    tick += bestStep
-  }
-
-  return {
-    domain: [0, ticks[ticks.length - 1] || maxTick],
-    ticks
-  }
+  while (tick <= maxTick && ticks.length < 7) { ticks.push(tick); tick += bestStep }
+  return { domain: [0, ticks[ticks.length - 1] || maxTick], ticks }
 }
 
 export default function TotalUsersChart() {
@@ -120,9 +80,7 @@ export default function TotalUsersChart() {
   const [timeframeDays, setTimeframeDays] = useState(30)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     try {
@@ -133,19 +91,13 @@ export default function TotalUsersChart() {
         body: '{}'
       })
       const json = await res.json()
-
       if (json.code === '0' && json.data) {
         const daily = json.data.daily || []
         const sorted = [...daily].sort((a, b) => a.date - b.date)
         let cumulative = 0
         const processed = sorted.map(d => {
           cumulative += d.count
-          return {
-            date: d.date * 1000,
-            newUsers: d.count,
-            totalUsers: cumulative,
-            isActual: true
-          }
+          return { date: d.date * 1000, newUsers: d.count, totalUsers: cumulative, isActual: true }
         })
         setData(processed)
         setTotalUsers(json.data.total || cumulative)
@@ -158,7 +110,6 @@ export default function TotalUsersChart() {
     }
   }
 
-  // Exponential smoothing + momentum-based prediction
   const predictions = useMemo(() => {
     if (data.length < 7) return { chartData: data, milestones: [], filteredData: data, avgDailyGrowth: 0, yAxisConfig: { domain: [0, 1000], ticks: [0, 500, 1000] } }
 
@@ -166,15 +117,12 @@ export default function TotalUsersChart() {
     const lastDate = lastActual.date
     const dayMs = 24 * 60 * 60 * 1000
 
-    // Double Exponential Smoothing (Holt's method)
     const recentDays = Math.min(21, data.length)
     const recentData = data.slice(-recentDays)
-
     let level = recentData[0].newUsers
     let trend = 0
     const alpha = 0.4
     const beta = 0.3
-
     for (let i = 1; i < recentData.length; i++) {
       const value = recentData[i].newUsers
       const prevLevel = level
@@ -182,30 +130,19 @@ export default function TotalUsersChart() {
       trend = beta * (level - prevLevel) + (1 - beta) * trend
     }
 
-    // Detect recent momentum
     const last3 = data.slice(-3)
-    const prev4 = data.slice(-7, -3)
     const recentAvg = last3.reduce((s, d) => s + d.newUsers, 0) / 3
-    const prevAvg = prev4.length > 0 ? prev4.reduce((s, d) => s + d.newUsers, 0) / prev4.length : recentAvg
-    const momentumRatio = prevAvg > 0 ? recentAvg / prevAvg : 1
-
-    // Prediction = recent average, flat linear projection
     const basePrediction = Math.max(1, recentAvg)
 
-    // Generate predictions
     let cumulative = lastActual.totalUsers
     const predictedData = []
     let totalPredictedUsers = 0
 
     for (let i = 1; i <= projectionDays; i++) {
-      // Small variance (deterministic)
       const variance = 0.97 + (((i * 7) % 10) / 100)
-
       const dailyPredicted = Math.round(Math.max(1, basePrediction * variance))
-
       cumulative += dailyPredicted
       totalPredictedUsers += dailyPredicted
-
       predictedData.push({
         date: lastDate + (i * dayMs),
         newUsers: dailyPredicted,
@@ -220,7 +157,6 @@ export default function TotalUsersChart() {
     const projectionEndCount = cumulative
     const avgDailyGrowth = Math.round(totalPredictedUsers / projectionDays)
 
-    // Mark current day and separate actual from predicted
     const chartData = data.map((d, i) => ({
       ...d,
       actualTotal: d.totalUsers,
@@ -228,26 +164,19 @@ export default function TotalUsersChart() {
       isCurrentDay: i === data.length - 1
     }))
 
-    // Bridge: last actual starts prediction line
     if (chartData.length > 0) {
       chartData[chartData.length - 1].predictedTotal = chartData[chartData.length - 1].totalUsers
     }
 
-    // Filter by timeframe
     const allData = [...chartData, ...predictedData]
     let filteredData = allData
-
     if (timeframeDays !== null) {
       const cutoffDate = lastDate - (timeframeDays * dayMs)
       filteredData = allData.filter(d => d.date >= cutoffDate)
     }
 
-    // Calculate Y-axis config for filtered data
     const yAxisConfig = calculateYAxisDomain(filteredData)
-
-    // Dynamic milestones using cool numbers only
     const dynamicMilestones = generateMilestones(lastActual.totalUsers, projectionEndCount)
-
     const milestoneETAs = dynamicMilestones.map(milestone => {
       const usersNeeded = milestone - lastActual.totalUsers
       const daysToReach = Math.ceil(usersNeeded / avgDailyGrowth)
@@ -255,41 +184,22 @@ export default function TotalUsersChart() {
       return { milestone, daysToReach, eta }
     })
 
-    return {
-      chartData: allData,
-      filteredData,
-      milestones: milestoneETAs,
-      avgDailyGrowth,
-      currentDayDate: lastDate,
-      yAxisConfig
-    }
+    return { chartData: allData, filteredData, milestones: milestoneETAs, avgDailyGrowth, currentDayDate: lastDate, yAxisConfig }
   }, [data, projectionDays, timeframeDays])
 
-  const formatDate = (timestamp) => {
-    const d = new Date(timestamp)
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  const formatFullDate = (timestamp) => {
-    const d = new Date(timestamp)
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
-
+  const formatDate = (timestamp) => new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const formatFullDate = (timestamp) => new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   const formatNumber = (num) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(num % 1000 === 0 ? 0 : 1)}K`
     return num?.toLocaleString() || '0'
   }
-
-  const formatMilestoneDate = (date) => {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
+  const formatMilestoneDate = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || payload.length === 0) return null
     const entry = payload[0]?.payload
     if (!entry) return null
-
     return (
       <div className="chart-tooltip">
         <p className="tooltip-date">
@@ -312,7 +222,6 @@ export default function TotalUsersChart() {
   const currentDayDate = predictions.currentDayDate
   const lastFilteredDate = predictions.filteredData[predictions.filteredData.length - 1]?.date
 
-  // Calculate X-axis tick count based on data length
   const xAxisInterval = useMemo(() => {
     const len = predictions.filteredData.length
     if (len <= 10) return 1
@@ -329,7 +238,6 @@ export default function TotalUsersChart() {
           <h3 className="chart-title">Total Users Growth</h3>
           <span className="chart-subtitle">{formatNumber(totalUsers)} users</span>
         </div>
-
         <div className="chart-controls-row">
           <div className="timeframe-switch">
             {TIMEFRAME_OPTIONS.map(opt => (
@@ -337,12 +245,9 @@ export default function TotalUsersChart() {
                 key={opt.label}
                 className={`timeframe-btn ${timeframeDays === opt.days ? 'active' : ''}`}
                 onClick={() => setTimeframeDays(opt.days)}
-              >
-                {opt.label}
-              </button>
+              >{opt.label}</button>
             ))}
           </div>
-
           <div className="projection-switch">
             <span className="switch-label">Proj:</span>
             {PROJECTION_OPTIONS.map(opt => (
@@ -350,9 +255,7 @@ export default function TotalUsersChart() {
                 key={opt.days}
                 className={`projection-btn ${projectionDays === opt.days ? 'active' : ''}`}
                 onClick={() => setProjectionDays(opt.days)}
-              >
-                {opt.label}
-              </button>
+              >{opt.label}</button>
             ))}
           </div>
         </div>
@@ -373,9 +276,7 @@ export default function TotalUsersChart() {
                     <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-
                 <CartesianGrid strokeDasharray="1 8" stroke="rgba(255,255,255,0.06)" />
-
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatDate}
@@ -386,7 +287,6 @@ export default function TotalUsersChart() {
                   interval={xAxisInterval}
                   minTickGap={40}
                 />
-
                 <YAxis
                   tickFormatter={formatNumber}
                   stroke="rgba(255,255,255,0.3)"
@@ -397,10 +297,7 @@ export default function TotalUsersChart() {
                   ticks={predictions.yAxisConfig.ticks}
                   width={45}
                 />
-
                 <Tooltip content={<CustomTooltip />} />
-
-                {/* Shaded area for predictions - starts at current day */}
                 {currentDayDate && lastFilteredDate && (
                   <ReferenceArea
                     x1={currentDayDate}
@@ -409,8 +306,6 @@ export default function TotalUsersChart() {
                     fillOpacity={0.06}
                   />
                 )}
-
-                {/* Actual data area - stops at current day */}
                 <Area
                   type="monotone"
                   dataKey="actualTotal"
@@ -433,8 +328,6 @@ export default function TotalUsersChart() {
                   }}
                   activeDot={{ r: 4, fill: 'var(--color-primary)', stroke: '#fff', strokeWidth: 2 }}
                 />
-
-                {/* Predicted data line - dotted */}
                 <Line
                   type="monotone"
                   dataKey="predictedTotal"
@@ -448,9 +341,7 @@ export default function TotalUsersChart() {
                     return (
                       <circle
                         key={`pred-${payload.date}`}
-                        cx={cx}
-                        cy={cy}
-                        r={3}
+                        cx={cx} cy={cy} r={3}
                         fill={theme.bullishColor}
                         opacity={0.8}
                       />
@@ -468,7 +359,6 @@ export default function TotalUsersChart() {
             <span className="milestones-title">Milestones</span>
             <span className="milestones-rate">~{predictions.avgDailyGrowth || 0}/day</span>
           </div>
-
           <div className="milestones-list">
             {predictions.milestones?.length > 0 ? (
               predictions.milestones.map((m) => (
@@ -486,7 +376,6 @@ export default function TotalUsersChart() {
               <div className="no-milestones">Loading...</div>
             )}
           </div>
-
           <div className="milestones-legend">
             <div className="legend-item">
               <span className="legend-dot actual"></span>
@@ -580,9 +469,7 @@ export default function TotalUsersChart() {
         }
 
         .timeframe-btn:hover,
-        .projection-btn:hover {
-          color: #aaa;
-        }
+        .projection-btn:hover { color: #aaa; }
 
         .timeframe-btn.active {
           background: rgba(255, 255, 255, 0.1);
@@ -632,18 +519,9 @@ export default function TotalUsersChart() {
           padding-bottom: 5px;
         }
 
-        :global(.tooltip-tag) {
-          margin-left: 5px;
-          font-weight: 600;
-        }
-
-        :global(.tooltip-tag.projected) {
-          color: ${theme.bullishColor};
-        }
-
-        :global(.tooltip-tag.current) {
-          color: var(--color-primary);
-        }
+        :global(.tooltip-tag) { margin-left: 5px; font-weight: 600; }
+        :global(.tooltip-tag.projected) { color: ${theme.bullishColor}; }
+        :global(.tooltip-tag.current) { color: var(--color-primary); }
 
         :global(.tooltip-row) {
           display: flex;
@@ -651,20 +529,9 @@ export default function TotalUsersChart() {
           margin-bottom: 2px;
         }
 
-        :global(.tooltip-label) {
-          color: rgba(255,255,255,0.5);
-          font-size: 11px;
-        }
-
-        :global(.tooltip-value) {
-          color: #fff;
-          font-weight: 600;
-          font-size: 11px;
-        }
-
-        :global(.tooltip-value.green) {
-          color: ${theme.bullishColor};
-        }
+        :global(.tooltip-label) { color: rgba(255,255,255,0.5); font-size: 11px; }
+        :global(.tooltip-value) { color: #fff; font-weight: 600; font-size: 11px; }
+        :global(.tooltip-value.green) { color: ${theme.bullishColor}; }
 
         .milestones-box {
           width: 160px;
@@ -686,17 +553,8 @@ export default function TotalUsersChart() {
           border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .milestones-title {
-          font-size: 12px;
-          font-weight: 600;
-          color: #fff;
-        }
-
-        .milestones-rate {
-          font-size: 9px;
-          color: ${theme.bullishColor};
-          font-weight: 500;
-        }
+        .milestones-title { font-size: 12px; font-weight: 600; color: #fff; }
+        .milestones-rate { font-size: 9px; color: ${theme.bullishColor}; font-weight: 500; }
 
         .milestones-list {
           flex: 1;
@@ -715,15 +573,8 @@ export default function TotalUsersChart() {
           transition: background 0.2s;
         }
 
-        .milestone-item:hover {
-          background: rgba(255, 255, 255, 0.06);
-        }
-
-        .milestone-number {
-          font-size: 13px;
-          font-weight: 700;
-          color: #fff;
-        }
+        .milestone-item:hover { background: rgba(255, 255, 255, 0.06); }
+        .milestone-number { font-size: 13px; font-weight: 700; color: #fff; }
 
         .milestone-eta {
           display: flex;
@@ -731,16 +582,8 @@ export default function TotalUsersChart() {
           align-items: flex-end;
         }
 
-        .milestone-days {
-          font-size: 11px;
-          font-weight: 600;
-          color: ${theme.bullishColor};
-        }
-
-        .milestone-date {
-          font-size: 9px;
-          color: #555;
-        }
+        .milestone-days { font-size: 11px; font-weight: 600; color: ${theme.bullishColor}; }
+        .milestone-date { font-size: 9px; color: #555; }
 
         .no-milestones {
           color: #666;
@@ -766,120 +609,35 @@ export default function TotalUsersChart() {
           color: #777;
         }
 
-        .legend-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-        }
+        .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+        .legend-dot.actual { background: var(--color-primary); }
+        .legend-dot.current { background: var(--color-primary); border: 2px solid #fff; box-sizing: border-box; }
+        .legend-dot.predicted { background: ${theme.bullishColor}; opacity: 0.8; }
 
-        .legend-dot.actual {
-          background: var(--color-primary);
-        }
-
-        .legend-dot.current {
-          background: var(--color-primary);
-          border: 2px solid #fff;
-          box-sizing: border-box;
-        }
-
-        .legend-dot.predicted {
-          background: ${theme.bullishColor};
-          opacity: 0.8;
-        }
-
-        /* Tablet */
         @media (max-width: 900px) {
-          .chart-header-row {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .chart-controls-row {
-            width: 100%;
-            justify-content: flex-start;
-          }
+          .chart-header-row { flex-direction: column; align-items: flex-start; }
+          .chart-controls-row { width: 100%; justify-content: flex-start; }
         }
 
-        /* Mobile */
         @media (max-width: 640px) {
-          .total-users-chart-container {
-            padding: 12px;
-          }
-
-          .chart-title {
-            font-size: 14px;
-          }
-
-          .chart-subtitle {
-            font-size: 12px;
-          }
-
-          .chart-controls-row {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .timeframe-btn,
-          .projection-btn {
-            padding: 6px 9px;
-            font-size: 11px;
-          }
-
-          .switch-label {
-            padding: 0 5px;
-            font-size: 10px;
-          }
-
-          .chart-body-row {
-            flex-direction: column;
-            gap: 12px;
-          }
-
-          .milestones-box {
-            width: 100%;
-            padding: 10px;
-          }
-
-          .milestones-header {
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-          }
-
-          .milestones-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-          }
-
-          .milestone-item {
-            padding: 8px;
-          }
-
-          .milestones-legend {
-            flex-direction: row;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 8px;
-            padding-top: 6px;
-          }
+          .total-users-chart-container { padding: 12px; }
+          .chart-title { font-size: 14px; }
+          .chart-subtitle { font-size: 12px; }
+          .chart-controls-row { width: 100%; justify-content: space-between; }
+          .timeframe-btn, .projection-btn { padding: 6px 9px; font-size: 11px; }
+          .switch-label { padding: 0 5px; font-size: 10px; }
+          .chart-body-row { flex-direction: column; gap: 12px; }
+          .milestones-box { width: 100%; padding: 10px; }
+          .milestones-header { margin-bottom: 8px; padding-bottom: 6px; }
+          .milestones-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+          .milestone-item { padding: 8px; }
+          .milestones-legend { flex-direction: row; justify-content: center; gap: 12px; margin-top: 8px; padding-top: 6px; }
         }
 
-        /* Extra small */
         @media (max-width: 400px) {
-          .timeframe-btn,
-          .projection-btn {
-            padding: 5px 7px;
-            font-size: 10px;
-          }
-
-          .switch-label {
-            padding: 0 4px;
-            font-size: 9px;
-          }
-
-          .milestones-list {
-            grid-template-columns: 1fr;
-          }
+          .timeframe-btn, .projection-btn { padding: 5px 7px; font-size: 10px; }
+          .switch-label { padding: 0 4px; font-size: 9px; }
+          .milestones-list { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

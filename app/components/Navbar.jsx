@@ -50,6 +50,7 @@ function Navbar() {
         ]
       },
       { path: '/watchlist', label: 'Watchlist', protected: true },
+      { path: '/aggregator', label: 'Aggregator', protected: true, isNew: true, newTab: true },
     ]
 
     if (isMod) {
@@ -143,6 +144,26 @@ function Navbar() {
                 )
               }
 
+              if (link.newTab) {
+                return (
+                  <a
+                    key={link.path}
+                    href={link.path}
+                    className={`nav-link ${pathname === link.path ? 'active' : ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (link.protected && !user) {
+                        e.preventDefault()
+                        setShowAuth(true)
+                      }
+                    }}
+                  >
+                    {renderLabel(link)}
+                  </a>
+                )
+              }
+
               return link.external ? (
                 <a
                   key={link.path}
@@ -233,6 +254,28 @@ function Navbar() {
                     {link.label} - {child.label}
                   </Link>
                 ))
+              }
+              if (link.newTab) {
+                return (
+                  <a
+                    key={link.path}
+                    href={link.path}
+                    className={`mobile-menu-link ${pathname === link.path ? 'active' : ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (link.protected && !user) {
+                        e.preventDefault()
+                        setMobileMenuOpen(false);
+                        setShowAuth(true);
+                      } else {
+                        setMobileMenuOpen(false);
+                      }
+                    }}
+                  >
+                    {renderLabel(link)}
+                  </a>
+                )
               }
               return (
                 <Link

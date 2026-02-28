@@ -43,24 +43,26 @@ export default function PlatformPage() {
     setPlatformLoading(true)
 
     try {
-      // Fetch total "Traders" (matching leaderboard definition: non-zero activity)
-      let query = supabase
-        .from('leaderboard')
-        .select('*', { count: 'exact', head: true })
-        .or('cumulative_pnl.neq.0,cumulative_volume.gt.0')
+      // Fetch total "Traders" (non-zero activity, excluding sodex-owned)
+      // Combine conditions into single .or() with nested logic to avoid duplicate or= params
+      const activityFilter = excludeSodexOwned
+        ? 'and(cumulative_volume.gt.0,or(is_sodex_owned.is.null,is_sodex_owned.eq.false)),and(cumulative_pnl.neq.0,or(is_sodex_owned.is.null,is_sodex_owned.eq.false))'
+        : 'cumulative_pnl.neq.0,cumulative_volume.gt.0'
 
-      if (excludeSodexOwned) {
-        query = query.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-      }
+      const { count: tradersCount, error: tradersErr } = await supabase
+        .from('leaderboard_smart')
+        .select('account_id', { count: 'exact', head: true })
+        .or(activityFilter)
 
-      const { count: tradersCount } = await query
+      if (tradersErr) console.error('traders query error:', tradersErr)
 
       // Total users in DB
-      let usersQuery = supabase.from('leaderboard').select('*', { count: 'exact', head: true })
+      let usersQuery = supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true })
       if (excludeSodexOwned) {
         usersQuery = usersQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
       }
-      const { count: usersCount } = await usersQuery
+      const { count: usersCount, error: usersErr } = await usersQuery
+      if (usersErr) console.error('users query error:', usersErr)
 
       const totalTraders = tradersCount || 0
       const totalUsers = usersCount || 0
@@ -112,7 +114,7 @@ export default function PlatformPage() {
       if (!isNaN(v)) {
         let volQuery = supabase
           .from('leaderboard')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
         [vOpFunc]('cumulative_volume', v)
 
         if (excludeSodexOwned) {
@@ -125,7 +127,7 @@ export default function PlatformPage() {
       if (!isNaN(p)) {
         let pnlQuery = supabase
           .from('leaderboard')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
         [pOpFunc]('cumulative_pnl', p)
 
         if (excludeSodexOwned) {
@@ -137,7 +139,7 @@ export default function PlatformPage() {
       // 3. Combined Count
       let combinedQuery = supabase
         .from('leaderboard')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
 
       if (!isNaN(v)) combinedQuery = combinedQuery[vOpFunc]('cumulative_volume', v)
       if (!isNaN(p)) combinedQuery = combinedQuery[pOpFunc]('cumulative_pnl', p)

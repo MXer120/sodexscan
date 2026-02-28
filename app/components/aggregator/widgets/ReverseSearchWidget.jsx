@@ -1,0 +1,116 @@
+'use client'
+import { useState, useRef } from 'react'
+import { supabase } from '../../../lib/supabaseClient'
+import CopyableAddress from '../../ui/CopyableAddress'
+
+export default function ReverseSearchWidget() {
+  const [inputChars, setInputChars] = useState(Array(8).fill(''))
+  const inputRefs = useRef([])
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleCharChange = (index, value) => {
+    if (value === ' ') {
+      const newChars = [...inputChars]
+      newChars[index] = ''
+      setInputChars(newChars)
+      if (index < 7) inputRefs.current[index + 1]?.focus()
+      return
+    }
+    if (value.length > 1) value = value.slice(-1)
+    const newChars = [...inputChars]
+    newChars[index] = value
+    setInputChars(newChars)
+    if (value && index < 7) inputRefs.current[index + 1]?.focus()
+  }
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !inputChars[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleSearch = async () => {
+    const startBlock = inputChars.slice(0, 4)
+    const filledStart = startBlock.filter(c => c && c.trim()).length
+    if (filledStart < 2) { setError('Enter at least 2 start characters.'); return }
+    setLoading(true); setError(''); setResults([])
+    try {
+      const toPattern = (block) => block.map(c => (c && c.trim()) ? c : '_').join('')
+      const pattern = `0x${toPattern(startBlock)}%${toPattern(inputChars.slice(4, 8))}`
+      const { data: wallets, error: searchError } = await supabase
+        .from('leaderboard')
+        .select('wallet_address, first_trade_ts_ms')
+        .ilike('wallet_address', pattern)
+        .limit(50)
+      if (searchError) throw searchError
+      if (!wallets || wallets.length === 0) { setError('No matches found.'); setLoading(false); return }
+      const addrs = wallets.map(w => w.wallet_address)
+      const { data: socialData } = await supabase
+        .from('publicdns')
+        .select('wallet_address, dc_username, tg_username, ref_code')
+        .in('wallet_address', addrs)
+      const combined = wallets.map(row => {
+        const social = socialData?.find(s => s.wallet_address.toLowerCase() === row.wallet_address.toLowerCase())
+        return { wallet: row.wallet_address, referralCode: social?.ref_code, telegram: social?.tg_username, discord: social?.dc_username }
+      })
+      setResults(combined)
+    } catch (err) { setError(err.message) }
+    setLoading(false)
+  }
+
+  const inputStyle = {
+    width: 32, height: 40, borderRadius: 6,
+    border: '1px solid var(--color-border-subtle)', background: 'rgba(255,255,255,0.05)',
+    color: '#fff', fontSize: 16, textAlign: 'center', fontFamily: 'monospace', outline: 'none'
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 14, color: 'var(--color-text-secondary)', marginRight: 4 }}>0x</span>
+        {[0,1,2,3].map(i => (
+          <input key={i} ref={el => inputRefs.current[i] = el} type="text" maxLength={1}
+            style={inputStyle} value={inputChars[i]}
+            onChange={e => handleCharChange(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)} />
+        ))}
+        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'bold', margin: '0 4px' }}>...</span>
+        {[4,5,6,7].map(i => (
+          <input key={i} ref={el => inputRefs.current[i] = el} type="text" maxLength={1}
+            style={inputStyle} value={inputChars[i]}
+            onChange={e => handleCharChange(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)} />
+        ))}
+      </div>
+      <button onClick={handleSearch} disabled={loading} style={{
+        width: '100%', padding: '6px 12px', background: 'var(--color-primary)', color: '#000',
+        border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 8
+      }}>
+        {loading ? 'Searching...' : 'Search'}
+      </button>
+      {error && <div style={{ color: 'var(--color-error)', fontSize: 11, marginBottom: 8 }}>{error}</div>}
+      {results.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Ref</th>
+              <th>TG</th>
+              <th>DC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r, i) => (
+              <tr key={i}>
+                <td><CopyableAddress address={r.wallet} /></td>
+                <td>{r.referralCode || '-'}</td>
+                <td>{r.telegram || '-'}</td>
+                <td>{r.discord || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}

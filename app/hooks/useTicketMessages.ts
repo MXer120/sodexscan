@@ -26,14 +26,15 @@ export function useTicketMessages(ticketId: number | null) {
     queryFn: async (): Promise<TicketMessage[]> => {
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select('*')
+        .select('id, ticket_id, message_id, content, author_id, author_name, timestamp, attachments, is_edit, is_deleted')
         .eq('ticket_id', ticketId)
         .order('timestamp', { ascending: true })
+        .limit(500)
       if (error) throw error
       return data || []
     },
     enabled: !!ticketId && !!user && isMod,
-    staleTime: 15_000,
+    staleTime: 5 * 60 * 1000, // realtime subscription handles live updates
   })
 
   // Realtime for this ticket's messages

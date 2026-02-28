@@ -108,7 +108,7 @@ export async function fetchUserTags(): Promise<WalletTag[]> {
 
   const { data, error } = await supabase
     .from('wallet_tags')
-    .select('*')
+    .select('id, user_id, wallet_address, tag_name, created_at, is_group, group_name, group_color')
     .eq('user_id', user.id)
     .eq('is_group', false)
     .order('created_at', { ascending: false })

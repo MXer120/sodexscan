@@ -148,14 +148,13 @@ const SoPointsPage = () => {
     // ── Load a spot snapshot for a given week (cached in state) ──
     const loadSpotSnapshot = async (weekNum) => {
         if (weekNum < 1) return null
-        if (spotSnapshots[weekNum]) return spotSnapshots[weekNum]
+        if (spotSnapshots[weekNum] !== undefined) return spotSnapshots[weekNum]
         try {
             const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: weekNum })
             if (error) { console.error('Spot snapshot RPC error:', error); return null }
-            if (data && Object.keys(data).length > 0) {
-                setSpotSnapshots(prev => ({ ...prev, [weekNum]: data }))
-                return data
-            }
+            const snapshotData = (data && typeof data === 'object') ? data : {}
+            setSpotSnapshots(prev => ({ ...prev, [weekNum]: snapshotData }))
+            return snapshotData
         } catch (err) {
             console.error('Failed to load spot snapshot:', err)
         }
@@ -167,29 +166,12 @@ const SoPointsPage = () => {
         // weekNum: 0 = current live, 1+ = frozen
         if (futuresDataByWeek[weekNum] !== undefined) return futuresDataByWeek[weekNum]
         try {
-            const map = {}
-            const pageSize = 1000
-            let offset = 0
-            let hasMore = true
-            while (hasMore) {
-                const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-                    p_week: weekNum,
-                    p_sort: 'volume',
-                    p_limit: pageSize,
-                    p_offset: offset,
-                    p_exclude_sodex: true
-                })
-                if (error) throw error
-                if (!data || data.length === 0) { hasMore = false; break }
-                for (const row of data) {
-                    const vol = parseFloat(row.weekly_volume) || 0
-                    if (vol > 0) {
-                        map[row.wallet_address.toLowerCase()] = vol
-                    }
-                }
-                if (data.length < pageSize) hasMore = false
-                else offset += pageSize
-            }
+            const { data, error } = await supabase.rpc('get_futures_volume_map', {
+                p_week: weekNum,
+                p_exclude_sodex: true
+            })
+            if (error) throw error
+            const map = data || {}
             setFuturesDataByWeek(prev => ({ ...prev, [weekNum]: map }))
             return map
         } catch (err) {
@@ -238,14 +220,14 @@ const SoPointsPage = () => {
             for (let w = currentWeek - 1; w >= 1; w--) {
                 const { count: traders } = await supabase
                     .from('leaderboard_weekly')
-                    .select('*', { count: 'exact', head: true })
+                    .select('account_id', { count: 'exact', head: true })
                     .eq('week_number', w)
                     .gt('cumulative_volume', 0)
                     .not('is_sodex_owned', 'is', true)
 
                 const { count: activeTraders } = await supabase
                     .from('leaderboard_weekly')
-                    .select('*', { count: 'exact', head: true })
+                    .select('account_id', { count: 'exact', head: true })
                     .eq('week_number', w)
                     .gte('cumulative_volume', 5000)
                     .not('is_sodex_owned', 'is', true)
@@ -269,7 +251,7 @@ const SoPointsPage = () => {
         try {
             const { data, error } = await supabase
                 .from('leaderboard_meta')
-                .select('*')
+                .select('id, current_week_number, pool_size, total_user_counts')
                 .eq('id', 1)
                 .single()
             if (error) throw error
@@ -307,18 +289,18 @@ const SoPointsPage = () => {
         try {
             const { count: totalUsers } = await supabase
                 .from('leaderboard')
-                .select('*', { count: 'exact', head: true })
+                .select('account_id', { count: 'exact', head: true })
                 .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
 
             const { count: traders } = await supabase
                 .from('leaderboard')
-                .select('*', { count: 'exact', head: true })
+                .select('account_id', { count: 'exact', head: true })
                 .or('cumulative_pnl.neq.0,cumulative_volume.gt.0')
                 .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
 
             const { count: activeTraders } = await supabase
                 .from('leaderboard')
-                .select('*', { count: 'exact', head: true })
+                .select('account_id', { count: 'exact', head: true })
                 .gte('cumulative_volume', 5000)
                 .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
 
@@ -341,13 +323,18 @@ const SoPointsPage = () => {
         const prevWeek = selectedPointsWeek - 1
 
         // Determine spot data sources based on live vs historical
-        const baseSnapshot = prevWeek >= 1 ? spotSnapshots[prevWeek] : null
+        const baseSnapshotRaw = prevWeek >= 1 ? spotSnapshots[prevWeek] : null
         const weekFutures = isLive ? futuresDataByWeek[0] : futuresDataByWeek[selectedPointsWeek]
 
-        // For live week: need allTime. For historical: need the week's own snapshot
+        // For live week: need allTime. For historical: wait until snapshot is loaded (undefined = still loading, {} = loaded but empty)
         if (isLive && !spotAllTime) return null
-        if (!isLive && !spotSnapshots[selectedPointsWeek]) return null
+        if (!isLive && spotSnapshots[selectedPointsWeek] === undefined) return null
         if (!weekFutures && futuresLoading) return null
+
+        // Normalize baseSnapshot keys to lowercase for reliable case-insensitive lookup
+        const baseSnapshot = baseSnapshotRaw
+            ? Object.fromEntries(Object.entries(baseSnapshotRaw).map(([k, v]) => [k.toLowerCase(), v]))
+            : null
 
         // Build spot weekly diff map
         const spotWeeklyMap = {}
@@ -356,7 +343,7 @@ const SoPointsPage = () => {
         for (const [addr, d] of Object.entries(spotSource)) {
             if (SODEX_SPOT_WALLETS.has(addr.toLowerCase())) continue
             const vol = d.vol || 0
-            const baseVol = baseSnapshot?.[addr]?.vol || baseSnapshot?.[addr.toLowerCase()]?.vol || 0
+            const baseVol = baseSnapshot?.[addr.toLowerCase()]?.vol || 0
             const weeklySpot = Math.max(0, vol - baseVol)
             spotWeeklyMap[addr.toLowerCase()] = { weeklySpot, allTimeSpot: vol, userId: d.userId, originalAddr: addr }
         }

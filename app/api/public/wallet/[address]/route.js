@@ -47,7 +47,7 @@ export async function GET(request, { params }) {
         positions,
         fundTransfers
     ] = await Promise.all([
-        supabase.from('leaderboard_smart').select('*').eq('account_id', accountId).maybeSingle(),
+        supabase.from('leaderboard_smart').select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at, first_trade_ts_ms').eq('account_id', accountId).maybeSingle(),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
         fetchJson(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
         fetchJson(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),

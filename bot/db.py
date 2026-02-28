@@ -9,6 +9,10 @@ from supabase import create_client, Client
 
 _client: Client | None = None
 
+# In-memory caches (persist for bot lifetime, invalidated on writes)
+_ticket_cache: dict[str, dict] = {}           # channel_id -> ticket row
+_latest_ts_cache: dict[int, datetime | None] = {}  # ticket_id -> latest ts
+
 
 def get_client() -> Client:
     global _client
@@ -54,11 +58,14 @@ def upsert_ticket(
         .execute()
     )
     if result.data:
+        _ticket_cache[channel_id] = result.data[0]
         return result.data[0]["id"]
     return None
 
 
 def get_ticket_by_channel(channel_id: str) -> dict | None:
+    if channel_id in _ticket_cache:
+        return _ticket_cache[channel_id]
     sb = get_client()
     try:
         result = (
@@ -69,6 +76,7 @@ def get_ticket_by_channel(channel_id: str) -> dict | None:
             .execute()
         )
         if result and result.data and len(result.data) > 0:
+            _ticket_cache[channel_id] = result.data[0]
             return result.data[0]
     except Exception as e:
         print(f"[db] get_ticket_by_channel error: {e}")
@@ -82,13 +90,14 @@ def close_ticket(channel_id: str):
         "status": "closed",
         "close_date": datetime.now(timezone.utc).isoformat(),
     }).eq("channel_id", channel_id).execute()
+    _ticket_cache.pop(channel_id, None)
 
 
 def update_ticket_extracted(ticket_id: int, wallets: list[str], tx_ids: list[str]):
     """Update ticket with extracted wallet/tx if not already set."""
     sb = get_client()
     try:
-        result = sb.table("tickets").select("wallet_address, tx_id").eq("id", ticket_id).limit(1).execute()
+        result = sb.table("tickets").select("wallet_address, tx_id, channel_id").eq("id", ticket_id).limit(1).execute()
         if not result or not result.data or len(result.data) == 0:
             return
         ticket_data = result.data[0]
@@ -101,6 +110,10 @@ def update_ticket_extracted(ticket_id: int, wallets: list[str], tx_ids: list[str
 
         if updates:
             sb.table("tickets").update(updates).eq("id", ticket_id).execute()
+            # Invalidate cache so next read gets fresh data
+            ch_id = ticket_data.get("channel_id")
+            if ch_id:
+                _ticket_cache.pop(ch_id, None)
     except Exception as e:
         print(f"[db] update_ticket_extracted error: {e}")
 
@@ -139,6 +152,10 @@ def upsert_message(
     sb.table("ticket_messages").upsert(
         row, on_conflict="ticket_id,message_id"
     ).execute()
+    # Update latest-ts cache if this message is newer
+    cached = _latest_ts_cache.get(ticket_id)
+    if cached is None or timestamp > cached:
+        _latest_ts_cache[ticket_id] = timestamp
 
 
 def mark_message_deleted(message_id: str):
@@ -151,6 +168,8 @@ def mark_message_deleted(message_id: str):
 
 def get_latest_message_ts(ticket_id: int) -> datetime | None:
     """Get the latest message timestamp for a ticket."""
+    if ticket_id in _latest_ts_cache:
+        return _latest_ts_cache[ticket_id]
     sb = get_client()
     result = (
         sb.table("ticket_messages")
@@ -160,9 +179,9 @@ def get_latest_message_ts(ticket_id: int) -> datetime | None:
         .limit(1)
         .execute()
     )
-    if result.data:
-        return datetime.fromisoformat(result.data[0]["timestamp"])
-    return None
+    ts = datetime.fromisoformat(result.data[0]["timestamp"]) if result.data else None
+    _latest_ts_cache[ticket_id] = ts
+    return ts
 
 
 # ── Discord Users ───────────────────────────────────────────

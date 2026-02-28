@@ -26,7 +26,7 @@ export function useDiscordUser(discordId: string | null) {
     queryFn: async (): Promise<DiscordUser | null> => {
       const { data, error } = await supabase
         .from('discord_users')
-        .select('*')
+        .select('id, username, display_name, avatar_url, is_mod')
         .eq('id', discordId)
         .single()
       if (error) return null
@@ -45,7 +45,7 @@ export function useDiscordUsers(ids: string[]) {
       if (!ids.length) return []
       const { data, error } = await supabase
         .from('discord_users')
-        .select('*')
+        .select('id, username, display_name, avatar_url, is_mod')
         .in('id', ids)
       if (error) return []
       return data || []
