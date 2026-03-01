@@ -44,14 +44,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return localStorage.getItem('autoSyncColors') === 'true'
   })
 
-  // Track if we should sync to DB (to avoid redundant updates on load)
-  const shouldSyncRef = React.useRef(false)
-
   // Load theme from profile on mount / user change
   useEffect(() => {
     async function loadTheme() {
       setIsLoading(true)
-      shouldSyncRef.current = false
 
       // localStorage is the primary source of truth (instant, always fresh)
       const cached = localStorage.getItem('theme')
@@ -95,9 +91,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
 
       setIsLoading(false)
-      setTimeout(() => {
-        shouldSyncRef.current = true
-      }, 500)
     }
 
     loadTheme()
@@ -108,43 +101,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(theme)
   }, [])
 
-  // Debounced effect to save theme to DB
-  useEffect(() => {
-    if (!user || !shouldSyncRef.current || isLoading) return
-
-    const timer = setTimeout(async () => {
-      await supabase
-        .from('profiles')
-        .update({
-          color_scheme: theme.colorScheme,
-          theme_mode: theme.mode,
-          bullish_color: theme.bullishColor,
-          bearish_color: theme.bearishColor,
-          accent_color: theme.accentColor,
-          auto_sync_colors: autoSyncColors,
-        })
-        .eq('id', user.id)
-    }, 2000)
-
-    return () => clearTimeout(timer)
-  }, [theme, autoSyncColors, user, isLoading])
-
-  const setTheme = (updates: Partial<ThemeSettings>) => {
+  const setTheme = async (updates: Partial<ThemeSettings>) => {
     const newTheme = { ...theme, ...updates }
-
-    // Check if anything actually changed
     if (JSON.stringify(newTheme) === JSON.stringify(theme)) return
-
     setThemeState(newTheme)
     applyTheme(newTheme)
     localStorage.setItem('theme', JSON.stringify(newTheme))
-    shouldSyncRef.current = true
+    if (user) {
+      await supabase.from('profiles').update({
+        color_scheme: newTheme.colorScheme,
+        theme_mode: newTheme.mode,
+        bullish_color: newTheme.bullishColor,
+        bearish_color: newTheme.bearishColor,
+        accent_color: newTheme.accentColor,
+        auto_sync_colors: autoSyncColors,
+      }).eq('id', user.id)
+    }
   }
 
-  const setAutoSyncColors = (val: boolean) => {
+  const setAutoSyncColors = async (val: boolean) => {
     setAutoSyncColorsState(val)
     localStorage.setItem('autoSyncColors', String(val))
-    shouldSyncRef.current = true
+    if (user) {
+      await supabase.from('profiles').update({ auto_sync_colors: val }).eq('id', user.id)
+    }
   }
 
   const logo = getThemeLogo(theme.colorScheme)

@@ -113,6 +113,10 @@ export default function AggregatorPage() {
     return w >= 1200 ? 'lg' : w >= 768 ? 'md' : 'sm'
   }, [devicePreviewWidth, windowWidth])
 
+  const handleSetDevicePreview = useCallback((bp) => {
+    setDevicePreview(bp || null)
+  }, [])
+
   const handleWalletIssue = useCallback(() => {
     agg.setNavExpanded(true)
     setWalletHighlight(true)
@@ -166,7 +170,7 @@ export default function AggregatorPage() {
 
   const handleResizeWidget = useCallback((instanceId, dw, dh) => {
     const bp = effectiveBP
-    const cols = bp === 'lg' ? 12 : bp === 'md' ? 6 : 2
+    const cols = { lg: 12, md: 6, sm: 2 }[bp] || 12
     const layout = agg.layouts?.[bp] || []
     const item = layout.find(l => l.i === instanceId)
     if (!item) return
@@ -196,7 +200,7 @@ export default function AggregatorPage() {
 
       const ew = devicePreviewWidth || window.innerWidth
       const currentBP = ew >= 1200 ? 'lg' : ew >= 768 ? 'md' : 'sm'
-      const cols = currentBP === 'lg' ? 12 : currentBP === 'md' ? 6 : 2
+      const cols = { lg: 12, md: 6, sm: 2 }[currentBP] || 12
       const bpLayout = ds.startLayouts[currentBP] || ds.startLayouts.lg || []
 
       const item = bpLayout.find(l => l.i === ds.instanceId)
@@ -266,11 +270,16 @@ export default function AggregatorPage() {
     return agg.layouts?.[effectiveBP] || agg.layouts?.lg || []
   }, [agg.layouts, effectiveBP])
 
+  const visibleWidgetEntries = useMemo(() => {
+    const ids = new Set(currentBPLayout.map(l => l.i))
+    return widgetEntries.filter(([id]) => ids.has(id))
+  }, [widgetEntries, currentBPLayout])
+
   // Compute adjacent widget pairs for centered resize handles
   const adjacentPairs = useMemo(() => {
     if (isMobile || !gridContainerWidth) return []
     const currentBP = effectiveBP
-    const cols = currentBP === 'lg' ? 12 : currentBP === 'md' ? 6 : 2
+    const cols = { lg: 12, md: 6, sm: 2 }[currentBP] || 12
     const bpLayout = agg.layouts?.[currentBP] || agg.layouts?.lg || []
     if (!bpLayout.length) return []
 
@@ -333,9 +342,9 @@ export default function AggregatorPage() {
   const activeTemplate = agg.templates.find(t => t.id === agg.activePage?.templateId)
   const recentColors = activeTemplate?.recentColors || []
 
-  // Wallet resolution: page default → global → profile
+  // Wallet resolution: page default → global → profile (profile only when autoUseWallet)
   const pageDefaultWallet = agg.activePage?.defaultWallet || ''
-  const resolvedWalletFallback = pageDefaultWallet || agg.globalWallet || profileWallet
+  const resolvedWalletFallback = pageDefaultWallet || agg.globalWallet || (agg.autoUseWallet ? profileWallet : '')
 
   // Sidebar always left
   const navDockClass = 'nav-left'
@@ -410,7 +419,7 @@ export default function AggregatorPage() {
       />
 
       {/* Main content */}
-      <div className="agg-content">
+      <div className={`agg-content${devicePreview ? ' agg-content--device-preview' : ''}`}>
         {agg.performanceMode ? (
           <div className="agg-grid-wrapper" ref={gridWrapperRef} style={{ position: 'relative', maxWidth: devicePreviewWidth }}>
             {widgetEntries.length === 0 ? (
@@ -435,7 +444,7 @@ export default function AggregatorPage() {
                   useCSSTransforms={false}
                   transformScale={1}
                 >
-                  {widgetEntries.map(([instanceId, config]) => (
+                  {visibleWidgetEntries.map(([instanceId, config]) => (
                     <div key={instanceId}>
                       <WidgetWrapper
                         instanceId={instanceId}
@@ -449,6 +458,9 @@ export default function AggregatorPage() {
                         layoutItem={currentBPLayout.find(l => l.i === instanceId)}
                         onResizeWidget={handleResizeWidget}
                         rowHeight={rowHeight}
+                        devicePreview={devicePreview}
+                        effectiveBP={effectiveBP}
+                        onHideOnBP={(id) => agg.hideWidgetOnBP(id, effectiveBP)}
                       />
                     </div>
                   ))}
@@ -490,7 +502,7 @@ export default function AggregatorPage() {
                     compactType="vertical"
                     useCSSTransforms={true}
                   >
-                    {widgetEntries.map(([instanceId, config]) => (
+                    {visibleWidgetEntries.map(([instanceId, config]) => (
                       <div key={instanceId}>
                         <WidgetWrapper
                           instanceId={instanceId}
@@ -504,6 +516,9 @@ export default function AggregatorPage() {
                           layoutItem={currentBPLayout.find(l => l.i === instanceId)}
                           onResizeWidget={handleResizeWidget}
                           rowHeight={rowHeight}
+                          devicePreview={devicePreview}
+                          effectiveBP={effectiveBP}
+                          onHideOnBP={(id) => agg.hideWidgetOnBP(id, effectiveBP)}
                         />
                       </div>
                     ))}
@@ -525,17 +540,14 @@ export default function AggregatorPage() {
         />
       )}
 
-      {/* Device preview banner */}
+      {/* Device preview exit button */}
       {devicePreview && (
-        <div className="agg-device-preview-banner" style={{ left: agg.navExpanded ? 220 : 48 }}>
-          <span>
-            {typeof devicePreview === 'number'
-              ? `🖥 Custom Preview (${devicePreview}px)`
-              : devicePreview === 'md' ? '📱 Tablet Preview (768–1199px)' : '📱 Mobile Preview (<768px)'}
-          </span>
-          <span className="agg-device-preview-hint">Arrange widgets for this device, then save as a template.</span>
-          <button className="agg-device-preview-exit" onClick={() => setDevicePreview(null)}>Exit Preview</button>
-        </div>
+        <button
+          className="agg-device-preview-exit-btn"
+          onClick={() => handleSetDevicePreview(null)}
+        >
+          ✕ Exit {typeof devicePreview === 'number' ? `${devicePreview}px` : devicePreview === 'md' ? 'Tablet' : 'Mobile'} Preview
+        </button>
       )}
 
       {/* Assistant panel — animated slide-in */}
@@ -558,14 +570,14 @@ export default function AggregatorPage() {
           >
             <AggAssistant
               pages={agg.pages}
-              globalWallet={agg.globalWallet}
+              resolvedWallet={resolvedWalletFallback}
               autoUseWallet={agg.autoUseWallet}
               activePage={agg.activePage}
               layouts={agg.layouts}
               onFixGaps={agg.fixGaps}
               onClose={() => setShowAssistant(false)}
               devicePreview={devicePreview}
-              onSetDevicePreview={setDevicePreview}
+              onSetDevicePreview={handleSetDevicePreview}
               windowWidth={windowWidth}
               customDevices={agg.customDevices}
               onAddCustomDevice={agg.addCustomDevice}
@@ -574,8 +586,10 @@ export default function AggregatorPage() {
               onNavigateToPage={handleNavigateToPage}
               onResizeToFit={handleResizeToFit}
               onRemoveWidgets={handleRemoveWidgets}
-              onSaveLayout={agg.saveNow}
-              isSaving={agg.isSaving}
+              hiddenPerBP={agg.hiddenPerBP}
+              onUnhideWidget={agg.unhideWidgetOnBP}
+              allWidgets={agg.widgets}
+              effectiveBP={effectiveBP}
             />
           </motion.div>
         )}

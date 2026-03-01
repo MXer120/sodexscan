@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState } from 'react'
+import { WIDGET_REGISTRY } from './WidgetRegistry'
 
 const WALLET_WIDGET_TYPES = new Set([
   'account-value','account-equity','futures-stats','futures-perf',
@@ -27,7 +28,7 @@ function IconTrash() {
 
 export default function AggAssistant({
   pages,
-  globalWallet,
+  resolvedWallet,
   autoUseWallet,
   activePage,
   layouts,
@@ -43,24 +44,19 @@ export default function AggAssistant({
   onNavigateToPage,
   onResizeToFit,
   onRemoveWidgets,
-  onSaveLayout,
-  isSaving,
+  hiddenPerBP = { lg: [], md: [], sm: [] },
+  onUnhideWidget,
+  allWidgets = {},
+  effectiveBP = 'lg',
 }) {
   const [addingDevice, setAddingDevice] = useState(false)
   const [deviceName, setDeviceName] = useState('')
   const [resizeError, setResizeError] = useState(null)
-  const [savedFlash, setSavedFlash] = useState(false)
-
-  const handleSaveLayout = useCallback(() => {
-    onSaveLayout?.()
-    setSavedFlash(true)
-    setTimeout(() => setSavedFlash(false), 2000)
-  }, [onSaveLayout])
 
   const issues = useMemo(() => {
     const list = []
 
-    if (!globalWallet && !autoUseWallet) {
+    if (!resolvedWallet) {
       list.push({
         type: 'warning',
         title: 'No wallet configured',
@@ -71,7 +67,7 @@ export default function AggAssistant({
 
     const widgets = activePage?.widgets || {}
     const missingWallet = Object.values(widgets).filter(w =>
-      WALLET_WIDGET_TYPES.has(w.type) && !w.settings?.walletAddress && !globalWallet && !autoUseWallet
+      WALLET_WIDGET_TYPES.has(w.type) && !w.settings?.walletAddress && !resolvedWallet
     )
     if (missingWallet.length > 0) {
       list.push({
@@ -107,7 +103,7 @@ export default function AggAssistant({
     }
 
     return list
-  }, [pages, globalWallet, autoUseWallet, activePage, layouts])
+  }, [pages, resolvedWallet, activePage, layouts])
 
   const currentBP = windowWidth >= 1200 ? 'Desktop' : windowWidth >= 768 ? 'Tablet' : 'Mobile'
 
@@ -251,32 +247,40 @@ export default function AggAssistant({
           </button>
         )}
 
-        {devicePreview && (
+          {devicePreview && (
           <div className="agg-assistant-preview-note">
-            Editing {previewLabel} layout. Arrange widgets, then save as a template to preserve all device layouts.
+            Editing {previewLabel} layout. Save as a template (Templates menu) to preserve all device layouts.
           </div>
         )}
       </div>
 
-      {/* Save layout for current device */}
-      {devicePreview && (
+      {/* Hidden widgets — always visible */}
+      {[['lg', 'Desktop'], ['md', 'Tablet'], ['sm', 'Mobile']].some(([bp]) => (hiddenPerBP[bp] || []).length > 0) && (
         <div className="agg-assistant-section">
-          <div className="agg-assistant-section-title">
-            {typeof devicePreview === 'number'
-              ? `Custom (${devicePreview}px) Layout`
-              : devicePreview === 'md' ? 'Tablet Layout' : 'Mobile Layout'}
-          </div>
-          <button
-            className="agg-assistant-action-btn"
-            onClick={handleSaveLayout}
-            disabled={isSaving}
-            style={savedFlash ? { color: 'var(--color-success, #4ade80)' } : {}}
-          >
-            {savedFlash ? '✓ Saved to Supabase' : isSaving ? 'Saving…' : 'Save Layout'}
-          </button>
-          <div className="agg-assistant-action-desc">
-            Saves this device's layout permanently.
-          </div>
+          <div className="agg-assistant-section-title">Hidden Widgets</div>
+          {[['lg', 'Desktop'], ['md', 'Tablet'], ['sm', 'Mobile']].map(([bp, label]) => {
+            const items = hiddenPerBP[bp] || []
+            if (!items.length) return null
+            return (
+              <div key={bp} style={{ marginBottom: 8 }}>
+                <div className="agg-assistant-section-desc" style={{ marginBottom: 4 }}>{label}</div>
+                {items.map(item => {
+                  const widgetType = allWidgets[item.i]?.type
+                  const wLabel = widgetType ? (WIDGET_REGISTRY[widgetType]?.label || widgetType) : item.i
+                  return (
+                    <div key={item.i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ flex: 1, fontSize: 11, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wLabel}</span>
+                      <button
+                        className="agg-assistant-action-btn"
+                        style={{ flex: 0, padding: '3px 8px', fontSize: 11 }}
+                        onClick={() => onUnhideWidget?.(item.i, bp)}
+                      >Show</button>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       )}
 

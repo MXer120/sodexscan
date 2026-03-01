@@ -12,7 +12,6 @@ import { GROUP_COLORS, COLOR_HEX, GroupColor } from '../lib/walletTags'
 import { useTheme } from '../lib/ThemeContext'
 import { COLOR_SCHEMES, ColorScheme, ThemeMode, BULLISH_PRESETS, BEARISH_PRESETS, ACCENT_PRESETS, TERMINAL_SCHEMES, THEME_AUTO_COLORS, isValidHex } from '../lib/themes'
 import WalletDisplay from './WalletDisplay'
-import { supabase } from '../lib/supabaseClient'
 import '../styles/Profile.css'
 
 type ProfileSection = 'account' | 'settings' | 'customization' | 'aliases'
@@ -35,7 +34,7 @@ export default function Profile() {
   const bulkAssign = useBulkAssignToGroup()
   const updateOwnWallet = useUpdateOwnWallet()
   const updateShowZeroData = useUpdateShowZeroData()
-  const { theme, setTheme, autoSyncColors, setAutoSyncColors } = useTheme()
+  const { theme, setTheme, autoSyncColors, setAutoSyncColors, isLoading: themeLoading } = useTheme()
 
   const [ownWalletInput, setOwnWalletInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -69,6 +68,20 @@ export default function Profile() {
     bearishColor: theme.bearishColor,
     accentColor: theme.accentColor
   })
+
+  // Once ThemeContext finishes loading from DB, align originalValues so there's no false "unsaved" state
+  useEffect(() => {
+    if (!themeLoading) {
+      setOriginalValues(prev => ({
+        ...prev,
+        colorScheme: theme.colorScheme,
+        mode: theme.mode,
+        bullishColor: theme.bullishColor,
+        bearishColor: theme.bearishColor,
+        accentColor: theme.accentColor,
+      }))
+    }
+  }, [themeLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setCustomBullish(theme.bullishColor)
@@ -238,12 +251,10 @@ export default function Profile() {
   const handleSaveAllChanges = async () => {
     setIsSaving(true)
     try {
-      // Save own wallet if changed
       if (ownWalletInput.trim() !== originalValues.ownWallet) {
         await updateOwnWallet.mutateAsync(ownWalletInput.trim())
       }
 
-      // Update original values
       setOriginalValues({
         ownWallet: ownWalletInput.trim(),
         colorScheme: theme.colorScheme,

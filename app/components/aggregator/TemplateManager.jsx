@@ -29,56 +29,55 @@ const CATEGORY_COLORS = {
   containers: 'rgba(156, 163, 175, 0.5)',
 }
 
-// Mini layout preview - renders widget positions as colored blocks on a 12-col grid
-// Fixed container size — content scales to fit
-function LayoutPreview({ layouts, widgets, size = 'normal' }) {
-  const lg = layouts?.lg || []
-  if (lg.length === 0) return null
+// Mini layout preview — renders widget positions as colored blocks
+// bp: which breakpoint to render ('lg'|'md'|'sm'), size: 'normal'|'small'|'device'
+function LayoutPreview({ layouts, widgets, size = 'normal', bp = 'lg' }) {
+  const items = layouts?.[bp] || []
+  const bpCols = bp === 'sm' ? 2 : bp === 'md' ? 6 : 12
 
-  // Fixed container dimensions
+  if (items.length === 0) {
+    const h = size === 'small' ? 40 : 70
+    return (
+      <div style={{
+        height: h,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 10, color: 'var(--color-text-muted)',
+        background: 'var(--color-overlay-faint)', borderRadius: 4,
+      }}>
+        No layout
+      </div>
+    )
+  }
+
   const containerW = size === 'small' ? 56 : 100
   const containerH = size === 'small' ? 40 : 70
-
-  // Determine grid bounds for scaling
-  const maxY = Math.max(...lg.map(item => item.y + item.h), 1)
-  const cols = 12
+  const maxY = Math.max(...items.map(item => item.y + item.h), 1)
+  const cols = bpCols
   const clampedY = Math.min(maxY, 16)
-
-  // Cell size to fill the container
   const gap = 1
   const cellW = (containerW - (cols - 1) * gap) / cols
   const cellH = (containerH - (clampedY - 1) * gap) / clampedY
 
   return (
     <div style={{
-      width: containerW,
-      height: containerH,
-      position: 'relative',
-      borderRadius: 4,
-      overflow: 'hidden',
-      background: 'var(--color-overlay-faint)',
-      flexShrink: 0,
+      width: containerW, height: containerH,
+      position: 'relative', borderRadius: 4, overflow: 'hidden',
+      background: 'var(--color-overlay-faint)', flexShrink: 0,
     }}>
-      {lg.map((item) => {
+      {items.map((item) => {
         const widgetConfig = widgets[item.i]
         const reg = widgetConfig ? WIDGET_REGISTRY[widgetConfig.type] : null
         const cat = reg?.category || 'tools'
         const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS.tools
-
         return (
-          <div
-            key={item.i}
-            style={{
-              position: 'absolute',
-              left: item.x * (cellW + gap),
-              top: Math.min(item.y, 15) * (cellH + gap),
-              width: item.w * (cellW + gap) - gap,
-              height: item.h * (cellH + gap) - gap,
-              background: color,
-              borderRadius: 2,
-            }}
-            title={reg?.label || item.i}
-          />
+          <div key={item.i} style={{
+            position: 'absolute',
+            left: item.x * (cellW + gap),
+            top: Math.min(item.y, 15) * (cellH + gap),
+            width: item.w * (cellW + gap) - gap,
+            height: item.h * (cellH + gap) - gap,
+            background: color, borderRadius: 2,
+          }} title={reg?.label || item.i} />
         )
       })}
     </div>
@@ -93,20 +92,15 @@ function WidgetBadges({ widgets }) {
     const cat = reg?.category || 'other'
     categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
   }
-
   return (
     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
       {Object.entries(categoryCounts).map(([cat, count]) => {
         const catInfo = WIDGET_CATEGORIES[cat]
         return (
           <span key={cat} style={{
-            fontSize: 9,
-            padding: '1px 5px',
-            borderRadius: 4,
+            fontSize: 9, padding: '1px 5px', borderRadius: 4,
             background: CATEGORY_COLORS[cat] || 'var(--color-overlay-subtle)',
-            color: 'var(--color-text-main)',
-            fontWeight: 500,
-            whiteSpace: 'nowrap',
+            color: 'var(--color-text-main)', fontWeight: 500, whiteSpace: 'nowrap',
           }}>
             {catInfo?.label || cat} {count}
           </span>
@@ -116,10 +110,182 @@ function WidgetBadges({ widgets }) {
   )
 }
 
+// ── Template Edit Modal ────────────────────────────────────────────────────────
+function TemplateEditModal({ template, activePage, isGlobal, onSave, onClose }) {
+  const [name, setName] = useState(template.name)
+  const [bps, setBps] = useState({ lg: true, md: true, sm: true })
+
+  const toggleBP = (bp) => setBps(prev => ({ ...prev, [bp]: !prev[bp] }))
+  const anySelected = Object.values(bps).some(Boolean)
+
+  const handleSave = () => {
+    if (!anySelected) return
+    const selectedBPs = Object.entries(bps).filter(([, v]) => v).map(([k]) => k)
+    onSave({ name: name.trim() || template.name, bps: selectedBPs })
+  }
+
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [onClose])
+
+  if (typeof document === 'undefined') return null
+
+  const DEVICES = [
+    { bp: 'lg', label: 'Desktop', hint: '≥1200px' },
+    { bp: 'md', label: 'Tablet', hint: '768–1199px' },
+    { bp: 'sm', label: 'Mobile', hint: '<768px' },
+  ]
+
+  return createPortal(
+    <div
+      className="agg-modal-overlay"
+      style={{ zIndex: 100010 }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 12,
+          width: '92%',
+          maxWidth: 820,
+          maxHeight: '90vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="agg-modal-header">
+          <h2 style={{ margin: 0, fontSize: 16 }}>
+            Edit {isGlobal ? 'Global ' : ''}Template
+          </h2>
+          <button className="agg-modal-close" onClick={onClose}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '16px 24px 20px', overflowY: 'auto', flex: 1 }}>
+
+          {/* Name */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+              Template Name
+            </label>
+            <input
+              className="agg-tmpl-input"
+              style={{ width: '100%' }}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
+              autoFocus
+            />
+          </div>
+
+          {/* Widget overview */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+              Current Template Contents
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <LayoutPreview layouts={template.layouts} widgets={template.widgets} bp="lg" />
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-main)', marginBottom: 4 }}>{template.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>{Object.keys(template.widgets).length} widgets</div>
+                <WidgetBadges widgets={template.widgets} />
+              </div>
+            </div>
+          </div>
+
+          {/* Device layout selection */}
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+              Select device layouts to update from current page
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {DEVICES.map(({ bp, label, hint }) => (
+                <div
+                  key={bp}
+                  style={{
+                    border: `1px solid ${bps[bp] ? 'var(--color-primary, #6366f1)' : 'var(--color-border)'}`,
+                    borderRadius: 8,
+                    padding: 12,
+                    cursor: 'pointer',
+                    background: bps[bp] ? 'var(--color-primary-faint, rgba(99,102,241,0.07))' : 'var(--color-overlay-faint)',
+                    transition: 'border-color 0.15s, background 0.15s',
+                    userSelect: 'none',
+                  }}
+                  onClick={() => toggleBP(bp)}
+                >
+                  {/* Device header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                    <input
+                      type="checkbox"
+                      checked={bps[bp]}
+                      onChange={() => toggleBP(bp)}
+                      onClick={e => e.stopPropagation()}
+                      style={{ cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-muted)', marginLeft: 'auto' }}>{hint}</span>
+                  </div>
+
+                  {/* Side-by-side previews */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 4 }}>Current page</div>
+                      <LayoutPreview layouts={activePage.layouts} widgets={activePage.widgets} bp={bp} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 4 }}>In template</div>
+                      <LayoutPreview layouts={template.layouts} widgets={template.widgets} bp={bp} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '12px 24px',
+          borderTop: '1px solid var(--color-border)',
+          display: 'flex', justifyContent: 'flex-end', gap: 8, flexShrink: 0,
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px', fontSize: 13, border: '1px solid var(--color-border)',
+              borderRadius: 6, cursor: 'pointer', background: 'transparent', color: 'var(--color-text-main)',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            className="agg-modal-add-btn"
+            onClick={handleSave}
+            disabled={!anySelected}
+          >
+            Update Template
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function TemplateManager({
   templates, onSaveAsTemplate, onLoadTemplate, onLoadPresetTemplate, onApplyLayoutPreset,
   onDeleteTemplate, onRenameTemplate, onUpdateTemplate, activePage, onClose,
-  // Global templates
   globalTemplates = [], isOwner = false,
   onCreateGlobal, onUpdateGlobal, onDeleteGlobal, onImportPresets,
   isImportingPresets = false,
@@ -128,23 +294,20 @@ export default function TemplateManager({
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [hoveredTemplate, setHoveredTemplate] = useState(null)
-
-  // Owner: edit global template
-  const [editingGlobalId, setEditingGlobalId] = useState(null)
-  const [editGlobalName, setEditGlobalName] = useState('')
-
-  // Owner: save current as global
   const [newGlobalName, setNewGlobalName] = useState('')
+
+  // Edit modal — shared for both private and global templates
+  const [editingTemplate, setEditingTemplate] = useState(null) // { template, isGlobal }
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
+    const handleEsc = (e) => { if (e.key === 'Escape' && !editingTemplate) onClose() }
     document.addEventListener('keydown', handleEsc)
     return () => {
       document.body.style.overflow = 'unset'
       document.removeEventListener('keydown', handleEsc)
     }
-  }, [onClose])
+  }, [onClose, editingTemplate])
 
   const handleCreate = () => {
     if (!newName.trim() || templates.length >= 5) return
@@ -161,8 +324,7 @@ export default function TemplateManager({
     if (!newGlobalName.trim()) return
     onCreateGlobal({
       name: newGlobalName.trim(),
-      icon: '',
-      description: '',
+      icon: '', description: '',
       layouts: activePage.layouts,
       widgets: activePage.widgets,
       sort_order: globalTemplates.length,
@@ -170,29 +332,33 @@ export default function TemplateManager({
     setNewGlobalName('')
   }
 
-  const handleUpdateGlobal = (t) => {
-    onUpdateGlobal({
-      id: t.id,
-      name: editGlobalName.trim() || t.name,
-      icon: t.icon,
-      layouts: activePage.layouts,
-      widgets: activePage.widgets,
-    })
-    setEditingGlobalId(null)
-  }
+  // Called by TemplateEditModal when the user confirms
+  const handleEditSave = ({ name, bps }) => {
+    const { template, isGlobal } = editingTemplate
 
-  const handleStartEditGlobal = (t) => {
-    setEditingGlobalId(t.id)
-    setEditGlobalName(t.name)
+    if (isGlobal) {
+      const mergedLayouts = { ...(template.layouts || {}) }
+      for (const bp of bps) mergedLayouts[bp] = activePage.layouts?.[bp] || []
+      onUpdateGlobal({
+        id: template.id,
+        name,
+        icon: template.icon || '',
+        layouts: mergedLayouts,
+        widgets: activePage.widgets,
+      })
+    } else {
+      // Rename if name changed
+      if (name !== template.name) onRenameTemplate(template.id, name)
+      onUpdateTemplate(template.id, bps)
+    }
+    setEditingTemplate(null)
   }
 
   // Fallback: show hardcoded presets if no global templates in DB
   const showBuiltinFallback = globalTemplates.length === 0
 
-  // Template card renderer (used for both global and preset)
+  // Template card renderer (used for global + preset)
   const renderTemplateCard = (t, onClick, isGlobal = false) => {
-    const isHovered = hoveredTemplate === (t.id || t.name)
-
     return (
       <div
         key={t.id || t.name}
@@ -200,36 +366,26 @@ export default function TemplateManager({
         onMouseEnter={() => setHoveredTemplate(t.id || t.name)}
         onMouseLeave={() => setHoveredTemplate(null)}
       >
-        {editingGlobalId === t.id ? (
-          <div className="agg-tmpl-global-edit">
-            <input
-              className="agg-tmpl-input"
-              value={editGlobalName}
-              onChange={e => setEditGlobalName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleUpdateGlobal(t)}
-              autoFocus
-              style={{ flex: 1 }}
-              placeholder="Template name"
-            />
-            <button className="agg-modal-add-btn" onClick={() => handleUpdateGlobal(t)}>Save</button>
-            <button className="agg-tmpl-cancel-btn" onClick={() => setEditingGlobalId(null)}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+        <button className="agg-tmpl-preview-btn" onClick={onClick}>
+          <LayoutPreview layouts={t.layouts} widgets={t.widgets} />
+          <div className="agg-tmpl-preview-info">
+            <span className="agg-tmpl-preview-name">{t.name}</span>
+            <span className="agg-tmpl-preview-count">{Object.keys(t.widgets).length} widgets</span>
+            <WidgetBadges widgets={t.widgets} />
           </div>
-        ) : (
-          <button className="agg-tmpl-preview-btn" onClick={onClick}>
-            <LayoutPreview layouts={t.layouts} widgets={t.widgets} />
-            <div className="agg-tmpl-preview-info">
-              <span className="agg-tmpl-preview-name">{t.name}</span>
-              <span className="agg-tmpl-preview-count">{Object.keys(t.widgets).length} widgets</span>
-              <WidgetBadges widgets={t.widgets} />
-            </div>
-          </button>
-        )}
-        {isGlobal && isOwner && editingGlobalId !== t.id && (
+        </button>
+        {isGlobal && isOwner && (
           <div className="agg-tmpl-preview-actions">
-            <button className="agg-tmpl-action-btn" onClick={() => handleStartEditGlobal(t)} title="Edit"><EditIcon /></button>
-            <button className="agg-tmpl-action-btn delete" onClick={() => onDeleteGlobal(t.id)} title="Delete"><TrashIcon /></button>
+            <button
+              className="agg-tmpl-action-btn"
+              onClick={() => setEditingTemplate({ template: t, isGlobal: true })}
+              title="Edit"
+            >
+              <EditIcon />
+            </button>
+            <button className="agg-tmpl-action-btn delete" onClick={() => onDeleteGlobal(t.id)} title="Delete">
+              <TrashIcon />
+            </button>
           </div>
         )}
       </div>
@@ -238,7 +394,9 @@ export default function TemplateManager({
 
   if (typeof document === 'undefined') return null
 
-  return createPortal(
+  return (
+    <>
+    {createPortal(
     <div className="agg-modal-overlay" onClick={onClose}>
       <div className="agg-modal agg-tmpl-modal" onClick={e => e.stopPropagation()}>
         <div className="agg-modal-header">
@@ -252,7 +410,7 @@ export default function TemplateManager({
 
         <div style={{ padding: '0 24px 24px', overflowY: 'auto', maxHeight: 'calc(80vh - 60px)' }}>
 
-          {/* ── Global Templates (DB-backed) ──────────────────────── */}
+          {/* ── Global Templates ──────────────────────────────────── */}
           <div className="agg-tmpl-section">
             <div className="agg-tmpl-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Global</span>
@@ -272,15 +430,9 @@ export default function TemplateManager({
               <>
                 <div className="agg-tmpl-preview-grid">
                   {globalTemplates.map(t =>
-                    renderTemplateCard(
-                      t,
-                      () => { onApplyLayoutPreset(t.layouts, t.widgets); onClose() },
-                      true
-                    )
+                    renderTemplateCard(t, () => { onApplyLayoutPreset(t.layouts, t.widgets); onClose() }, true)
                   )}
                 </div>
-
-                {/* Owner: save current page as new global template */}
                 {isOwner && (
                   <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
                     <input
@@ -296,14 +448,9 @@ export default function TemplateManager({
                 )}
               </>
             ) : showBuiltinFallback ? (
-              /* Fallback: show hardcoded presets if DB is empty */
               <div className="agg-tmpl-preview-grid">
                 {PRESET_TEMPLATES.map(preset =>
-                  renderTemplateCard(
-                    preset,
-                    () => { onLoadPresetTemplate(preset.id); onClose() },
-                    false
-                  )
+                  renderTemplateCard(preset, () => { onLoadPresetTemplate(preset.id); onClose() }, false)
                 )}
               </div>
             ) : null}
@@ -357,7 +504,9 @@ export default function TemplateManager({
                   <div className="agg-template-actions">
                     <button onClick={() => onLoadTemplate(t.id)}>Load</button>
                     {activePage.templateId === t.id && (
-                      <button onClick={() => onUpdateTemplate(t.id)}>Update</button>
+                      <button onClick={() => setEditingTemplate({ template: t, isGlobal: false })}>
+                        Edit & Update
+                      </button>
                     )}
                     <button className="delete" onClick={() => onDeleteTemplate(t.id)}>Delete</button>
                   </div>
@@ -375,5 +524,16 @@ export default function TemplateManager({
       </div>
     </div>,
     document.body
+    )}
+    {editingTemplate && (
+      <TemplateEditModal
+        template={editingTemplate.template}
+        activePage={activePage}
+        isGlobal={editingTemplate.isGlobal}
+        onSave={handleEditSave}
+        onClose={() => setEditingTemplate(null)}
+      />
+    )}
+    </>
   )
 }

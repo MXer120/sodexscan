@@ -712,6 +712,7 @@ export const DEFAULT_LAYOUT_V2 = {
   navExpanded: false,
   activePageIndex: 0,
   globalWallet: '',
+  autoUseWallet: true,
   pages: [{
     name: 'Scan',
     templateId: null,

@@ -13,7 +13,7 @@ function WidgetSkeleton() {
   )
 }
 
-function WidgetWrapper({ instanceId, config, onRemove, onUpdateConfig, recentColors, onAddRecentColor, resolvedWalletAddress, editMode = true, layoutItem, onResizeWidget, rowHeight = 80 }) {
+function WidgetWrapper({ instanceId, config, onRemove, onUpdateConfig, recentColors, onAddRecentColor, resolvedWalletAddress = '', editMode = true, layoutItem, onResizeWidget, rowHeight = 80, devicePreview = null, onHideOnBP = null, effectiveBP = 'lg' }) {
   const [showSettings, setShowSettings] = useState(false)
   const [showSizePanel, setShowSizePanel] = useState(false)
   const [panelPos, setPanelPos] = useState(null)
@@ -167,6 +167,19 @@ function WidgetWrapper({ instanceId, config, onRemove, onUpdateConfig, recentCol
               )}
             </>
           )}
+          {devicePreview && onHideOnBP && (
+            <button
+              className="agg-widget-btn"
+              onClick={(e) => { e.stopPropagation(); onHideOnBP(instanceId) }}
+              title="Hide on this device"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          )}
           <button
             ref={btnRef}
             className="agg-widget-btn"
@@ -225,6 +238,9 @@ function WidgetWrapper({ instanceId, config, onRemove, onUpdateConfig, recentCol
             config={effectiveSettings}
             onUpdateConfig={(newSettings) => onUpdateConfig(instanceId, newSettings)}
             editMode={editMode}
+            devicePreview={devicePreview}
+            effectiveBP={effectiveBP}
+            resolvedWalletAddress={resolvedWalletAddress}
           />
         </Suspense>
       </div>

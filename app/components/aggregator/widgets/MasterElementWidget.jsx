@@ -105,32 +105,74 @@ function ResizeHandle({ subId, height, onResize }) {
   )
 }
 
-export default function MasterElementWidget({ config, onUpdateConfig, editMode = true }) {
+export default function MasterElementWidget({ config, onUpdateConfig, editMode = true, devicePreview = null, effectiveBP = 'lg', resolvedWalletAddress = '' }) {
   const [showAddDropdown, setShowAddDropdown] = useState(false)
   const [search, setSearch] = useState('')
-  // Settings: { subId, top, right }
   const [settingsPanel, setSettingsPanel] = useState(null)
-  const settingsBtnRefs = useRef({})  // subId → HTMLElement
+  const settingsBtnRefs = useRef({})
   const settingsPanelRef = useRef(null)
   const dropdownRef = useRef(null)
 
-  // Drag state
   const [dragOverId, setDragOverId] = useState(null)
   const dragSrcId = useRef(null)
 
   const gridContainerRef = useRef(null)
-  const columns = config.columns || 2
+
+  // Effective columns — per-device override first, then global
+  const columns = config.columnsPerBP?.[effectiveBP] ?? config.columns ?? 2
   const subWidgets = config.subWidgets || []
   const subHeights = config.subHeights || {}
 
-  // Column widths as relative fractions (stored in config, default = equal)
-  const rawColWidths = config.columnWidths || []
+  // Column widths — per-device override first, then global
+  const rawColWidths = config.columnWidthsPerBP?.[effectiveBP] || config.columnWidths || []
   const columnWidths = rawColWidths.length === columns ? rawColWidths : Array(columns).fill(1)
   const colTemplate = columnWidths.map(w => `${w}fr`).join(' ')
 
+  // Hidden sub-widgets per device (always active — not just in preview)
+  const hiddenSubIds = new Set(config.hiddenSubsPerBP?.[effectiveBP] || [])
+  const visibleSubs = subWidgets.filter(s => !hiddenSubIds.has(s.id))
+  const hiddenSubs = subWidgets.filter(s => hiddenSubIds.has(s.id))
+
+  const deviceLabel = effectiveBP === 'lg' ? 'Desktop' : effectiveBP === 'md' ? 'Tablet' : 'Mobile'
+
   const handleColumnWidthsChange = useCallback((newWidths) => {
-    onUpdateConfig({ ...config, columnWidths: newWidths })
-  }, [config, onUpdateConfig])
+    if (devicePreview) {
+      const perBP = { ...(config.columnWidthsPerBP || {}) }
+      perBP[effectiveBP] = newWidths
+      onUpdateConfig({ ...config, columnWidthsPerBP: perBP })
+    } else {
+      onUpdateConfig({ ...config, columnWidths: newWidths })
+    }
+  }, [config, onUpdateConfig, devicePreview, effectiveBP])
+
+  // Column count change — per-device if in preview (unlimited), else global (capped 1-4)
+  const applyColumnsChange = useCallback((newCols) => {
+    newCols = Math.max(1, newCols)
+    if (devicePreview) {
+      const colsPerBP = { ...(config.columnsPerBP || {}) }
+      colsPerBP[effectiveBP] = newCols
+      const colWidthsPerBP = { ...(config.columnWidthsPerBP || {}) }
+      colWidthsPerBP[effectiveBP] = Array(newCols).fill(1)
+      onUpdateConfig({ ...config, columnsPerBP: colsPerBP, columnWidthsPerBP: colWidthsPerBP })
+    } else {
+      const safeCols = Math.min(4, newCols)
+      onUpdateConfig({ ...config, columns: safeCols, columnWidths: Array(safeCols).fill(1) })
+    }
+  }, [config, onUpdateConfig, devicePreview, effectiveBP])
+
+  // Hide sub-widget on current device
+  const handleHideSub = useCallback((subId) => {
+    const perBP = { ...(config.hiddenSubsPerBP || {}) }
+    perBP[effectiveBP] = [...(perBP[effectiveBP] || []), subId]
+    onUpdateConfig({ ...config, hiddenSubsPerBP: perBP })
+  }, [config, onUpdateConfig, effectiveBP])
+
+  // Restore hidden sub-widget on current device
+  const handleShowSub = useCallback((subId) => {
+    const perBP = { ...(config.hiddenSubsPerBP || {}) }
+    perBP[effectiveBP] = (perBP[effectiveBP] || []).filter(id => id !== subId)
+    onUpdateConfig({ ...config, hiddenSubsPerBP: perBP })
+  }, [config, onUpdateConfig, effectiveBP])
 
   // Close dropdown on outside click / esc
   useEffect(() => {
@@ -170,7 +212,6 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
     }
   }, [settingsPanel])
 
-  // Add sub-widget
   const handleAdd = (typeId) => {
     const reg = WIDGET_REGISTRY[typeId]
     if (!reg || typeId === 'master-element') return
@@ -179,21 +220,23 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
     setShowAddDropdown(false); setSearch('')
   }
 
-  // Remove sub-widget
   const handleRemove = (subId) => {
     const newHeights = { ...subHeights }
     delete newHeights[subId]
-    onUpdateConfig({ ...config, subWidgets: subWidgets.filter(s => s.id !== subId), subHeights: newHeights })
+    // Clean from hiddenSubsPerBP too
+    const perBP = { ...(config.hiddenSubsPerBP || {}) }
+    for (const bp of Object.keys(perBP)) {
+      perBP[bp] = (perBP[bp] || []).filter(id => id !== subId)
+    }
+    onUpdateConfig({ ...config, subWidgets: subWidgets.filter(s => s.id !== subId), subHeights: newHeights, hiddenSubsPerBP: perBP })
     if (settingsPanel?.subId === subId) setSettingsPanel(null)
     delete settingsBtnRefs.current[subId]
   }
 
-  // Update sub-widget settings
   const handleSubUpdate = (subId, newSettings) => {
     onUpdateConfig({ ...config, subWidgets: subWidgets.map(s => s.id === subId ? { ...s, settings: newSettings } : s) })
   }
 
-  // Resize sub-widget
   const handleResize = useCallback((subId, newHeight) => {
     onUpdateConfig({ ...config, subHeights: { ...subHeights, [subId]: newHeight } })
   }, [config, subHeights, onUpdateConfig])
@@ -230,12 +273,6 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
     setDragOverId(null)
   }, [])
 
-  // Column change — reset columnWidths to equal fractions on change
-  const handleColumnsChange = (val) => {
-    const newCols = Math.max(1, Math.min(4, parseInt(val) || 2))
-    onUpdateConfig({ ...config, columns: newCols, columnWidths: Array(newCols).fill(1) })
-  }
-
   // Widget type search
   const availableTypes = Object.entries(WIDGET_REGISTRY).filter(([id]) => id !== 'master-element')
   const filtered = search
@@ -255,13 +292,42 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
       {editMode && (
       <div className="master-element-toolbar">
         <div className="master-element-cols">
-          <label>Cols</label>
-          <AggSelect
-            value={columns}
-            onChange={handleColumnsChange}
-            options={[{ value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }]}
-          />
+          <label>Cols{devicePreview ? ` (${deviceLabel})` : ''}</label>
+          {devicePreview ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button className="master-element-sub-remove" style={{ width: 20, height: 20, fontSize: 14, lineHeight: 1 }} onClick={() => applyColumnsChange(columns - 1)}>−</button>
+              <span style={{ minWidth: 18, textAlign: 'center', fontSize: 12, fontWeight: 600 }}>{columns}</span>
+              <button className="master-element-sub-remove" style={{ width: 20, height: 20, fontSize: 14, lineHeight: 1 }} onClick={() => applyColumnsChange(columns + 1)}>+</button>
+            </div>
+          ) : (
+            <AggSelect
+              value={columns}
+              onChange={(val) => applyColumnsChange(parseInt(val) || 2)}
+              options={[{ value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }]}
+            />
+          )}
         </div>
+
+        {/* Hidden subs restore list — shown when in device preview */}
+        {devicePreview && hiddenSubs.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>Hidden:</span>
+            {hiddenSubs.map(s => {
+              const reg = WIDGET_REGISTRY[s.type]
+              return (
+                <button
+                  key={s.id}
+                  className="master-element-sub-remove"
+                  style={{ fontSize: 10, padding: '2px 6px', height: 'auto', width: 'auto', borderRadius: 3 }}
+                  title={`Show on ${deviceLabel}`}
+                  onClick={() => handleShowSub(s.id)}
+                >
+                  + {reg?.label || s.type}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button className="master-element-add-btn" onClick={() => setShowAddDropdown(!showAddDropdown)}>
@@ -300,7 +366,7 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
       ) : (
         <div className="master-element-grid-wrapper" ref={gridContainerRef}>
         <div className="master-element-grid" style={{ gridTemplateColumns: colTemplate }}>
-          {subWidgets.map((sub) => {
+          {visibleSubs.map((sub) => {
             const reg = WIDGET_REGISTRY[sub.type]
             if (!reg) return null
             const SubComponent = reg.component
@@ -325,6 +391,21 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
                   <span className="master-element-sub-title">{reg.label}</span>
                   {editMode && (
                   <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {/* Hide on this device button */}
+                    {devicePreview && (
+                      <button
+                        className="master-element-sub-remove"
+                        onClick={(e) => { e.stopPropagation(); handleHideSub(sub.id) }}
+                        title={`Hide on ${deviceLabel}`}
+                        style={{ opacity: 0.7 }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                      </button>
+                    )}
                     {hasSettings && (
                       <button
                         ref={el => { settingsBtnRefs.current[sub.id] = el }}
@@ -350,7 +431,7 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
                 <div className="master-element-sub-body">
                   <Suspense fallback={<SubWidgetSkeleton />}>
                     <SubComponent
-                      config={sub.settings}
+                      config={(!resolvedWalletAddress || sub.settings?.walletAddress) ? sub.settings : { ...sub.settings, walletAddress: resolvedWalletAddress }}
                       onUpdateConfig={(newSettings) => handleSubUpdate(sub.id, newSettings)}
                     />
                   </Suspense>
@@ -380,7 +461,7 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
         </div>
       )}
 
-      {/* Settings portal — same behaviour as WidgetWrapper */}
+      {/* Settings portal */}
       {settingsPanel && typeof document !== 'undefined' && createPortal(
         <div
           ref={settingsPanelRef}
@@ -408,7 +489,7 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
                 onClose={() => setSettingsPanel(null)}
                 recentColors={[]}
                 onAddRecentColor={() => {}}
-                resolvedWalletAddress=''
+                resolvedWalletAddress={resolvedWalletAddress}
               />
             )
           })()}

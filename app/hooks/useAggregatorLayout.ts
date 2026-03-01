@@ -18,6 +18,7 @@ interface PageConfig {
   defaultWallet: string
   layouts: { lg: any[]; md: any[]; sm: any[] }
   widgets: Record<string, WidgetConfig>
+  hiddenPerBP?: { lg: any[]; md: any[]; sm: any[] }
 }
 
 interface TemplateConfig {
@@ -151,6 +152,7 @@ export function useAggregatorLayout() {
   const [isDirty, setIsDirty] = useState(false)
   const serverDataRef = useRef<AggregatorData | null>(null)
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const immediatelySaveRef = useRef(false)
 
   // Fetch from DB — uses localStorage as initialData for instant load
   const { data: serverData, isLoading } = useQuery({
@@ -223,15 +225,15 @@ export function useAggregatorLayout() {
     }
   })
 
-  // ── Auto-save (debounced) ────────────────────────────────────────
+  // ── Auto-save (debounced, immediate for critical changes) ────────
   useEffect(() => {
     if (!isDirty || !localData || !user) return
-    // Write to localStorage immediately — instant cross-tab consistency
     writeLS(user.id, localData)
-    // Debounce Supabase write
+    const delay = immediatelySaveRef.current ? 0 : 1500
+    immediatelySaveRef.current = false
     const timer = setTimeout(() => {
       saveMutation.mutate(localData)
-    }, 1500)
+    }, delay)
     return () => clearTimeout(timer)
   }, [localData, isDirty])
 
@@ -324,9 +326,9 @@ export function useAggregatorLayout() {
     if (!reg) return
     const instanceId = `${typeId}-${Date.now()}`
     const { w, h, minW, minH } = reg.defaultSize
-    // Proportional heights: md ~ 85% of desktop, sm ~ 65% of desktop
-    const mdH = Math.max(minH || 1, Math.round(h * 0.85))
-    const smH = Math.max(minH || 1, Math.round(h * 0.65))
+    // Use registry-defined default heights; fall back to proportional
+    const mdH = reg.mdH ?? Math.max(minH || 1, Math.round(h * 0.85))
+    const smH = reg.smH ?? Math.max(minH || 1, Math.round(h * 0.65))
     const newItem = { i: instanceId, x: 0, y: Infinity, w, h, minW, minH }
     updateLocal(d => {
       const pages = [...d.pages]
@@ -334,7 +336,7 @@ export function useAggregatorLayout() {
       page.layouts = {
         lg: [...(page.layouts?.lg || []), newItem],
         md: [...(page.layouts?.md || []), { ...newItem, w: Math.min(w, 6), h: mdH }],
-        sm: [...(page.layouts?.sm || []), { ...newItem, x: 0, w: 2, h: smH }],
+        sm: [...(page.layouts?.sm || []), { ...newItem, x: 0, w: Math.min(w, 2), h: smH }],
       }
       // Auto-inject wallet if autoUseWallet is enabled
       const settings = { ...reg.defaultSettings }
@@ -356,10 +358,12 @@ export function useAggregatorLayout() {
   }, [updateLocal])
 
   const setPerformanceMode = useCallback((val: boolean) => {
+    immediatelySaveRef.current = true
     updateLocal(d => ({ ...d, performanceMode: val }))
   }, [updateLocal])
 
   const setEditMode = useCallback((val: boolean) => {
+    immediatelySaveRef.current = true
     updateLocal(d => ({ ...d, editMode: val }))
   }, [updateLocal])
 
@@ -389,6 +393,34 @@ export function useAggregatorLayout() {
       page.widgets = newWidgets
       pages[d.activePageIndex] = page
       return { ...d, pages, templates: syncPageToTemplate(d, page) }
+    })
+  }, [updateLocal])
+
+  const hideWidgetOnBP = useCallback((instanceId: string, bp: string) => {
+    updateLocal(d => {
+      const pages = [...d.pages]
+      const page = { ...pages[d.activePageIndex] }
+      const item = (page.layouts?.[bp] || []).find((l: any) => l.i === instanceId)
+      if (!item) return d
+      const hidden = page.hiddenPerBP || { lg: [], md: [], sm: [] }
+      page.hiddenPerBP = { ...hidden, [bp]: [...(hidden[bp] || []), item] }
+      page.layouts = { ...page.layouts, [bp]: (page.layouts[bp] || []).filter((l: any) => l.i !== instanceId) }
+      pages[d.activePageIndex] = page
+      return { ...d, pages }
+    })
+  }, [updateLocal])
+
+  const unhideWidgetOnBP = useCallback((instanceId: string, bp: string) => {
+    updateLocal(d => {
+      const pages = [...d.pages]
+      const page = { ...pages[d.activePageIndex] }
+      const hidden = page.hiddenPerBP || { lg: [], md: [], sm: [] }
+      const item = (hidden[bp] || []).find((l: any) => l.i === instanceId)
+      if (!item) return d
+      page.hiddenPerBP = { ...hidden, [bp]: (hidden[bp] || []).filter((l: any) => l.i !== instanceId) }
+      page.layouts = { ...page.layouts, [bp]: [...(page.layouts[bp] || []), item] }
+      pages[d.activePageIndex] = page
+      return { ...d, pages }
     })
   }, [updateLocal])
 
@@ -423,15 +455,17 @@ export function useAggregatorLayout() {
     })
   }, [updateLocal])
 
-  const updateTemplate = useCallback((templateId: string) => {
+  const updateTemplate = useCallback((templateId: string, bps: string[] = ['lg', 'md', 'sm']) => {
     updateLocal(d => {
       const idx = d.templates.findIndex(t => t.id === templateId)
       if (idx === -1) return d
       const page = d.pages[d.activePageIndex]
       const templates = [...d.templates]
+      const updatedLayouts = { ...templates[idx].layouts }
+      for (const bp of bps) updatedLayouts[bp] = JSON.parse(JSON.stringify(page.layouts[bp] || []))
       templates[idx] = {
         ...templates[idx],
-        layouts: JSON.parse(JSON.stringify(page.layouts)),
+        layouts: updatedLayouts,
         widgets: JSON.parse(JSON.stringify(page.widgets)),
       }
       return { ...d, templates }
@@ -439,6 +473,7 @@ export function useAggregatorLayout() {
   }, [updateLocal])
 
   const loadTemplate = useCallback((templateId: string) => {
+    immediatelySaveRef.current = true
     updateLocal(d => {
       const template = d.templates.find(t => t.id === templateId)
       if (!template) return d
@@ -659,6 +694,8 @@ export function useAggregatorLayout() {
 
     // Layout/widget ops
     updateLayout, updateBreakpointLayout, updateWidgetConfig, addWidget, removeWidget, resetToDefault,
+    hideWidgetOnBP, unhideWidgetOnBP,
+    hiddenPerBP: activePage.hiddenPerBP || { lg: [], md: [], sm: [] },
 
     // Nav
     setNavDock, setNavPosition, setNavExpanded,
@@ -676,7 +713,7 @@ export function useAggregatorLayout() {
 
     // Wallet
     globalWallet: current.globalWallet || '',
-    autoUseWallet: current.autoUseWallet ?? false,
+    autoUseWallet: current.autoUseWallet ?? true,
     setGlobalWallet, setPageDefaultWallet, setAutoUseWallet,
 
     // Performance
