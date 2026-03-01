@@ -32,6 +32,14 @@
   width: auto;
 }
 
+/* Theme logo overrides — applied before React hydrates via data-color-scheme on <html> */
+html[data-color-scheme="orange"] img.logo-icon { content: url('/logo-orange.svg'); }
+html[data-color-scheme="purple"] img.logo-icon { content: url('/logo-purple.svg'); }
+html[data-color-scheme="green"]  img.logo-icon { content: url('/logo-green.svg'); }
+html[data-color-scheme="monochrome"] img.logo-icon { content: url('/logo-mono.svg'); }
+html[data-color-scheme="cli"]    img.logo-icon { content: url('/logo-cli.svg'); }
+html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); }
+
 .navbar-links {
   display: flex;
   align-items: center;

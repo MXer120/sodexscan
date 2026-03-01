@@ -276,11 +276,11 @@ export default function TotalUsersChart() {
                     <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="1 8" stroke="rgba(255,255,255,0.06)" />
+                <CartesianGrid strokeDasharray="1 8" stroke="var(--color-overlay-subtle)" />
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatDate}
-                  stroke="rgba(255,255,255,0.3)"
+                  stroke="var(--color-border-strong)"
                   tick={{ fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
@@ -289,7 +289,7 @@ export default function TotalUsersChart() {
                 />
                 <YAxis
                   tickFormatter={formatNumber}
-                  stroke="rgba(255,255,255,0.3)"
+                  stroke="var(--color-border-strong)"
                   tick={{ fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
@@ -396,7 +396,7 @@ export default function TotalUsersChart() {
       <style jsx>{`
         .total-users-chart-container {
           background: rgba(20, 20, 20, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--color-overlay-medium);
           border-radius: 12px;
           padding: 16px;
           margin-bottom: 24px;
@@ -445,7 +445,7 @@ export default function TotalUsersChart() {
           background: rgba(30, 30, 30, 0.6);
           border-radius: 6px;
           padding: 2px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--color-overlay-medium);
         }
 
         .switch-label {
@@ -472,7 +472,7 @@ export default function TotalUsersChart() {
         .projection-btn:hover { color: #aaa; }
 
         .timeframe-btn.active {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--color-overlay-medium);
           color: #fff;
         }
 
@@ -503,7 +503,7 @@ export default function TotalUsersChart() {
 
         :global(.chart-tooltip) {
           background: rgba(12, 12, 12, 0.98);
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid var(--color-overlay-medium);
           border-radius: 8px;
           padding: 10px 14px;
           min-width: 130px;
@@ -511,11 +511,11 @@ export default function TotalUsersChart() {
         }
 
         :global(.tooltip-date) {
-          color: rgba(255,255,255,0.5);
+          color: var(--color-text-muted);
           margin: 0 0 6px 0;
           font-size: 10px;
           font-weight: 500;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          border-bottom: 1px solid var(--color-overlay-subtle);
           padding-bottom: 5px;
         }
 
@@ -529,7 +529,7 @@ export default function TotalUsersChart() {
           margin-bottom: 2px;
         }
 
-        :global(.tooltip-label) { color: rgba(255,255,255,0.5); font-size: 11px; }
+        :global(.tooltip-label) { color: var(--color-text-muted); font-size: 11px; }
         :global(.tooltip-value) { color: #fff; font-weight: 600; font-size: 11px; }
         :global(.tooltip-value.green) { color: ${theme.bullishColor}; }
 
@@ -537,7 +537,7 @@ export default function TotalUsersChart() {
           width: 160px;
           flex-shrink: 0;
           background: rgba(30, 30, 30, 0.4);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          border: 1px solid var(--color-overlay-light);
           border-radius: 10px;
           padding: 12px;
           display: flex;
@@ -550,7 +550,7 @@ export default function TotalUsersChart() {
           align-items: center;
           margin-bottom: 10px;
           padding-bottom: 8px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid var(--color-overlay-subtle);
         }
 
         .milestones-title { font-size: 12px; font-weight: 600; color: #fff; }
@@ -568,12 +568,12 @@ export default function TotalUsersChart() {
           justify-content: space-between;
           align-items: center;
           padding: 6px 8px;
-          background: rgba(255, 255, 255, 0.03);
+          background: var(--color-overlay-faint);
           border-radius: 5px;
           transition: background 0.2s;
         }
 
-        .milestone-item:hover { background: rgba(255, 255, 255, 0.06); }
+        .milestone-item:hover { background: var(--color-overlay-subtle); }
         .milestone-number { font-size: 13px; font-weight: 700; color: #fff; }
 
         .milestone-eta {
@@ -595,7 +595,7 @@ export default function TotalUsersChart() {
         .milestones-legend {
           margin-top: 10px;
           padding-top: 8px;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          border-top: 1px solid var(--color-overlay-subtle);
           display: flex;
           flex-direction: column;
           gap: 4px;

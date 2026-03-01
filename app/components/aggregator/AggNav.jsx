@@ -14,10 +14,6 @@ const Icons = {
   collapse: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,14 10,14 10,20"/><polyline points="20,10 14,10 14,4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
   close: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   reset: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-  dockLeft: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>,
-  dockRight: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>,
-  dockTop: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>,
-  dockBottom: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="15" x2="21" y2="15"/></svg>,
   folder: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
@@ -25,14 +21,13 @@ const Icons = {
   chevronDown: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
   chevronRight: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
   wallet: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 12a1 1 0 0 0 0 2h2a1 1 0 0 0 0-2h-2z"/></svg>,
+  assistant: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
 }
 
-const DOCK_CYCLE = ['left', 'right', 'top', 'bottom']
-
 export default function AggNav({
-  logo,
-  navDock, navExpanded,
-  onSetNavDock, onSetNavExpanded,
+  logo, favicon,
+  navExpanded,
+  onSetNavExpanded,
   pages, activePageIndex,
   onSetActivePage, onAddPage, onRemovePage, onRenamePage,
   onAddWidget, onResetToDefault,
@@ -41,10 +36,16 @@ export default function AggNav({
   folders = [], onAddFolder, onRenameFolder, onRemoveFolder,
   globalWallet = '', pageDefaultWallet = '', profileWallet = '',
   onSetGlobalWallet, onSetPageDefaultWallet,
+  autoUseWallet = false, onSetAutoUseWallet,
+  performanceMode = false, onSetPerformanceMode,
+  editMode = true, onSetEditMode,
+  onShowTutorial,
+  onToggleAssistant,
+  assistantOpen = false,
+  walletHighlight = false,
 }) {
   const [showSiteLinks, setShowSiteLinks] = useState(false)
   const [showWalletSettings, setShowWalletSettings] = useState(false)
-  const [showDockPicker, setShowDockPicker] = useState(false)
   const [collapsedFolders, setCollapsedFolders] = useState({})
   const [editingPage, setEditingPage] = useState(null)
   const [editName, setEditName] = useState('')
@@ -174,7 +175,7 @@ export default function AggNav({
     onReorderQuickLinks(rebuilt)
   }
 
-  const dockClass = `docked-${navDock}`
+  const dockClass = 'docked-left'
   const expandedClass = navExpanded ? 'expanded' : ''
 
   // Render a link item (normal or edit mode)
@@ -204,24 +205,35 @@ export default function AggNav({
     )
   }
 
+  const motionProps = performanceMode
+    ? {}
+    : { layout: true, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] } }
+
   return (
     <motion.nav
+      data-tour="sidebar"
       className={`agg-nav ${dockClass} ${expandedClass}`}
-      layout
-      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+      {...motionProps}
     >
-      {/* Logo — full width expanded, favicon collapsed */}
+      {/* Logo — two imgs always mounted (preloaded), swap via display to prevent flash */}
       <Link href="/" className="agg-nav-logo" title="Home">
         <img
-          src={navExpanded ? (logo || '/logo.svg') : '/favicon.png'}
+          src={logo || '/logo.svg'}
           alt="Logo"
-          className={`agg-nav-logo-img ${navExpanded ? 'expanded' : 'collapsed'}`}
+          className="agg-nav-logo-img expanded"
+          style={navExpanded ? undefined : { display: 'none' }}
+        />
+        <img
+          src={favicon || '/favicon-cyan.svg'}
+          alt="Logo"
+          className="agg-nav-logo-img collapsed"
+          style={navExpanded ? { display: 'none' } : undefined}
         />
       </Link>
 
       {/* Page tabs (expanded only) */}
       {navExpanded && (
-        <div className="agg-nav-pages">
+        <div data-tour="pages" className="agg-nav-pages">
           {pages.map((page, idx) => (
             <div
               key={idx}
@@ -249,7 +261,7 @@ export default function AggNav({
             </div>
           ))}
           {pages.length < 3 && (
-            <button className="agg-nav-page-add" onClick={onAddPage}>
+            <button data-tour="add-page" className="agg-nav-page-add" onClick={onAddPage}>
               {Icons.add}
             </button>
           )}
@@ -258,19 +270,19 @@ export default function AggNav({
 
       {/* Main nav items */}
       <div className="agg-nav-items">
-        <button className="agg-nav-item" onClick={() => onSetNavExpanded(!navExpanded)} title={navExpanded ? 'Collapse' : 'Expand'}>
+        <button data-tour="expand-btn" className="agg-nav-item" onClick={() => onSetNavExpanded(!navExpanded)} title={navExpanded ? 'Collapse' : 'Expand'}>
           {navExpanded ? Icons.collapse : Icons.expand}
           <span className="agg-nav-item-label">{navExpanded ? 'Collapse' : 'Expand'}</span>
         </button>
 
-        <button className="agg-nav-item" onClick={onAddWidget} title="Add Widget">
+        <button data-tour="add-widget" className="agg-nav-item" onClick={onAddWidget} title="Add Widget">
           {Icons.add}
           <span className="agg-nav-item-label">Add Widget</span>
         </button>
 
         <div className="agg-nav-section">
           <div className="agg-nav-section-label">Templates</div>
-          <button className="agg-nav-item" onClick={onShowTemplateManager} title="Templates">
+          <button data-tour="templates" className="agg-nav-item" onClick={onShowTemplateManager} title="Templates">
             {Icons.template}
             <span className="agg-nav-item-label">Templates</span>
           </button>
@@ -279,7 +291,7 @@ export default function AggNav({
         {/* ── Wallet settings ───────────────────────────────────── */}
         <div className="agg-nav-section">
           <div className="agg-nav-section-label">Wallet</div>
-          <button className="agg-nav-item" onClick={() => setShowWalletSettings(!showWalletSettings)} title="Wallet Settings">
+          <button data-tour="wallet" className={`agg-nav-item${walletHighlight ? ' wallet-highlight' : ''}`} onClick={() => setShowWalletSettings(!showWalletSettings)} title="Wallet Settings">
             {Icons.wallet}
             <span className="agg-nav-item-label">Wallet</span>
           </button>
@@ -307,6 +319,13 @@ export default function AggNav({
                   spellCheck={false}
                 />
               </div>
+              <div className="agg-nav-wallet-row" style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--color-overlay-subtle)' }}>
+                <label className="agg-nav-wallet-label" style={{ width: 'auto', flex: 1 }}>Auto-use</label>
+                <label className="agg-toggle" style={{ flexShrink: 0 }}>
+                  <input type="checkbox" checked={autoUseWallet} onChange={e => onSetAutoUseWallet(e.target.checked)} />
+                  <span className="agg-toggle-slider" />
+                </label>
+              </div>
               {profileWallet && (
                 <div className="agg-nav-wallet-hint">
                   Profile wallet: {profileWallet.slice(0, 10)}…
@@ -319,7 +338,7 @@ export default function AggNav({
         {/* ── Site links (collapsible) ──────────────────────────── */}
         <div className="agg-nav-section">
           <div className="agg-nav-section-label">Pages</div>
-          <button className="agg-nav-item" onClick={() => setShowSiteLinks(!showSiteLinks)} title="Site Pages">
+          <button data-tour="site-pages" className="agg-nav-item" onClick={() => setShowSiteLinks(!showSiteLinks)} title="Site Pages">
             {Icons.link}
             <span className="agg-nav-item-label">Site Pages</span>
           </button>
@@ -346,7 +365,7 @@ export default function AggNav({
 
         {/* ── User folders (always visible, each collapsible) ───── */}
         {navExpanded && (
-          <div className="agg-nav-section agg-nav-folders-section">
+          <div data-tour="links-section" className="agg-nav-section agg-nav-folders-section">
             <div className="agg-nav-section-label">Links</div>
 
             {/* Root links (no folder) */}
@@ -467,38 +486,55 @@ export default function AggNav({
         )}
       </div>
 
-      {/* Footer: dock position + reset */}
+      {/* Footer: perf mode + edit mode + assistant + tutorial + reset */}
       <div className="agg-nav-footer">
-        <div style={{ position: 'relative' }}>
+        {navExpanded && (
+          <div className="agg-nav-perf-toggle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span className="agg-nav-item-label">Perf Mode</span>
+            <label className="agg-toggle" style={{ marginLeft: 'auto' }}>
+              <input type="checkbox" checked={performanceMode} onChange={e => onSetPerformanceMode(e.target.checked)} />
+              <span className="agg-toggle-slider" />
+            </label>
+          </div>
+        )}
+        {!navExpanded && (
           <button
-            className="agg-nav-item"
-            onClick={() => setShowDockPicker(!showDockPicker)}
-            title="Change dock position"
+            className={`agg-nav-item${performanceMode ? ' active' : ''}`}
+            onClick={() => onSetPerformanceMode(!performanceMode)}
+            title="Performance Mode"
           >
-            {navDock === 'left' && Icons.dockLeft}
-            {navDock === 'right' && Icons.dockRight}
-            {navDock === 'top' && Icons.dockTop}
-            {navDock === 'bottom' && Icons.dockBottom}
-            <span className="agg-nav-item-label">Position</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </button>
-          {showDockPicker && (
-            <div className="agg-dock-picker">
-              {DOCK_CYCLE.map(pos => (
-                <button
-                  key={pos}
-                  className={`agg-dock-option ${pos === navDock ? 'active' : ''}`}
-                  onClick={() => { onSetNavDock(pos); setShowDockPicker(false) }}
-                  title={pos.charAt(0).toUpperCase() + pos.slice(1)}
-                >
-                  {pos === 'left' && Icons.dockLeft}
-                  {pos === 'right' && Icons.dockRight}
-                  {pos === 'top' && Icons.dockTop}
-                  {pos === 'bottom' && Icons.dockBottom}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
+        {navExpanded && (
+          <div data-tour="edit-mode" className="agg-nav-perf-toggle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span className="agg-nav-item-label">Edit Mode</span>
+            <label className="agg-toggle" style={{ marginLeft: 'auto' }}>
+              <input type="checkbox" checked={editMode !== false} onChange={e => onSetEditMode(e.target.checked)} />
+              <span className="agg-toggle-slider" />
+            </label>
+          </div>
+        )}
+        {!navExpanded && (
+          <button
+            data-tour="edit-mode"
+            className={`agg-nav-item${editMode !== false ? ' active' : ''}`}
+            onClick={() => onSetEditMode(!(editMode !== false))}
+            title="Edit Mode"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        )}
+        <button data-tour="assistant" className={`agg-nav-item${assistantOpen ? ' active' : ''}`} onClick={onToggleAssistant} title="Assistant">
+          {Icons.assistant}
+          <span className="agg-nav-item-label">Assistant</span>
+        </button>
+        <button className="agg-nav-item agg-nav-tutorial-btn" onClick={onShowTutorial} title="Tutorial">
+          <span className="agg-nav-tutorial-icon">?</span>
+          <span className="agg-nav-item-label">Tutorial</span>
+        </button>
         <button className="agg-nav-item" onClick={onResetToDefault} title="Reset Layout">
           {Icons.reset}
           <span className="agg-nav-item-label">Reset</span>

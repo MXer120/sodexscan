@@ -61,7 +61,7 @@ export default function FuturesStatsWidget({ config, onUpdateConfig }) {
   const showAllTimeVolume = config.showAllTimeVolume !== false
 
   return (
-    <div className="agg-widget-stats">
+    <div className="agg-widget-stats" style={{ overflow: 'hidden' }}>
       {showUnrealizedPnl && (
         <div className="agg-widget-stat-row">
           <span className="agg-widget-stat-label">Unrealized PnL</span>

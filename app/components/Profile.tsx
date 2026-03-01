@@ -10,7 +10,7 @@ import {
 } from '../hooks/useWalletTags'
 import { GROUP_COLORS, COLOR_HEX, GroupColor } from '../lib/walletTags'
 import { useTheme } from '../lib/ThemeContext'
-import { COLOR_SCHEMES, ColorScheme, ThemeMode, BULLISH_PRESETS, BEARISH_PRESETS, ACCENT_PRESETS, isValidHex } from '../lib/themes'
+import { COLOR_SCHEMES, ColorScheme, ThemeMode, BULLISH_PRESETS, BEARISH_PRESETS, ACCENT_PRESETS, TERMINAL_SCHEMES, THEME_AUTO_COLORS, isValidHex } from '../lib/themes'
 import WalletDisplay from './WalletDisplay'
 import { supabase } from '../lib/supabaseClient'
 import '../styles/Profile.css'
@@ -35,7 +35,7 @@ export default function Profile() {
   const bulkAssign = useBulkAssignToGroup()
   const updateOwnWallet = useUpdateOwnWallet()
   const updateShowZeroData = useUpdateShowZeroData()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, autoSyncColors, setAutoSyncColors } = useTheme()
 
   const [ownWalletInput, setOwnWalletInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -276,7 +276,21 @@ export default function Profile() {
 
   // Theme handlers
   const handleColorSchemeChange = (scheme: ColorScheme) => {
-    setTheme({ colorScheme: scheme })
+    if (autoSyncColors) {
+      const auto = THEME_AUTO_COLORS[scheme]
+      setTheme({ colorScheme: scheme, bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
+    } else {
+      setTheme({ colorScheme: scheme })
+    }
+  }
+
+  const handleAutoSyncToggle = () => {
+    const newVal = !autoSyncColors
+    setAutoSyncColors(newVal)
+    if (newVal) {
+      const auto = THEME_AUTO_COLORS[theme.colorScheme]
+      setTheme({ bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
+    }
   }
 
   const handleModeChange = (mode: ThemeMode) => {
@@ -576,8 +590,9 @@ export default function Profile() {
               {/* Color Scheme */}
               <div className="profile-section">
                 <h2 className="section-title">Color Scheme</h2>
+                <span className="theme-row-label">Colors</span>
                 <div className="theme-grid">
-                  {(Object.keys(COLOR_SCHEMES) as ColorScheme[]).map(scheme => (
+                  {(['cyan', 'orange', 'purple', 'green', 'monochrome'] as ColorScheme[]).map(scheme => (
                     <button
                       key={scheme}
                       className={`theme-card ${theme.colorScheme === scheme ? 'active' : ''}`}
@@ -591,6 +606,42 @@ export default function Profile() {
                     </button>
                   ))}
                 </div>
+                <span className="theme-row-label" style={{ marginTop: '16px' }}>Design</span>
+                <div className="theme-grid">
+                  {(['cli', 'nsa'] as ColorScheme[]).map(scheme => (
+                    <button
+                      key={scheme}
+                      className={`theme-card ${theme.colorScheme === scheme ? 'active' : ''} ${TERMINAL_SCHEMES.includes(scheme) ? 'terminal' : ''}`}
+                      onClick={() => handleColorSchemeChange(scheme)}
+                    >
+                      <div
+                        className={`theme-preview ${TERMINAL_SCHEMES.includes(scheme) ? 'terminal-preview' : ''}`}
+                        style={{ background: COLOR_SCHEMES[scheme].dark.primary }}
+                      />
+                      <span className="theme-name">{COLOR_SCHEMES[scheme].name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Auto-sync Colors */}
+              <div className="profile-section">
+                <label className="setting-item" style={{ cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={autoSyncColors}
+                    onChange={handleAutoSyncToggle}
+                  />
+                  <span className="custom-checkbox">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span className="setting-label">Auto-sync colors with theme</span>
+                </label>
+                <p className="setting-description" style={{ marginTop: 4, fontSize: 12 }}>
+                  Bullish, bearish & accent colors automatically match the selected theme.
+                </p>
               </div>
 
               {/* Light/Dark Mode */}

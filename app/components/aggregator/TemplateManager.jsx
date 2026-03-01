@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { PRESET_TEMPLATES } from './WidgetRegistry'
+import { PRESET_TEMPLATES, WIDGET_REGISTRY, WIDGET_CATEGORIES } from './WidgetRegistry'
 
 const EditIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -17,6 +17,105 @@ const TrashIcon = () => (
   </svg>
 )
 
+// Category colors for widget blocks in preview
+const CATEGORY_COLORS = {
+  market: 'rgba(99, 102, 241, 0.5)',
+  leaderboard: 'rgba(234, 179, 8, 0.5)',
+  sopoints: 'rgba(245, 158, 11, 0.5)',
+  social: 'rgba(168, 85, 247, 0.5)',
+  platform: 'rgba(59, 130, 246, 0.5)',
+  tools: 'rgba(107, 114, 128, 0.5)',
+  scanner: 'rgba(16, 185, 129, 0.5)',
+  containers: 'rgba(156, 163, 175, 0.5)',
+}
+
+// Mini layout preview - renders widget positions as colored blocks on a 12-col grid
+// Fixed container size — content scales to fit
+function LayoutPreview({ layouts, widgets, size = 'normal' }) {
+  const lg = layouts?.lg || []
+  if (lg.length === 0) return null
+
+  // Fixed container dimensions
+  const containerW = size === 'small' ? 56 : 100
+  const containerH = size === 'small' ? 40 : 70
+
+  // Determine grid bounds for scaling
+  const maxY = Math.max(...lg.map(item => item.y + item.h), 1)
+  const cols = 12
+  const clampedY = Math.min(maxY, 16)
+
+  // Cell size to fill the container
+  const gap = 1
+  const cellW = (containerW - (cols - 1) * gap) / cols
+  const cellH = (containerH - (clampedY - 1) * gap) / clampedY
+
+  return (
+    <div style={{
+      width: containerW,
+      height: containerH,
+      position: 'relative',
+      borderRadius: 4,
+      overflow: 'hidden',
+      background: 'var(--color-overlay-faint)',
+      flexShrink: 0,
+    }}>
+      {lg.map((item) => {
+        const widgetConfig = widgets[item.i]
+        const reg = widgetConfig ? WIDGET_REGISTRY[widgetConfig.type] : null
+        const cat = reg?.category || 'tools'
+        const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS.tools
+
+        return (
+          <div
+            key={item.i}
+            style={{
+              position: 'absolute',
+              left: item.x * (cellW + gap),
+              top: Math.min(item.y, 15) * (cellH + gap),
+              width: item.w * (cellW + gap) - gap,
+              height: item.h * (cellH + gap) - gap,
+              background: color,
+              borderRadius: 2,
+            }}
+            title={reg?.label || item.i}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+// Widget type summary badges
+function WidgetBadges({ widgets }) {
+  const categoryCounts = {}
+  for (const w of Object.values(widgets)) {
+    const reg = WIDGET_REGISTRY[w.type]
+    const cat = reg?.category || 'other'
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+      {Object.entries(categoryCounts).map(([cat, count]) => {
+        const catInfo = WIDGET_CATEGORIES[cat]
+        return (
+          <span key={cat} style={{
+            fontSize: 9,
+            padding: '1px 5px',
+            borderRadius: 4,
+            background: CATEGORY_COLORS[cat] || 'var(--color-overlay-subtle)',
+            color: 'var(--color-text-main)',
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+          }}>
+            {catInfo?.label || cat} {count}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function TemplateManager({
   templates, onSaveAsTemplate, onLoadTemplate, onLoadPresetTemplate, onApplyLayoutPreset,
   onDeleteTemplate, onRenameTemplate, onUpdateTemplate, activePage, onClose,
@@ -28,15 +127,14 @@ export default function TemplateManager({
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
+  const [hoveredTemplate, setHoveredTemplate] = useState(null)
 
   // Owner: edit global template
   const [editingGlobalId, setEditingGlobalId] = useState(null)
   const [editGlobalName, setEditGlobalName] = useState('')
-  const [editGlobalIcon, setEditGlobalIcon] = useState('')
 
   // Owner: save current as global
   const [newGlobalName, setNewGlobalName] = useState('')
-  const [newGlobalIcon, setNewGlobalIcon] = useState('📋')
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -63,21 +161,20 @@ export default function TemplateManager({
     if (!newGlobalName.trim()) return
     onCreateGlobal({
       name: newGlobalName.trim(),
-      icon: newGlobalIcon || '📋',
+      icon: '',
       description: '',
       layouts: activePage.layouts,
       widgets: activePage.widgets,
       sort_order: globalTemplates.length,
     })
     setNewGlobalName('')
-    setNewGlobalIcon('📋')
   }
 
   const handleUpdateGlobal = (t) => {
     onUpdateGlobal({
       id: t.id,
       name: editGlobalName.trim() || t.name,
-      icon: editGlobalIcon || t.icon,
+      icon: t.icon,
       layouts: activePage.layouts,
       widgets: activePage.widgets,
     })
@@ -87,17 +184,63 @@ export default function TemplateManager({
   const handleStartEditGlobal = (t) => {
     setEditingGlobalId(t.id)
     setEditGlobalName(t.name)
-    setEditGlobalIcon(t.icon)
   }
 
   // Fallback: show hardcoded presets if no global templates in DB
   const showBuiltinFallback = globalTemplates.length === 0
 
+  // Template card renderer (used for both global and preset)
+  const renderTemplateCard = (t, onClick, isGlobal = false) => {
+    const isHovered = hoveredTemplate === (t.id || t.name)
+
+    return (
+      <div
+        key={t.id || t.name}
+        className="agg-tmpl-preview-card"
+        onMouseEnter={() => setHoveredTemplate(t.id || t.name)}
+        onMouseLeave={() => setHoveredTemplate(null)}
+      >
+        {editingGlobalId === t.id ? (
+          <div className="agg-tmpl-global-edit">
+            <input
+              className="agg-tmpl-input"
+              value={editGlobalName}
+              onChange={e => setEditGlobalName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUpdateGlobal(t)}
+              autoFocus
+              style={{ flex: 1 }}
+              placeholder="Template name"
+            />
+            <button className="agg-modal-add-btn" onClick={() => handleUpdateGlobal(t)}>Save</button>
+            <button className="agg-tmpl-cancel-btn" onClick={() => setEditingGlobalId(null)}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        ) : (
+          <button className="agg-tmpl-preview-btn" onClick={onClick}>
+            <LayoutPreview layouts={t.layouts} widgets={t.widgets} />
+            <div className="agg-tmpl-preview-info">
+              <span className="agg-tmpl-preview-name">{t.name}</span>
+              <span className="agg-tmpl-preview-count">{Object.keys(t.widgets).length} widgets</span>
+              <WidgetBadges widgets={t.widgets} />
+            </div>
+          </button>
+        )}
+        {isGlobal && isOwner && editingGlobalId !== t.id && (
+          <div className="agg-tmpl-preview-actions">
+            <button className="agg-tmpl-action-btn" onClick={() => handleStartEditGlobal(t)} title="Edit"><EditIcon /></button>
+            <button className="agg-tmpl-action-btn delete" onClick={() => onDeleteGlobal(t.id)} title="Delete"><TrashIcon /></button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
     <div className="agg-modal-overlay" onClick={onClose}>
-      <div className="agg-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
+      <div className="agg-modal agg-tmpl-modal" onClick={e => e.stopPropagation()}>
         <div className="agg-modal-header">
           <h2>Templates</h2>
           <button className="agg-modal-close" onClick={onClose}>
@@ -120,72 +263,29 @@ export default function TemplateManager({
                   disabled={isImportingPresets}
                   title="Import built-in presets into database for editing"
                 >
-                  {isImportingPresets ? 'Importing…' : '⬇ Import Built-ins'}
+                  {isImportingPresets ? 'Importing...' : 'Import Built-ins'}
                 </button>
               )}
             </div>
 
             {globalTemplates.length > 0 ? (
               <>
-                <div className="agg-tmpl-preset-grid">
-                  {globalTemplates.map(t => (
-                    <div key={t.id} className="agg-tmpl-global-card">
-                      {editingGlobalId === t.id ? (
-                        <div className="agg-tmpl-global-edit">
-                          <input
-                            className="agg-tmpl-icon-input"
-                            value={editGlobalIcon}
-                            onChange={e => setEditGlobalIcon(e.target.value)}
-                            maxLength={2}
-                            style={{ width: 36, textAlign: 'center' }}
-                          />
-                          <input
-                            className="agg-tmpl-input"
-                            value={editGlobalName}
-                            onChange={e => setEditGlobalName(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleUpdateGlobal(t)}
-                            autoFocus
-                            style={{ flex: 1 }}
-                          />
-                          <button className="agg-modal-add-btn" onClick={() => handleUpdateGlobal(t)}>Save</button>
-                          <button className="agg-tmpl-cancel-btn" onClick={() => setEditingGlobalId(null)}>✕</button>
-                        </div>
-                      ) : (
-                        <button
-                          className="agg-tmpl-preset-card"
-                          onClick={() => { onApplyLayoutPreset(t.layouts, t.widgets); onClose() }}
-                          title={t.description || t.name}
-                          style={{ flex: 1 }}
-                        >
-                          <span className="agg-tmpl-preset-icon">{t.icon}</span>
-                          <span className="agg-tmpl-preset-name">{t.name}</span>
-                          <span className="agg-tmpl-preset-count">{Object.keys(t.widgets).length}w</span>
-                        </button>
-                      )}
-                      {isOwner && editingGlobalId !== t.id && (
-                        <div className="agg-tmpl-global-actions">
-                          <button className="agg-tmpl-action-btn" onClick={() => handleStartEditGlobal(t)} title="Edit (updates with current page layout)"><EditIcon /></button>
-                          <button className="agg-tmpl-action-btn delete" onClick={() => onDeleteGlobal(t.id)} title="Delete"><TrashIcon /></button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div className="agg-tmpl-preview-grid">
+                  {globalTemplates.map(t =>
+                    renderTemplateCard(
+                      t,
+                      () => { onApplyLayoutPreset(t.layouts, t.widgets); onClose() },
+                      true
+                    )
+                  )}
                 </div>
 
                 {/* Owner: save current page as new global template */}
                 {isOwner && (
                   <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
                     <input
-                      className="agg-tmpl-icon-input"
-                      value={newGlobalIcon}
-                      onChange={e => setNewGlobalIcon(e.target.value)}
-                      maxLength={2}
-                      style={{ width: 36, textAlign: 'center', flexShrink: 0 }}
-                      placeholder="📋"
-                    />
-                    <input
                       type="text"
-                      placeholder="New global template name…"
+                      placeholder="New global template name..."
                       value={newGlobalName}
                       onChange={e => setNewGlobalName(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleSaveAsGlobal()}
@@ -197,19 +297,14 @@ export default function TemplateManager({
               </>
             ) : showBuiltinFallback ? (
               /* Fallback: show hardcoded presets if DB is empty */
-              <div className="agg-tmpl-preset-grid">
-                {PRESET_TEMPLATES.map(preset => (
-                  <button
-                    key={preset.id}
-                    className="agg-tmpl-preset-card"
-                    onClick={() => { onLoadPresetTemplate(preset.id); onClose() }}
-                    title={preset.description}
-                  >
-                    <span className="agg-tmpl-preset-icon">{preset.icon}</span>
-                    <span className="agg-tmpl-preset-name">{preset.name}</span>
-                    <span className="agg-tmpl-preset-count">{Object.keys(preset.widgets).length}w</span>
-                  </button>
-                ))}
+              <div className="agg-tmpl-preview-grid">
+                {PRESET_TEMPLATES.map(preset =>
+                  renderTemplateCard(
+                    preset,
+                    () => { onLoadPresetTemplate(preset.id); onClose() },
+                    false
+                  )
+                )}
               </div>
             ) : null}
           </div>
@@ -238,24 +333,27 @@ export default function TemplateManager({
               )}
               {templates.map(t => (
                 <div key={t.id} className="agg-template-item">
-                  {editingId === t.id ? (
-                    <input
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      onBlur={() => handleRename(t.id)}
-                      onKeyDown={e => e.key === 'Enter' && handleRename(t.id)}
-                      autoFocus
-                      style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--color-text-main)', fontSize: 14, outline: 'none' }}
-                    />
-                  ) : (
-                    <span className="agg-template-name" onDoubleClick={() => { setEditingId(t.id); setEditName(t.name) }}>
-                      {t.name}
-                      {activePage.templateId === t.id && (
-                        <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--color-primary)' }}>active</span>
-                      )}
-                    </span>
-                  )}
-                  <span className="agg-template-meta">{Object.keys(t.widgets).length} widgets</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                    <LayoutPreview layouts={t.layouts} widgets={t.widgets} size="small" />
+                    {editingId === t.id ? (
+                      <input
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        onBlur={() => handleRename(t.id)}
+                        onKeyDown={e => e.key === 'Enter' && handleRename(t.id)}
+                        autoFocus
+                        style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--color-text-main)', fontSize: 14, outline: 'none' }}
+                      />
+                    ) : (
+                      <span className="agg-template-name" onDoubleClick={() => { setEditingId(t.id); setEditName(t.name) }}>
+                        {t.name}
+                        {activePage.templateId === t.id && (
+                          <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--color-primary)' }}>active</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <span className="agg-template-meta">{Object.keys(t.widgets).length}w</span>
                   <div className="agg-template-actions">
                     <button onClick={() => onLoadTemplate(t.id)}>Load</button>
                     {activePage.templateId === t.id && (

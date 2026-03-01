@@ -13,7 +13,7 @@
   background: rgba(30, 30, 30, 0.6);
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
 }
 
 .tab-switch-btn {
@@ -106,7 +106,7 @@
 .top-10-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -120,7 +120,7 @@
 }
 
 .top-10-table thead tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-overlay-medium);
 }
 
 .top-10-card.gainers .top-10-table thead tr {
@@ -205,7 +205,7 @@
 /* Leaderboard */
 .mainnet-leaderboard {
   background: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
   border-radius: 12px;
   padding: 24px;
   margin-top: 32px;
@@ -243,7 +243,7 @@
 .leaderboard-search {
   padding: 10px 14px;
   background: rgba(30, 30, 30, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--color-border-visible);
   border-radius: 8px;
   color: #fff;
   font-size: 14px;
@@ -266,7 +266,7 @@
   border-radius: 8px;
   gap: 4px;
   padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
 }
 
 .leaderboard-toggle button {
@@ -307,7 +307,7 @@
   font-weight: 500;
   font-size: 12px;
   color: #888;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-overlay-medium);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -317,7 +317,7 @@
 }
 
 .leaderboard-table tbody tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-overlay-subtle);
   transition: background 0.2s;
 }
 
@@ -371,13 +371,13 @@
   gap: 16px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-overlay-medium);
 }
 
 .page-btn {
   padding: 10px 20px;
   background: rgba(30, 30, 30, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--color-border-visible);
   border-radius: 8px;
   color: var(--color-text-main);
   font-size: 14px;
@@ -403,7 +403,7 @@
 /* Top Pairs Card */
 .top-pairs-card {
   background: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 32px;
@@ -435,7 +435,7 @@
 }
 
 .top-pairs-table thead tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-overlay-medium);
 }
 
 .top-pairs-table th {
@@ -453,7 +453,7 @@
 }
 
 .top-pairs-table tbody tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-overlay-subtle);
   transition: background 0.2s;
 }
 
@@ -545,15 +545,15 @@
   color: rgba(255, 255, 255, 0.9);
   user-select: none;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-overlay-subtle);
+  border: 1px solid var(--color-overlay-medium);
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .leaderboard-checkbox:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--color-overlay-light);
+  border-color: var(--color-border-visible);
 }
 
 .leaderboard-checkbox input[type="checkbox"] {
@@ -566,7 +566,7 @@
 .leaderboard-checkbox .custom-check {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid var(--color-border-strong);
   border-radius: 3px;
   background: rgba(20, 20, 20, 0.6);
   display: flex;
@@ -880,7 +880,7 @@
   padding: 60px 40px;
   background: linear-gradient(180deg, rgba(30, 30, 30, 0.4) 0%, rgba(20, 20, 20, 0.6) 100%);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -931,8 +931,8 @@
 }
 
 .signup-cta-feature-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-faint);
+  border: 1px solid var(--color-overlay-subtle);
   border-radius: 16px;
   padding: 32px 24px;
   transition: all 0.3s ease;
@@ -940,7 +940,7 @@
 
 .signup-cta-feature-card:hover {
   transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-subtle);
   border-color: rgba(var(--color-primary-rgb), 0.2);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
@@ -1006,7 +1006,7 @@
 /* Platform Custom Filters */
 .platform-custom-filters-card {
   background: rgba(20, 20, 20, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-overlay-light);
   border-radius: 12px;
   padding: 20px 24px;
   margin-bottom: 32px;
@@ -1022,7 +1022,7 @@
   left: 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-overlay-medium), transparent);
 }
 
 .custom-filters-row {
@@ -1052,7 +1052,7 @@
   background: rgba(10, 10, 10, 0.4);
   padding: 3px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-overlay-medium);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -1074,7 +1074,7 @@
 
 .op-btn:hover {
   color: #aaa;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-subtle);
 }
 
 .op-btn.active {
@@ -1114,7 +1114,7 @@
 .custom-result {
   margin-left: auto;
   padding-left: 40px;
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 1px solid var(--color-overlay-subtle);
   min-width: 180px;
 }
 
@@ -1128,7 +1128,7 @@
     padding-left: 0;
     border-left: none;
     padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--color-overlay-subtle);
     width: 100%;
   }
 
@@ -1310,7 +1310,7 @@
 }
 
 .close-modal-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-subtle);
   border: none;
   color: #888;
   font-size: 24px;
@@ -1325,7 +1325,7 @@
 }
 
 .close-modal-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-overlay-medium);
   color: #fff;
 }
 
@@ -1337,7 +1337,7 @@
 .modal-footer {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--color-overlay-subtle);
 }
 
 .modal-note {

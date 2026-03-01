@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useWalletData } from '../../../hooks/useWalletData'
+import { usePerformanceMode } from '../../../lib/PerformanceModeContext'
 import {
   ComposedChart, Area, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, Cell
@@ -21,6 +22,7 @@ const formatUsd = (n) => {
 
 export default function PnlChartWidget({ config, onUpdateConfig }) {
   const { data, isLoading } = useWalletData(config.walletAddress || null)
+  const isPerf = usePerformanceMode()
 
   const timeframe = config.timeframe || '1M'
   const showCumulative = config.showCumulative !== false
@@ -71,6 +73,13 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
     return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>No PnL data available</div>
   }
 
+  // Calculate zero-line offset for cumulative gradient (bullish above 0, bearish below)
+  const cumValues = chartData.map(d => d.cumulative)
+  const maxVal = Math.max(...cumValues)
+  const minVal = Math.min(...cumValues)
+  const range = maxVal - minVal
+  const zeroOffset = range > 0 ? Math.max(0, Math.min(1, maxVal / range)) : 0.5
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', gap: 4, padding: '0 4px 6px', flexShrink: 0 }}>
@@ -84,7 +93,7 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
               borderRadius: 4,
               border: 'none',
               cursor: 'pointer',
-              background: tf === timeframe ? 'var(--color-primary, #48cbff)' : 'rgba(255,255,255,0.06)',
+              background: tf === timeframe ? 'var(--color-primary, #48cbff)' : 'var(--color-overlay-subtle)',
               color: tf === timeframe ? '#000' : 'var(--color-text-muted)',
               fontWeight: tf === timeframe ? 600 : 400,
             }}
@@ -98,15 +107,23 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
           <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="pnlCumulativeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-primary, #48cbff)" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="var(--color-primary, #48cbff)" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="var(--color-success, #10b981)" stopOpacity={0.3} />
+                <stop offset={`${zeroOffset * 100}%`} stopColor="var(--color-success, #10b981)" stopOpacity={0.05} />
+                <stop offset={`${zeroOffset * 100}%`} stopColor="var(--color-error, #ef4444)" stopOpacity={0.05} />
+                <stop offset="100%" stopColor="var(--color-error, #ef4444)" stopOpacity={0.3} />
+              </linearGradient>
+              <linearGradient id="pnlCumulativeStroke" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-success, #10b981)" />
+                <stop offset={`${zeroOffset * 100}%`} stopColor="var(--color-success, #10b981)" />
+                <stop offset={`${zeroOffset * 100}%`} stopColor="var(--color-error, #ef4444)" />
+                <stop offset="100%" stopColor="var(--color-error, #ef4444)" />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="1 8" stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="1 8" stroke="var(--color-overlay-subtle)" />
             <XAxis
               dataKey="ts_ms"
               tickFormatter={formatDate}
-              stroke="rgba(255,255,255,0.3)"
+              stroke="var(--color-border-strong)"
               tick={{ fontSize: 10 }}
               axisLine={false}
               tickLine={false}
@@ -115,7 +132,7 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
             <YAxis
               yAxisId="left"
               tickFormatter={formatUsd}
-              stroke="rgba(255,255,255,0.3)"
+              stroke="var(--color-border-strong)"
               tick={{ fontSize: 10 }}
               axisLine={false}
               tickLine={false}
@@ -126,13 +143,15 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
               formatter={(value, name) => [formatUsd(value), name === 'cumulative' ? 'Cumulative' : 'Daily']}
               contentStyle={{
                 background: 'rgba(12,12,12,0.98)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--color-overlay-medium)',
                 borderRadius: 8,
                 fontSize: 11,
               }}
+              labelStyle={{ color: 'rgba(255,255,255,0.85)' }}
+              itemStyle={{ color: 'rgba(255,255,255,0.7)' }}
             />
             {showDaily && (
-              <Bar dataKey="daily" yAxisId="left" barSize={chartData.length > 90 ? 2 : chartData.length > 30 ? 4 : 8} opacity={0.8}>
+              <Bar dataKey="daily" yAxisId="left" barSize={chartData.length > 90 ? 2 : chartData.length > 30 ? 4 : 8} opacity={0.8} isAnimationActive={!isPerf}>
                 {chartData.map((entry, i) => (
                   <Cell
                     key={i}
@@ -146,10 +165,11 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
                 type="monotone"
                 dataKey="cumulative"
                 yAxisId="left"
-                stroke="var(--color-primary, #48cbff)"
+                stroke="url(#pnlCumulativeStroke)"
                 strokeWidth={2}
                 fill="url(#pnlCumulativeGrad)"
                 dot={false}
+                isAnimationActive={!isPerf}
               />
             )}
           </ComposedChart>

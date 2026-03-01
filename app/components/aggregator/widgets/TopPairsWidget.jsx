@@ -24,6 +24,9 @@ const formatSymbol = (symbol, marketType) => {
 
 export default function TopPairsWidget({ config }) {
   const filter = config?.filter || 'All'
+  const showCoinLogos = config?.showCoinLogos !== false
+  const showRank = config?.showRank !== false
+  const showVolume = config?.showVolume !== false
   const scrollRef = useRef(null)
 
   const { data: tickers = [], isLoading } = useQuery({
@@ -53,9 +56,9 @@ export default function TopPairsWidget({ config }) {
       <table>
         <thead>
           <tr>
-            <th>#</th>
+            {showRank && <th>#</th>}
             <th>Pair</th>
-            <th className="text-right">24h Vol</th>
+            {showVolume && <th className="text-right">24h Vol</th>}
           </tr>
         </thead>
         <tbody>
@@ -63,17 +66,17 @@ export default function TopPairsWidget({ config }) {
             const formatted = formatSymbol(t.symbol, t.market_type)
             return (
               <tr key={`${t.symbol}-${t.market_type}-${idx}`}>
-                <td className="rank">{idx + 1}</td>
+                {showRank && <td className="rank">{idx + 1}</td>}
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CoinLogo symbol={getBaseCoin(formatted)} />
+                    {showCoinLogos && <CoinLogo symbol={getBaseCoin(formatted)} />}
                     <span>{formatted}</span>
                     {t.market_type === 'spot' && (
                       <span style={{ padding: '1px 4px', background: 'rgba(49,179,218,0.15)', color: 'var(--color-spot, #31b3da)', fontSize: '9px', borderRadius: '3px', fontWeight: 600 }}>SPOT</span>
                     )}
                   </div>
                 </td>
-                <td className="text-right">${formatNumber(t.volume_24h || 0)}</td>
+                {showVolume && <td className="text-right">${formatNumber(t.volume_24h || 0)}</td>}
               </tr>
             )
           })}

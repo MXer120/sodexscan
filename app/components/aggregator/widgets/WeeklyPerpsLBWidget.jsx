@@ -15,16 +15,18 @@ const formatNum = (num) => {
 
 export default function WeeklyPerpsLBWidget({ config }) {
   const sortBy = config?.sortBy || 'volume'
+  const weekOffset = parseInt(config?.weekOffset ?? 0)
   const { data: meta } = useLeaderboardMeta()
   const [page, setPage] = useState(1)
 
   const weekNum = meta?.current_week_number || 0
+  const p_week = weekOffset === 0 ? 0 : weekNum - weekOffset
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['weekly-perps-lb', weekNum, sortBy, page],
+    queryKey: ['weekly-perps-lb', weekNum, weekOffset, sortBy, page],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-        p_week: 0, // 0 = current live week
+        p_week,
         p_sort: sortBy,
         p_limit: PAGE_SIZE,
         p_offset: (page - 1) * PAGE_SIZE,
@@ -34,15 +36,16 @@ export default function WeeklyPerpsLBWidget({ config }) {
       return data || []
     },
     enabled: !!weekNum,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000,   // 30 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 
+  const weekLabel = weekOffset === 0 ? `Week ${weekNum} (Live)` : `Week ${weekNum - weekOffset}`
 
   return (
     <div>
       <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>
-        Week {weekNum} (Live)
+        {weekLabel}
       </div>
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         <table>

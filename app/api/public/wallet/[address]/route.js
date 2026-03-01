@@ -45,7 +45,8 @@ export async function GET(request, { params }) {
         balances,
         dailyPnl,
         positions,
-        fundTransfers
+        fundTransfers,
+        bracketList
     ] = await Promise.all([
         supabase.from('leaderboard_smart').select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at, first_trade_ts_ms').eq('account_id', accountId).maybeSingle(),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
@@ -53,8 +54,25 @@ export async function GET(request, { params }) {
         fetchJson(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
-        fetchJson(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
+        fetchJson(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`),
+        fetchJson('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list')
     ])
+
+    // Build symbolId → symbol string map from bracket list
+    const symbolMap = {}
+    if (bracketList?.code === 0 && Array.isArray(bracketList.data)) {
+        bracketList.data.forEach(item => {
+            if (item.symbolId && item.symbol) symbolMap[item.symbolId] = item.symbol
+        })
+    }
+
+    // Enrich positions data with resolved symbol strings
+    if (positions?.data && Array.isArray(positions.data)) {
+        positions.data = positions.data.map(p => ({
+            ...p,
+            symbol: symbolMap[p.symbol_id] || p.symbol || ''
+        }))
+    }
 
     // Post request for account flow (withdrawals)
     const accountFlow = await fetchJson('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {

@@ -42,6 +42,11 @@ export default function TradesWidget({ config, onUpdateConfig }) {
   if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
 
   const showCoinLogos = config.showCoinLogos !== false
+  const showSide = config.showSide !== false
+  const showSize = config.showSize !== false
+  const showEntry = config.showEntry !== false
+  const showClose = config.showClose !== false
+  const showPnl = config.showPnl !== false
   const showFees = config.showFees !== false
   const showDates = config.showDates !== false
 
@@ -55,11 +60,11 @@ export default function TradesWidget({ config, onUpdateConfig }) {
         <thead>
           <tr>
             <th>Symbol</th>
-            <th>Side</th>
-            <th className="text-right">Size</th>
-            <th className="text-right">Entry</th>
-            <th className="text-right">Close</th>
-            <th className="text-right">PnL</th>
+            {showSide && <th>Side</th>}
+            {showSize && <th className="text-right">Size</th>}
+            {showEntry && <th className="text-right">Entry</th>}
+            {showClose && <th className="text-right">Close</th>}
+            {showPnl && <th className="text-right">PnL</th>}
             {showFees && <th className="text-right">Fees</th>}
             {showDates && <th className="text-right">Date</th>}
           </tr>
@@ -71,22 +76,22 @@ export default function TradesWidget({ config, onUpdateConfig }) {
             const side = isLong ? 'Long' : 'Short'
             const pnl = parseFloat(t.realized_pnl || 0)
             const fees = parseFloat(t.cum_trading_fee || 0)
-            const symbol = t.symbol_id || t.symbol || ''
+            const symbol = t.symbol || t.coin || t.pair || t.instrument_name || ''
             return (
               <tr key={`${symbol}-${i}`}>
                 <td style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {showCoinLogos && <CoinLogo symbol={symbol} size={16} />}
                   {symbol}
                 </td>
-                <td style={{ color: isLong ? 'var(--color-success)' : 'var(--color-error)' }}>
+                {showSide && <td style={{ color: isLong ? 'var(--color-success)' : 'var(--color-error)' }}>
                   {side}
-                </td>
-                <td className="text-right">{fmt(parseFloat(t.max_size || 0))}</td>
-                <td className="text-right">{fmt(parseFloat(t.avg_entry_price || 0))}</td>
-                <td className="text-right">{fmt(parseFloat(t.avg_close_price || 0))}</td>
-                <td className={`text-right ${pnl > 0 ? 'positive' : pnl < 0 ? 'negative' : ''}`}>
+                </td>}
+                {showSize && <td className="text-right">{fmt(parseFloat(t.max_size || 0))}</td>}
+                {showEntry && <td className="text-right">{fmt(parseFloat(t.avg_entry_price || 0))}</td>}
+                {showClose && <td className="text-right">{fmt(parseFloat(t.avg_close_price || 0))}</td>}
+                {showPnl && <td className={`text-right ${pnl > 0 ? 'positive' : pnl < 0 ? 'negative' : ''}`}>
                   ${pnl > 0 ? '+' : ''}{fmt(pnl)}
-                </td>
+                </td>}
                 {showFees && <td className="text-right">${fmt(fees)}</td>}
                 {showDates && <td className="text-right" style={{ fontSize: 11 }}>{fmtDate(t.created_at || t.updated_at)}</td>}
               </tr>

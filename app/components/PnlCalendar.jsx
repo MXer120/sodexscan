@@ -123,9 +123,14 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
     } else if (view === 'monthly') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1)
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    } else {
+    } else if (view === 'yearly') {
       startDate = new Date(now.getFullYear(), 0, 1)
       endDate = new Date(now.getFullYear(), 11, 31)
+    } else {
+      // rolling — 365-day window ending at currentDate
+      endDate = new Date(now)
+      startDate = new Date(endDate)
+      startDate.setDate(startDate.getDate() - 364)
     }
 
     let totalPnl = 0
@@ -194,9 +199,15 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
     } else if (view === 'monthly') {
       return currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-    } else {
+    } else if (view === 'yearly') {
       return currentDate.getFullYear().toString()
     }
+    // rolling
+    const end = new Date(currentDate)
+    const start = new Date(end)
+    start.setDate(start.getDate() - 364)
+    const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    return `${fmt(start)} → ${fmt(end)}`
   }
 
   // Win/Loss ratio for bar
@@ -375,33 +386,125 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
     )
   }
 
-  // Render yearly calendar (GitHub-style)
+  // Render yearly calendar (GitHub-style, rolling 365-day window)
   const renderYearlyCalendar = () => {
-    const year = currentDate.getFullYear()
-
-    // Responsive cell sizing
     const cellWidth = typeof window !== 'undefined' ? (window.innerWidth < 600 ? 11 : window.innerWidth < 900 ? 10 : window.innerWidth < 1920 ? 12 : 14) : 12
     const cellGap = 2
 
+    // Rolling 365-day window ending at currentDate
+    const endDate = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()))
+    const startDate = new Date(endDate)
+    startDate.setUTCDate(startDate.getUTCDate() - 364)
+
+    // Align grid start to Monday of start week
+    const startDow = (startDate.getUTCDay() + 6) % 7 // Mon=0
+    const gridStart = new Date(startDate)
+    gridStart.setUTCDate(gridStart.getUTCDate() - startDow)
+
+    const weeks = []
+    const monthLabels = []
+    const seenMonths = new Set()
+    const current = new Date(gridStart)
+    let weekIndex = 0
+
+    while (current <= endDate) {
+      const week = []
+      for (let d = 0; d < 7; d++) {
+        const inRange = current >= startDate && current <= endDate
+        if (!inRange) {
+          week.push(<div key={`${weekIndex}-${d}`} style={{ width: `${cellWidth}px`, height: `${cellWidth}px`, background: 'transparent', borderRadius: '1px' }} />)
+          current.setUTCDate(current.getUTCDate() + 1)
+          continue
+        }
+        const dateStr = `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, '0')}-${String(current.getUTCDate()).padStart(2, '0')}`
+        const monthKey = `${current.getUTCFullYear()}-${current.getUTCMonth()}`
+        if (current.getUTCDate() === 1 && !seenMonths.has(monthKey)) {
+          seenMonths.add(monthKey)
+          monthLabels.push({ label: current.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }), wi: weekIndex })
+        }
+        const pnl = dailyPnlMap[dateStr] || 0
+        const isBestDay = dateStr === stats.bestDay
+        let bgColor = 'rgba(255,255,255,0.06)'
+        if (Math.abs(pnl) >= 0.01 || dailyPnlMap[dateStr] !== undefined) {
+          bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+        }
+        week.push(
+          <div key={dateStr}
+            onClick={() => setSelectedDate(dateStr)}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              setHoveredDay({ date: dateStr, pnl, x: rect.left + rect.width / 2, y: rect.top })
+            }}
+            onMouseLeave={() => setHoveredDay(null)}
+            style={{
+              width: `${cellWidth}px`, height: `${cellWidth}px`,
+              background: bgColor, borderRadius: '1px',
+              border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : 'none',
+              boxSizing: 'border-box', cursor: 'pointer'
+            }} />
+        )
+        current.setUTCDate(current.getUTCDate() + 1)
+      }
+      weeks.push(
+        <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: `${cellGap}px`, flexShrink: 0 }}>
+          {week}
+        </div>
+      )
+      weekIndex++
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', overflowY: 'hidden', paddingBottom: '4px' }}>
+          <div style={{
+            display: 'flex', marginBottom: 'clamp(2px, 0.4vw, 4px)',
+            marginLeft: typeof window !== 'undefined' && window.innerWidth < 600 ? '12px' : '18px',
+            fontSize: 'clamp(7px, 1.2vw, 10px)', color: 'rgba(255,255,255,0.4)',
+            position: 'relative', height: 'clamp(10px, 1.8vw, 14px)', minWidth: 'max-content'
+          }}>
+            {monthLabels.map(({ label, wi }) => (
+              <div key={`${label}-${wi}`} style={{ position: 'absolute', left: `${wi * (cellWidth + cellGap)}px`, whiteSpace: 'nowrap' }}>{label}</div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: `${cellGap}px`, minWidth: 'max-content' }}>
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: `${cellGap}px`,
+              marginRight: 'clamp(4px, 0.6vw, 8px)',
+              fontSize: 'clamp(6px, 1vw, 8px)', color: 'rgba(255,255,255,0.3)',
+              flexShrink: 0,
+            }}>
+              <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>M</div>
+              <div style={{ height: `${cellWidth}px` }} />
+              <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>W</div>
+              <div style={{ height: `${cellWidth}px` }} />
+              <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>F</div>
+              <div style={{ height: `${cellWidth}px` }} />
+              <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>S</div>
+            </div>
+            <div style={{ display: 'flex', gap: `${cellGap}px`, flexShrink: 0 }}>{weeks}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render calendar year (Jan 1 - Dec 31)
+  const renderCalendarYearCalendar = () => {
+    const year = currentDate.getFullYear()
+    const cellWidth = typeof window !== 'undefined' ? (window.innerWidth < 600 ? 11 : window.innerWidth < 900 ? 10 : window.innerWidth < 1920 ? 12 : 14) : 12
+    const cellGap = 2
     const weeks = []
     const monthPositions = Array(12).fill(0)
 
-    // Start from first day of year
     const startYear = new Date(Date.UTC(year, 0, 1))
     const endYear = new Date(Date.UTC(year, 11, 31))
-
-    // Find day of week for Jan 1 (Monday=0, Sunday=6)
     const jan1DayOfWeek = (startYear.getUTCDay() + 6) % 7
-
-    // Setup date range
     const current = new Date(startYear)
 
-    // Fill the weeks
     while (current <= endYear) {
       const week = []
       const weekIndex = weeks.length
 
-      // We process day by day (0 to 6 for a week)
       for (let d = 0; d < 7; d++) {
         const isBeforeYearStart = weekIndex === 0 && d < jan1DayOfWeek
         const isAfterYearEnd = current > endYear
@@ -418,15 +521,13 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
         } else {
           const dateStr = `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, '0')}-${String(current.getUTCDate()).padStart(2, '0')}`
 
-          // Track month start position (first week that contains the 1st of the month)
           if (current.getUTCDate() === 1) {
             monthPositions[current.getUTCMonth()] = weekIndex
           }
 
           const pnl = dailyPnlMap[dateStr] || 0
           const isBestDay = dateStr === stats.bestDay
-          let bgColor = 'rgba(255,255,255,0.06)' // Slightly more visible placeholders
-          // Use 0.01 threshold as established in other views
+          let bgColor = 'rgba(255,255,255,0.06)'
           if (Math.abs(pnl) >= 0.01 || dailyPnlMap[dateStr] !== undefined) {
             bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
           }
@@ -436,26 +537,17 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
               onClick={() => setSelectedDate(dateStr)}
               onMouseEnter={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
-                setHoveredDay({
-                  date: dateStr,
-                  pnl: pnl,
-                  x: rect.left + rect.width / 2,
-                  y: rect.top
-                })
+                setHoveredDay({ date: dateStr, pnl, x: rect.left + rect.width / 2, y: rect.top })
               }}
               onMouseLeave={() => setHoveredDay(null)}
               style={{
-                width: `${cellWidth}px`,
-                height: `${cellWidth}px`,
-                background: bgColor,
-                borderRadius: '1px',
+                width: `${cellWidth}px`, height: `${cellWidth}px`,
+                background: bgColor, borderRadius: '1px',
                 border: isBestDay ? `1px solid ${PRIMARY_COLOR}` : 'none',
-                boxSizing: 'border-box',
-                cursor: 'pointer'
+                boxSizing: 'border-box', cursor: 'pointer'
               }} />
           )
 
-          // Increment day
           current.setUTCDate(current.getUTCDate() + 1)
         }
       }
@@ -467,22 +559,18 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       )
     }
 
-    // Calculate label step to match week width + gap
-    const weekStep = cellWidth + cellGap
-
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', minWidth: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto', overflowY: 'hidden', paddingBottom: '4px' }}>
-          {/* Month labels positioned by week */}
           <div style={{
             display: 'flex',
             marginBottom: 'clamp(2px, 0.4vw, 4px)',
-            marginLeft: window.innerWidth < 600 ? '12px' : '18px', // Keep padding consistent with day labels
+            marginLeft: window.innerWidth < 600 ? '12px' : '18px',
             fontSize: 'clamp(7px, 1.2vw, 10px)',
             color: 'rgba(255,255,255,0.4)',
             position: 'relative',
             height: 'clamp(10px, 1.8vw, 14px)',
-            minWidth: 'max-content' // Ensure it spans full scrolled width
+            minWidth: 'max-content'
           }}>
             {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => {
               const weekIdx = monthPositions[i] || 0
@@ -504,14 +592,13 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
               fontSize: 'clamp(6px, 1vw, 8px)',
               color: 'rgba(255,255,255,0.3)',
               flexShrink: 0,
-              paddingTop: '0px'
             }}>
               <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>M</div>
-              <div style={{ height: `${cellWidth}px` }}></div>
+              <div style={{ height: `${cellWidth}px` }} />
               <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>W</div>
-              <div style={{ height: `${cellWidth}px` }}></div>
+              <div style={{ height: `${cellWidth}px` }} />
               <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>F</div>
-              <div style={{ height: `${cellWidth}px` }}></div>
+              <div style={{ height: `${cellWidth}px` }} />
               <div style={{ height: `${cellWidth}px`, display: 'flex', alignItems: 'center' }}>S</div>
             </div>
             <div style={{ display: 'flex', gap: `${cellGap}px`, flexShrink: 0 }}>
@@ -592,7 +679,7 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
           padding: '2px',
           border: '1px solid rgba(255,255,255,0.1)'
         }}>
-          {[{ key: 'weekly', label: 'W' }, { key: 'monthly', label: 'M' }, { key: 'yearly', label: 'Y' }].map(v => (
+          {[{ key: 'rolling', label: '1Y' }, { key: 'weekly', label: 'W' }, { key: 'monthly', label: 'M' }, { key: 'yearly', label: 'Y' }].map(v => (
             <button
               key={v.key}
               onClick={() => onViewChange?.(v.key)}
@@ -661,8 +748,11 @@ export default function PnlCalendar({ pnlHistory = [], view = 'monthly', onViewC
       <div style={{ flex: 1, padding: '12px 16px', display: view === 'monthly' ? 'flex' : 'none', flexDirection: 'column' }}>
         {renderMonthlyCalendar()}
       </div>
-      <div style={{ flex: 1, padding: '12px 16px', display: view === 'yearly' ? 'flex' : 'none', flexDirection: 'column' }}>
+      <div style={{ flex: 1, padding: '12px 16px', display: view === 'rolling' ? 'flex' : 'none', flexDirection: 'column' }}>
         {renderYearlyCalendar()}
+      </div>
+      <div style={{ flex: 1, padding: '12px 16px', display: view === 'yearly' ? 'flex' : 'none', flexDirection: 'column' }}>
+        {renderCalendarYearCalendar()}
       </div>
 
       {/* Bottom - Best streak */}

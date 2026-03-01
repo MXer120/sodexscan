@@ -30,6 +30,8 @@ export default function BalancesWidget({ config, onUpdateConfig }) {
 
   const balanceType = config.balanceType || 'futures'
   const showCoinLogos = config.showCoinLogos !== false
+  const showBalance = config.showBalance !== false
+  const showAvailable = config.showAvailable !== false
   const showFrozen = config.showFrozen !== false
 
   // futures: account_details.data.balances[] with coin, walletBalance, availableBalance, openOrderMarginFrozen
@@ -48,8 +50,8 @@ export default function BalancesWidget({ config, onUpdateConfig }) {
         <thead>
           <tr>
             <th>Coin</th>
-            <th className="text-right">Balance</th>
-            <th className="text-right">Available</th>
+            {showBalance && <th className="text-right">Balance</th>}
+            {showAvailable && <th className="text-right">Available</th>}
             {showFrozen && <th className="text-right">Frozen</th>}
           </tr>
         </thead>
@@ -69,8 +71,8 @@ export default function BalancesWidget({ config, onUpdateConfig }) {
                   {showCoinLogos && <CoinLogo symbol={coin} size={16} />}
                   {coin}
                 </td>
-                <td className="text-right">{fmt(total)}</td>
-                <td className="text-right">{fmt(available)}</td>
+                {showBalance && <td className="text-right">{fmt(total)}</td>}
+                {showAvailable && <td className="text-right">{fmt(available)}</td>}
                 {showFrozen && <td className="text-right">{fmt(frozen)}</td>}
               </tr>
             )

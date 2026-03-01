@@ -43,7 +43,14 @@
       "Bash(venv/Scripts/pip install:*)",
       "Bash(venv/Scripts/python:*)",
       "Bash(python3:*)",
-      "Bash(supabase projects list)"
+      "Bash(supabase projects list)",
+      "WebFetch(domain:github.com)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''hooks'',{}\\), indent=2\\)\\)\")",
+      "Bash(cat \"C:/Users/lutzs/OneDrive - Fam. Steinfartz/Lutz Schriftgut/.work/sodexscan/.claude-flow/hooks/\"*.json)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "claude-flow"
+  ],
+  "enableAllProjectMcpServers": true
 }

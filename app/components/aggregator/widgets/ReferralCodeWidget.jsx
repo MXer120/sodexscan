@@ -29,7 +29,7 @@ export default function ReferralCodeWidget() {
         onChange={(e) => setSearch(e.target.value)}
         style={{
           width: '100%', padding: '6px 10px', marginBottom: 8,
-          background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border-subtle)',
+          background: 'var(--color-overlay-subtle)', border: '1px solid var(--color-border-subtle)',
           borderRadius: 6, color: 'var(--color-text-main)', fontSize: 12, outline: 'none'
         }}
       />

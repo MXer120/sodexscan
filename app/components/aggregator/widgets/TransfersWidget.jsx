@@ -67,6 +67,10 @@ export default function TransfersWidget({ config, onUpdateConfig }) {
   if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
 
   const showCoinLogos = config.showCoinLogos !== false
+  const showType = config.showType !== false
+  const showCoin = config.showCoin !== false
+  const showAmount = config.showAmount !== false
+  const showTime = config.showTime !== false
 
   if (!transfers.length) {
     return <div style={{ padding: 12, color: 'var(--color-text-muted)', textAlign: 'center' }}>No transfers found</div>
@@ -77,10 +81,10 @@ export default function TransfersWidget({ config, onUpdateConfig }) {
       <table>
         <thead>
           <tr>
-            <th>Type</th>
-            <th>Coin</th>
-            <th className="text-right">Amount</th>
-            <th className="text-right">Time</th>
+            {showType && <th>Type</th>}
+            {showCoin && <th>Coin</th>}
+            {showAmount && <th className="text-right">Amount</th>}
+            {showTime && <th className="text-right">Time</th>}
           </tr>
         </thead>
         <tbody>
@@ -88,22 +92,22 @@ export default function TransfersWidget({ config, onUpdateConfig }) {
             const isDeposit = t.type.toLowerCase().includes('deposit') || t.amount > 0
             return (
               <tr key={i}>
-                <td>
+                {showType && <td>
                   <span style={{
                     fontSize: 11, fontWeight: 500,
                     color: isDeposit ? 'var(--color-success)' : 'var(--color-error)'
                   }}>
                     {t.type}
                   </span>
-                </td>
-                <td style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                </td>}
+                {showCoin && <td style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {showCoinLogos && <CoinLogo symbol={t.coin} size={16} />}
                   {t.coin}
-                </td>
-                <td className={`text-right ${t.amount > 0 ? 'positive' : t.amount < 0 ? 'negative' : ''}`}>
+                </td>}
+                {showAmount && <td className={`text-right ${t.amount > 0 ? 'positive' : t.amount < 0 ? 'negative' : ''}`}>
                   {t.amount > 0 ? '+' : ''}{fmt(t.amount)}
-                </td>
-                <td className="text-right" style={{ fontSize: 11 }}>{fmtTime(t.timestamp)}</td>
+                </td>}
+                {showTime && <td className="text-right" style={{ fontSize: 11 }}>{fmtTime(t.timestamp)}</td>}
               </tr>
             )
           })}

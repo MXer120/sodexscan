@@ -3,7 +3,8 @@ import { useState, useRef } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import CopyableAddress from '../../ui/CopyableAddress'
 
-export default function ReverseSearchWidget() {
+export default function ReverseSearchWidget({ config, editMode = true }) {
+  const showHelpers = config?.showHelpers !== false
   const [inputChars, setInputChars] = useState(Array(8).fill(''))
   const inputRefs = useRef([])
   const [results, setResults] = useState([])
@@ -62,32 +63,34 @@ export default function ReverseSearchWidget() {
 
   const inputStyle = {
     width: 32, height: 40, borderRadius: 6,
-    border: '1px solid var(--color-border-subtle)', background: 'rgba(255,255,255,0.05)',
+    border: '1px solid var(--color-border-subtle)', background: 'var(--color-overlay-subtle)',
     color: '#fff', fontSize: 16, textAlign: 'center', fontFamily: 'monospace', outline: 'none'
   }
 
   return (
-    <div>
+    <div style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: 'monospace', fontSize: 14, color: 'var(--color-text-secondary)', marginRight: 4 }}>0x</span>
+        {editMode && <span style={{ fontFamily: 'monospace', fontSize: 14, color: 'var(--color-text-secondary)', marginRight: 4 }}>0x</span>}
         {[0,1,2,3].map(i => (
           <input key={i} ref={el => inputRefs.current[i] = el} type="text" maxLength={1}
             style={inputStyle} value={inputChars[i]}
             onChange={e => handleCharChange(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)} />
         ))}
-        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'bold', margin: '0 4px' }}>...</span>
+        {showHelpers && <span style={{ color: 'var(--color-text-secondary)', fontWeight: 'bold', margin: '0 4px' }}>..</span>}
         {[4,5,6,7].map(i => (
           <input key={i} ref={el => inputRefs.current[i] = el} type="text" maxLength={1}
             style={inputStyle} value={inputChars[i]}
             onChange={e => handleCharChange(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)} />
         ))}
       </div>
-      <button onClick={handleSearch} disabled={loading} style={{
-        width: '100%', padding: '6px 12px', background: 'var(--color-primary)', color: '#000',
-        border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 8
-      }}>
-        {loading ? 'Searching...' : 'Search'}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+        <button onClick={handleSearch} disabled={loading} style={{
+          maxWidth: 200, width: '100%', padding: '6px 12px', background: 'var(--color-primary)', color: '#000',
+          border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer'
+        }}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </div>
       {error && <div style={{ color: 'var(--color-error)', fontSize: 11, marginBottom: 8 }}>{error}</div>}
       {results.length > 0 && (
         <table>

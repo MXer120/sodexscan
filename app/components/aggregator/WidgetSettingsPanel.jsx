@@ -1,13 +1,21 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import ColorPicker from './ColorPicker'
 import AggSelect from './AggSelect'
+
+function getCSSVar(name, fallback) {
+  if (typeof window === 'undefined') return fallback
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback
+}
 
 export default function WidgetSettingsPanel({
   instanceId, config, settingsSchema, visibilitySchema = [],
   onUpdate, onClose, recentColors = [], onAddRecentColor, resolvedWalletAddress = ''
 }) {
+  const defaultAccent = useMemo(() => getCSSVar('--color-primary', '#48cbff'), [])
+  const defaultBg = useMemo(() => getCSSVar('--color-bg-tertiary', '#141414'), [])
+
   const handleChange = (key, value) => {
     onUpdate(instanceId, { ...config.settings, [key]: value })
   }
@@ -29,7 +37,7 @@ export default function WidgetSettingsPanel({
         <label className="agg-settings-label">Accent</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ColorPicker
-            value={config.settings?.accentColor || '#48cbff'}
+            value={config.settings?.accentColor || defaultAccent}
             onChange={(v) => handleChange('accentColor', v)}
             recentColors={recentColors}
             onAddRecent={onAddRecentColor}
@@ -44,7 +52,7 @@ export default function WidgetSettingsPanel({
         <label className="agg-settings-label">Background</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ColorPicker
-            value={config.settings?.bgColor || '#141414'}
+            value={config.settings?.bgColor || defaultBg}
             onChange={(v) => handleChange('bgColor', v)}
             recentColors={recentColors}
             onAddRecent={onAddRecentColor}
@@ -86,7 +94,7 @@ export default function WidgetSettingsPanel({
           )}
           {field.type === 'color' && (
             <ColorPicker
-              value={config.settings?.[field.key] || '#48cbff'}
+              value={config.settings?.[field.key] || defaultAccent}
               onChange={(v) => handleChange(field.key, v)}
               recentColors={recentColors}
               onAddRecent={onAddRecentColor}

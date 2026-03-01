@@ -40,6 +40,12 @@ interface FolderConfig {
   name: string
 }
 
+interface CustomDevice {
+  id: string
+  name: string
+  width: number
+}
+
 interface AggregatorData {
   version: number
   navDock: 'left' | 'right' | 'top' | 'bottom'
@@ -47,10 +53,15 @@ interface AggregatorData {
   navExpanded: boolean
   activePageIndex: number
   globalWallet: string
+  autoUseWallet?: boolean
+  performanceMode?: boolean
+  editMode?: boolean
+  rowHeight?: number
   pages: PageConfig[]
   templates: TemplateConfig[]
   quickLinks: QuickLink[]
   folders: FolderConfig[]
+  customDevices?: CustomDevice[]
 }
 
 // ── Template sync helper ──────────────────────────────────────────
@@ -93,6 +104,7 @@ function ensureV2(data: any): AggregatorData {
   if (data.version === 2) {
     if (!data.quickLinks) data.quickLinks = []
     if (!data.folders) data.folders = []
+    if (!data.customDevices) data.customDevices = []
     if (!data.globalWallet) data.globalWallet = ''
     // On load: populate pages from their templates + ensure defaultWallet exists
     if (data.pages) {
@@ -283,6 +295,17 @@ export function useAggregatorLayout() {
     })
   }, [updateLocal])
 
+  // Update a single breakpoint layout without touching the others
+  const updateBreakpointLayout = useCallback((bp: string, bpLayout: any[]) => {
+    updateLocal(d => {
+      const pages = [...d.pages]
+      const cur = pages[d.activePageIndex]
+      const page = { ...cur, layouts: { ...(cur.layouts || {}), [bp]: bpLayout } }
+      pages[d.activePageIndex] = page
+      return { ...d, pages, templates: syncPageToTemplate(d, page) }
+    })
+  }, [updateLocal])
+
   const updateWidgetConfig = useCallback((instanceId: string, settings: any) => {
     updateLocal(d => {
       const pages = [...d.pages]
@@ -301,23 +324,55 @@ export function useAggregatorLayout() {
     if (!reg) return
     const instanceId = `${typeId}-${Date.now()}`
     const { w, h, minW, minH } = reg.defaultSize
+    // Proportional heights: md ~ 85% of desktop, sm ~ 65% of desktop
+    const mdH = Math.max(minH || 1, Math.round(h * 0.85))
+    const smH = Math.max(minH || 1, Math.round(h * 0.65))
     const newItem = { i: instanceId, x: 0, y: Infinity, w, h, minW, minH }
     updateLocal(d => {
       const pages = [...d.pages]
       const page = { ...pages[d.activePageIndex] }
       page.layouts = {
         lg: [...(page.layouts?.lg || []), newItem],
-        md: [...(page.layouts?.md || []), { ...newItem, w: Math.min(w, 6) }],
-        sm: [...(page.layouts?.sm || []), { ...newItem, x: 0, w: 2 }],
+        md: [...(page.layouts?.md || []), { ...newItem, w: Math.min(w, 6), h: mdH }],
+        sm: [...(page.layouts?.sm || []), { ...newItem, x: 0, w: 2, h: smH }],
+      }
+      // Auto-inject wallet if autoUseWallet is enabled
+      const settings = { ...reg.defaultSettings }
+      if (d.autoUseWallet && 'walletAddress' in settings) {
+        const wallet = page.defaultWallet || d.globalWallet || ''
+        if (wallet) settings.walletAddress = wallet
       }
       page.widgets = {
         ...page.widgets,
-        [instanceId]: { type: typeId, settings: { ...reg.defaultSettings } }
+        [instanceId]: { type: typeId, settings }
       }
       pages[d.activePageIndex] = page
       return { ...d, pages, templates: syncPageToTemplate(d, page) }
     })
   }, [updateLocal])
+
+  const setAutoUseWallet = useCallback((val: boolean) => {
+    updateLocal(d => ({ ...d, autoUseWallet: val }))
+  }, [updateLocal])
+
+  const setPerformanceMode = useCallback((val: boolean) => {
+    updateLocal(d => ({ ...d, performanceMode: val }))
+  }, [updateLocal])
+
+  const setEditMode = useCallback((val: boolean) => {
+    updateLocal(d => ({ ...d, editMode: val }))
+  }, [updateLocal])
+
+  const setStoredRowHeight = useCallback((rh: number) => {
+    updateLocal(d => ({ ...d, rowHeight: rh }))
+  }, [updateLocal])
+
+  const saveNow = useCallback(() => {
+    if (localData && user) {
+      writeLS(user.id, localData)
+      saveMutation.mutate(localData)
+    }
+  }, [localData, saveMutation, user])
 
   const removeWidget = useCallback((instanceId: string) => {
     updateLocal(d => {
@@ -524,6 +579,63 @@ export function useAggregatorLayout() {
     }))
   }, [updateLocal])
 
+  // ── Custom Devices ────────────────────────────────────────────
+  const addCustomDevice = useCallback((device: { name: string; width: number }) => {
+    updateLocal(d => ({
+      ...d,
+      customDevices: [...(d.customDevices || []), { id: `dev-${Date.now()}`, ...device }]
+    }))
+  }, [updateLocal])
+
+  const removeCustomDevice = useCallback((id: string) => {
+    updateLocal(d => ({
+      ...d,
+      customDevices: (d.customDevices || []).filter(dev => dev.id !== id)
+    }))
+  }, [updateLocal])
+
+  // ── Gap Wizard ────────────────────────────────────────────────
+  const fixGaps = useCallback(() => {
+    updateLocal(d => {
+      const pages = [...d.pages]
+      const page = { ...pages[d.activePageIndex] }
+      const bpCols: Record<string, number> = { lg: 12, md: 6, sm: 2 }
+      const newLayouts: any = {}
+      for (const [bp, cols] of Object.entries(bpCols)) {
+        const items: any[] = page.layouts?.[bp] || []
+        if (!items.length) { newLayouts[bp] = items; continue }
+        newLayouts[bp] = items.map(item => {
+          // Width: expand right until next horizontally-adjacent widget or grid edge
+          let rightBorder = cols
+          for (const other of items) {
+            if (other.i === item.i) continue
+            if (other.x < item.x + item.w) continue
+            if (other.y >= item.y + item.h || other.y + other.h <= item.y) continue
+            rightBorder = Math.min(rightBorder, other.x)
+          }
+          const newW = rightBorder - item.x
+
+          // Height: expand down until next vertically-adjacent widget (non-bottom widgets only)
+          let belowY = Infinity
+          for (const other of items) {
+            if (other.i === item.i) continue
+            if (other.y < item.y + item.h) continue // not below
+            if (other.x >= item.x + item.w || other.x + other.w <= item.x) continue // no h-overlap
+            belowY = Math.min(belowY, other.y)
+          }
+          const newH = belowY !== Infinity && belowY > item.y + item.h
+            ? belowY - item.y // extend to next widget below
+            : item.h          // bottom widget: keep height
+
+          return { ...item, w: newW > item.w ? newW : item.w, h: newH }
+        })
+      }
+      page.layouts = newLayouts
+      pages[d.activePageIndex] = page
+      return { ...d, pages, templates: syncPageToTemplate(d, page) }
+    })
+  }, [updateLocal])
+
   return {
     // Data
     data: current,
@@ -546,7 +658,7 @@ export function useAggregatorLayout() {
     setActivePage, addPage, removePage, renamePage,
 
     // Layout/widget ops
-    updateLayout, updateWidgetConfig, addWidget, removeWidget, resetToDefault,
+    updateLayout, updateBreakpointLayout, updateWidgetConfig, addWidget, removeWidget, resetToDefault,
 
     // Nav
     setNavDock, setNavPosition, setNavExpanded,
@@ -564,6 +676,31 @@ export function useAggregatorLayout() {
 
     // Wallet
     globalWallet: current.globalWallet || '',
-    setGlobalWallet, setPageDefaultWallet,
+    autoUseWallet: current.autoUseWallet ?? false,
+    setGlobalWallet, setPageDefaultWallet, setAutoUseWallet,
+
+    // Performance
+    performanceMode: current.performanceMode ?? false,
+    setPerformanceMode,
+
+    // Edit mode
+    editMode: current.editMode ?? true,
+    setEditMode,
+
+    // Row height (persisted in supabase)
+    storedRowHeight: current.rowHeight,
+    setStoredRowHeight,
+
+    // Explicit save
+    saveNow,
+    isSaving: saveMutation.isPending,
+
+    // Gap wizard
+    fixGaps,
+
+    // Custom devices
+    customDevices: current.customDevices || [],
+    addCustomDevice,
+    removeCustomDevice,
   }
 }

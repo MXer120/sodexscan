@@ -58,7 +58,7 @@ export default function MilestoneProjectionWidget() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--color-overlay-subtle)' }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Milestones</span>
         <span style={{ fontSize: 9, color: 'var(--color-success)', fontWeight: 500 }}>~{avgDaily}/day</span>
       </div>
@@ -66,7 +66,7 @@ export default function MilestoneProjectionWidget() {
         {milestones.map(m => (
           <div key={m.milestone} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '6px 8px', background: 'rgba(255,255,255,0.03)', borderRadius: 5
+            padding: '6px 8px', background: 'var(--color-overlay-faint)', borderRadius: 5
           }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{formatNum(m.milestone)}</span>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>

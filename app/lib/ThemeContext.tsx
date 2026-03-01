@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { ThemeSettings, DEFAULT_THEME, applyTheme, getThemeLogo, ColorScheme, ThemeMode } from './themes'
+import { ThemeSettings, DEFAULT_THEME, applyTheme, getThemeLogo, ColorScheme, ThemeMode, COLOR_SCHEMES } from './themes'
 import { useSessionContext } from './SessionContext'
 import { supabase } from './supabaseClient'
 
@@ -10,14 +10,39 @@ interface ThemeContextValue {
   setTheme: (settings: Partial<ThemeSettings>) => void
   logo: string
   isLoading: boolean
+  autoSyncColors: boolean
+  setAutoSyncColors: (val: boolean) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+// Validate colorScheme — migrates removed schemes (e.g. 'modern') to 'cyan'
+function sanitizeColorScheme(scheme: string): ColorScheme {
+  if (scheme in COLOR_SCHEMES) return scheme as ColorScheme
+  return 'cyan'
+}
+
+function getInitialTheme(): ThemeSettings {
+  if (typeof window === 'undefined') return DEFAULT_THEME
+  try {
+    const cached = localStorage.getItem('theme')
+    if (cached) {
+      const parsed = JSON.parse(cached) as ThemeSettings
+      parsed.colorScheme = sanitizeColorScheme(parsed.colorScheme)
+      return parsed
+    }
+  } catch {}
+  return DEFAULT_THEME
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useSessionContext()
-  const [theme, setThemeState] = useState<ThemeSettings>(DEFAULT_THEME)
+  const [theme, setThemeState] = useState<ThemeSettings>(getInitialTheme)
   const [isLoading, setIsLoading] = useState(true)
+  const [autoSyncColors, setAutoSyncColorsState] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('autoSyncColors') === 'true'
+  })
 
   // Track if we should sync to DB (to avoid redundant updates on load)
   const shouldSyncRef = React.useRef(false)
@@ -26,31 +51,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadTheme() {
       setIsLoading(true)
-      shouldSyncRef.current = false // Reset sync flag on user change
+      shouldSyncRef.current = false
 
-      // Try localStorage first for instant load
+      // localStorage is the primary source of truth (instant, always fresh)
       const cached = localStorage.getItem('theme')
+      let hasLocalTheme = false
       if (cached) {
         try {
           const parsed = JSON.parse(cached) as ThemeSettings
+          parsed.colorScheme = sanitizeColorScheme(parsed.colorScheme)
           setThemeState(parsed)
           applyTheme(parsed)
+          hasLocalTheme = true
         } catch (e) {
-          // Invalid cache, use default
+          // Invalid cache, fall through to DB
         }
       }
 
-      // If logged in, fetch from DB
-      if (user) {
+      // DB is only used as fallback when localStorage is empty (new device/browser)
+      if (user && !hasLocalTheme) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('color_scheme, theme_mode, bullish_color, bearish_color, accent_color')
+          .select('color_scheme, theme_mode, bullish_color, bearish_color, accent_color, auto_sync_colors')
           .eq('id', user.id)
           .single()
 
         if (data && !error) {
           const dbTheme: ThemeSettings = {
-            colorScheme: (data.color_scheme as ColorScheme) || DEFAULT_THEME.colorScheme,
+            colorScheme: sanitizeColorScheme(data.color_scheme || DEFAULT_THEME.colorScheme),
             mode: (data.theme_mode as ThemeMode) || DEFAULT_THEME.mode,
             bullishColor: data.bullish_color || DEFAULT_THEME.bullishColor,
             bearishColor: data.bearish_color || DEFAULT_THEME.bearishColor,
@@ -59,11 +87,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           setThemeState(dbTheme)
           applyTheme(dbTheme)
           localStorage.setItem('theme', JSON.stringify(dbTheme))
+          if (data.auto_sync_colors != null) {
+            setAutoSyncColorsState(data.auto_sync_colors)
+            localStorage.setItem('autoSyncColors', String(data.auto_sync_colors))
+          }
         }
       }
 
       setIsLoading(false)
-      // After load, allow syncing
       setTimeout(() => {
         shouldSyncRef.current = true
       }, 500)
@@ -82,7 +113,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (!user || !shouldSyncRef.current || isLoading) return
 
     const timer = setTimeout(async () => {
-      console.log('Syncing theme to database...')
       await supabase
         .from('profiles')
         .update({
@@ -90,13 +120,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           theme_mode: theme.mode,
           bullish_color: theme.bullishColor,
           bearish_color: theme.bearishColor,
-          accent_color: theme.accentColor
+          accent_color: theme.accentColor,
+          auto_sync_colors: autoSyncColors,
         })
         .eq('id', user.id)
-    }, 2000) // 2 second debounce for color pickers
+    }, 2000)
 
     return () => clearTimeout(timer)
-  }, [theme, user, isLoading])
+  }, [theme, autoSyncColors, user, isLoading])
 
   const setTheme = (updates: Partial<ThemeSettings>) => {
     const newTheme = { ...theme, ...updates }
@@ -110,10 +141,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     shouldSyncRef.current = true
   }
 
+  const setAutoSyncColors = (val: boolean) => {
+    setAutoSyncColorsState(val)
+    localStorage.setItem('autoSyncColors', String(val))
+    shouldSyncRef.current = true
+  }
+
   const logo = getThemeLogo(theme.colorScheme)
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, logo, isLoading }}>
+    <ThemeContext.Provider value={{ theme, setTheme, logo, isLoading, autoSyncColors, setAutoSyncColors }}>
       {children}
     </ThemeContext.Provider>
   )

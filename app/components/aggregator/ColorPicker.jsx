@@ -2,11 +2,16 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 
-const DEFAULT_COLORS = ['#48cbff', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#ffffff']
+const DEFAULT_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#ffffff', '#a1a1aa']
+
+function getThemePrimary() {
+  if (typeof window === 'undefined') return '#48cbff'
+  return getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#48cbff'
+}
 
 export default function ColorPicker({ value, onChange, recentColors = [], onAddRecent }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [hexInput, setHexInput] = useState(value || '#48cbff')
+  const [hexInput, setHexInput] = useState(value || getThemePrimary())
   const ref = useRef(null)
 
   useEffect(() => {
@@ -19,7 +24,7 @@ export default function ColorPicker({ value, onChange, recentColors = [], onAddR
   }, [isOpen])
 
   useEffect(() => {
-    setHexInput(value || '#48cbff')
+    setHexInput(value || getThemePrimary())
   }, [value])
 
   const allSwatches = [...new Set([...recentColors, ...DEFAULT_COLORS])].slice(0, 8)
@@ -43,8 +48,8 @@ export default function ColorPicker({ value, onChange, recentColors = [], onAddR
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="agg-color-input"
-        style={{ background: value || '#48cbff' }}
-        title={value || '#48cbff'}
+        style={{ background: value || getThemePrimary() }}
+        title={value || getThemePrimary()}
       />
       {isOpen && (
         <div className="agg-color-picker-popover">
@@ -67,12 +72,12 @@ export default function ColorPicker({ value, onChange, recentColors = [], onAddR
               value={hexInput}
               onChange={handleHexChange}
               className="agg-color-hex-input"
-              placeholder="#48cbff"
+              placeholder={getThemePrimary()}
               maxLength={7}
             />
             <input
               type="color"
-              value={value || '#48cbff'}
+              value={value || getThemePrimary()}
               onChange={(e) => applyColor(e.target.value)}
               style={{ width: 28, height: 28, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }}
             />

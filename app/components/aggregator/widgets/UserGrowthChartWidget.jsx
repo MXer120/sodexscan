@@ -76,10 +76,10 @@ export default function UserGrowthChartWidget({ config }) {
               <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="1 8" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="date" tickFormatter={formatDate} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={40} />
-          <YAxis tickFormatter={formatNum} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
-          <Tooltip labelFormatter={(l) => formatDate(l)} formatter={(v) => [formatNum(v), 'Users']} contentStyle={{ background: 'rgba(12,12,12,0.98)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11 }} />
+          <CartesianGrid strokeDasharray="1 8" stroke="var(--color-overlay-subtle)" />
+          <XAxis dataKey="date" tickFormatter={formatDate} stroke="var(--color-border-strong)" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={40} />
+          <YAxis tickFormatter={formatNum} stroke="var(--color-border-strong)" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
+          <Tooltip labelFormatter={(l) => formatDate(l)} formatter={(v) => [formatNum(v), 'Users']} contentStyle={{ background: 'rgba(12,12,12,0.98)', border: '1px solid var(--color-overlay-medium)', borderRadius: 8, fontSize: 11 }} />
           {currentDayDate && lastDate && <ReferenceArea x1={currentDayDate} x2={lastDate} fill="var(--color-success)" fillOpacity={0.06} />}
           <Area type="monotone" dataKey="actualTotal" stroke="var(--color-primary)" strokeWidth={2} fill="url(#aggGrowthGrad)" connectNulls={false} dot={false} />
           <Line type="monotone" dataKey="predictedTotal" stroke="var(--color-success)" strokeWidth={2} strokeDasharray="4 4" connectNulls dot={false} />

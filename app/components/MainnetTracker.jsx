@@ -406,7 +406,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   })
   const [pnlHistory, setPnlHistory] = useState([])
   const [pnlViewMode, setPnlViewMode] = useState('chart') // 'chart' | 'calendar'
-  const [calendarView, setCalendarView] = useState('monthly') // 'weekly' | 'monthly' | 'yearly'
+  const [calendarView, setCalendarView] = useState('rolling') // 'rolling' | 'weekly' | 'monthly' | 'yearly'
   const [positions, setPositions] = useState([])
   const [positionHistory, setPositionHistory] = useState([])
   const [totalAssets, setTotalAssets] = useState(0)
@@ -2112,7 +2112,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         className="section-top-center"
         style={{
           position: 'relative',
-          height: isMobile && pnlViewMode === 'calendar' ? 'auto' : (pnlViewMode === 'chart' ? '475px' : calendarView === 'weekly' ? '320px' : calendarView === 'yearly' ? '380px' : '750px'),
+          height: isMobile && pnlViewMode === 'calendar' ? 'auto' : (pnlViewMode === 'chart' ? '475px' : calendarView === 'weekly' ? '320px' : (calendarView === 'rolling' || calendarView === 'yearly') ? '380px' : '750px'),
           marginBottom: isMobile ? '16px' : '0',
           transition: 'height 0.3s ease'
         }}
@@ -2209,7 +2209,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               const coin = getBaseCoin(item.rawSymbol)
               const color = item.status === 'pos' ? BULLISH_COLOR :
                 item.status === 'neg' ? BEARISH_COLOR :
-                  item.status === 'internal' ? INTERNAL_COLOR : '#fff'
+                  item.status === 'internal' ? 'rgba(255,255,255,0.7)' : '#fff'
 
               return (
                 <div key={item.id} className={`timeline-item ${item.status}`} style={{
@@ -2223,7 +2223,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   paddingRight: '12px'
                 }}>
                   <div className="timeline-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '2px' }}>
-                    {isTrade || item.status === 'internal' ? (
+                    {isTrade ? (
                       <div className="timeline-icon-box" style={{
                         position: 'absolute',
                         left: '0px',
@@ -2237,6 +2237,24 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                         justifyContent: 'center'
                       }}>
                         <CoinLogo symbol={coin} />
+                      </div>
+                    ) : item.status === 'internal' ? (
+                      <div className="timeline-icon-box" style={{
+                        position: 'absolute',
+                        left: '0px',
+                        top: '8px',
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1px',
+                        background: 'rgba(var(--color-primary-rgb, 72,203,255), 0.12)'
+                      }}>
+                        <svg width="10" height="5" viewBox="0 0 10 5" fill="none" stroke={color} strokeWidth="0.8"><polyline points="4,0.5 0.5,2.5 4,4.5" /><line x1="1" y1="2.5" x2="9.5" y2="2.5" /></svg>
+                        <svg width="10" height="5" viewBox="0 0 10 5" fill="none" stroke={color} strokeWidth="0.8"><polyline points="6,0.5 9.5,2.5 6,4.5" /><line x1="0.5" y1="2.5" x2="9" y2="2.5" /></svg>
                       </div>
                     ) : (item.type === 'Deposit' || item.type === 'Withdraw') ? (
                       <div className="timeline-icon-box" style={{

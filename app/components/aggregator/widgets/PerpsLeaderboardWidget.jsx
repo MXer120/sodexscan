@@ -16,6 +16,10 @@ const formatNum = (num) => {
 export default function PerpsLeaderboardWidget({ config }) {
   const sortBy = config?.sortBy || 'volume'
   const excludeSodex = config?.excludeSodex !== false
+  const showRank = config?.showRank !== false
+  const showWallet = config?.showWallet !== false
+  const showPnl = config?.showPnl !== false
+  const showVolume = config?.showVolume !== false
   const [page, setPage] = useState(1)
 
   const { data: leaderboardData = { rows: [], total: 0 }, isLoading } = useQuery({
@@ -61,21 +65,21 @@ export default function PerpsLeaderboardWidget({ config }) {
         <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Wallet</th>
-              <th className="text-right">PnL</th>
-              <th className="text-right">Volume</th>
+              {showRank && <th>#</th>}
+              {showWallet && <th>Wallet</th>}
+              {showPnl && <th className="text-right">PnL</th>}
+              {showVolume && <th className="text-right">Volume</th>}
             </tr>
           </thead>
           <tbody>
             {data.map((u, idx) => (
               <tr key={u.wallet}>
-                <td className="rank">#{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                <td><CopyableAddress address={u.wallet} /></td>
-                <td className={`text-right ${u.pnl > 0 ? 'positive' : u.pnl < 0 ? 'negative' : ''}`}>
+                {showRank && <td className="rank">#{(page - 1) * PAGE_SIZE + idx + 1}</td>}
+                {showWallet && <td><CopyableAddress address={u.wallet} /></td>}
+                {showPnl && <td className={`text-right ${u.pnl > 0 ? 'positive' : u.pnl < 0 ? 'negative' : ''}`}>
                   ${u.pnl > 0 ? '+' : ''}{formatNum(u.pnl)}
-                </td>
-                <td className="text-right">${formatNum(u.volume)}</td>
+                </td>}
+                {showVolume && <td className="text-right">${formatNum(u.volume)}</td>}
               </tr>
             ))}
           </tbody>

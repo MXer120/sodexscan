@@ -246,7 +246,7 @@ function ScannerLinks({ address, txId }) {
     {
       name: 'CommunityScan',
       url: address ? `https://www.communityscan-sodex.com/tracker/${address}` : null,
-      icon: <img src="/favicon.png" alt="CommunityScan" style={{ width: 14, height: 14, borderRadius: 2 }} />
+      icon: <img src="/favicon-cyan.svg" alt="CommunityScan" style={{ width: 14, height: 14, borderRadius: 2 }} />
     },
     {
       name: 'Blockscan',

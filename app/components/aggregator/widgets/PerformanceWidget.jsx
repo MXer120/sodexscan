@@ -45,7 +45,7 @@ export default function PerformanceWidget({ config, onUpdateConfig }) {
     if (!closedTrades.length) return []
     const bySymbol = {}
     closedTrades.forEach(t => {
-      const sym = t.symbol_id || t.symbol || 'Unknown'
+      const sym = t.symbol || t.coin || t.pair || t.instrument_name || 'Unknown'
       if (!bySymbol[sym]) bySymbol[sym] = { symbol: sym, pnl: 0, trades: 0, wins: 0 }
       const pnl = parseFloat(t.realized_pnl || 0)
       bySymbol[sym].pnl += pnl
@@ -78,7 +78,7 @@ export default function PerformanceWidget({ config, onUpdateConfig }) {
 
   if (view === 'asset') {
     return (
-      <div className="agg-widget-body">
+      <div className="agg-widget-body" style={{ overflow: 'hidden' }}>
         <table>
           <thead>
             <tr>
@@ -110,7 +110,7 @@ export default function PerformanceWidget({ config, onUpdateConfig }) {
 
   // Trade view (default)
   return (
-    <div className="agg-widget-body">
+    <div className="agg-widget-body" style={{ overflow: 'hidden' }}>
       <table>
         <thead>
           <tr>

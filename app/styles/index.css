@@ -78,6 +78,12 @@
   /* Gradient Colors */
   --gradient-text: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
 
+  /* Overlay colors (faint white tints for borders/backgrounds) */
+  --color-overlay-faint: rgba(255, 255, 255, 0.03);
+  --color-overlay-subtle: rgba(255, 255, 255, 0.06);
+  --color-overlay-light: rgba(255, 255, 255, 0.08);
+  --color-overlay-medium: rgba(255, 255, 255, 0.15);
+
   /* Scrollbar (theme-aware) */
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
@@ -86,6 +92,113 @@
 /* Light mode gradient adjustment */
 [data-theme="light"] {
   --gradient-text: linear-gradient(180deg, #1f2937 0%, rgba(31, 41, 55, 0.8) 100%);
+}
+
+/* =========================================
+   TERMINAL DESIGN LANGUAGE (CLI + NSA)
+   Overrides fonts, corners, shadows globally
+   ========================================= */
+
+/* Force monospace font on terminal themes */
+html[data-color-scheme="cli"] body,
+html[data-color-scheme="cli"] input,
+html[data-color-scheme="cli"] select,
+html[data-color-scheme="cli"] textarea,
+html[data-color-scheme="cli"] button,
+html[data-color-scheme="cli"] a,
+html[data-color-scheme="cli"] span,
+html[data-color-scheme="cli"] p,
+html[data-color-scheme="cli"] h1,
+html[data-color-scheme="cli"] h2,
+html[data-color-scheme="cli"] h3,
+html[data-color-scheme="cli"] h4,
+html[data-color-scheme="cli"] td,
+html[data-color-scheme="cli"] th,
+html[data-color-scheme="cli"] label,
+html[data-color-scheme="cli"] div,
+html[data-color-scheme="nsa"] body,
+html[data-color-scheme="nsa"] input,
+html[data-color-scheme="nsa"] select,
+html[data-color-scheme="nsa"] textarea,
+html[data-color-scheme="nsa"] button,
+html[data-color-scheme="nsa"] a,
+html[data-color-scheme="nsa"] span,
+html[data-color-scheme="nsa"] p,
+html[data-color-scheme="nsa"] h1,
+html[data-color-scheme="nsa"] h2,
+html[data-color-scheme="nsa"] h3,
+html[data-color-scheme="nsa"] h4,
+html[data-color-scheme="nsa"] td,
+html[data-color-scheme="nsa"] th,
+html[data-color-scheme="nsa"] label,
+html[data-color-scheme="nsa"] div {
+  font-family: 'Courier New', 'Fira Mono', 'Consolas', monospace !important;
+}
+
+/* Kill all border-radius on terminal themes */
+html[data-color-scheme="cli"] *,
+html[data-color-scheme="nsa"] * {
+  border-radius: 0px !important;
+}
+
+/* Kill box-shadows and backdrop-filters */
+html[data-color-scheme="cli"] *,
+html[data-color-scheme="nsa"] * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Hard 1px solid borders instead of subtle transparency */
+html[data-color-scheme="cli"] {
+  --color-border-subtle: rgba(212, 165, 90, 0.2);
+  --color-overlay-faint: rgba(212, 165, 90, 0.02);
+  --color-overlay-subtle: rgba(212, 165, 90, 0.05);
+  --color-overlay-light: rgba(212, 165, 90, 0.07);
+  --color-overlay-medium: rgba(212, 165, 90, 0.12);
+  --scrollbar-thumb: rgba(212, 165, 90, 0.25);
+  --scrollbar-thumb-hover: rgba(212, 165, 90, 0.4);
+}
+
+html[data-color-scheme="nsa"] {
+  --color-border-subtle: rgba(0, 255, 65, 0.15);
+  --color-overlay-faint: rgba(0, 255, 65, 0.02);
+  --color-overlay-subtle: rgba(0, 255, 65, 0.04);
+  --color-overlay-light: rgba(0, 255, 65, 0.06);
+  --color-overlay-medium: rgba(0, 255, 65, 0.1);
+  --scrollbar-thumb: rgba(0, 255, 65, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 255, 65, 0.35);
+}
+
+/* Scanline effect for NSA */
+html[data-color-scheme="nsa"] body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 65, 0.015) 2px,
+    rgba(0, 255, 65, 0.015) 4px
+  );
+}
+
+/* Slight text glow for NSA (re-enable after global kill) */
+html[data-color-scheme="nsa"] body {
+  text-shadow: 0 0 1px rgba(0, 255, 65, 0.2) !important;
+}
+
+
+/* CLI prompt-style cursor blink (optional, adds to feel) */
+html[data-color-scheme="cli"] input:focus,
+html[data-color-scheme="nsa"] input:focus {
+  outline: 1px solid var(--color-primary) !important;
+  outline-offset: 0;
 }
 
 * {

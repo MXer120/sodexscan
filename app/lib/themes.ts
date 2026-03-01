@@ -2,7 +2,7 @@
 // All color schemes are defined here - this is the single source of truth
 
 export type ThemeMode = 'dark' | 'light'
-export type ColorScheme = 'cyan' | 'orange' | 'purple' | 'green' | 'monochrome'
+export type ColorScheme = 'cyan' | 'orange' | 'purple' | 'green' | 'monochrome' | 'cli' | 'nsa'
 
 export interface ThemeSettings {
   colorScheme: ColorScheme
@@ -19,6 +19,9 @@ export const DEFAULT_THEME: ThemeSettings = {
   bearishColor: '#ef4444',
   accentColor: '#1230B7'
 }
+
+// Schemes that use terminal design language (monospace, sharp corners, no shadows)
+export const TERMINAL_SCHEMES: ColorScheme[] = ['cli', 'nsa']
 
 // Default bullish/bearish color presets
 export const BULLISH_PRESETS = [
@@ -38,6 +41,28 @@ export const BEARISH_PRESETS = [
 ] as const
 
 export const ACCENT_PRESETS = ['#1230B7', '#00aaff', '#48cbff', '#667eea', '#f97316', '#a855f7', '#06b6d4', '#10b981']
+
+// Per-theme recommended bullish/bearish/accent colors (used by auto-sync toggle)
+export const THEME_AUTO_COLORS: Record<ColorScheme, { bullish: string; bearish: string; accent: string }> = {
+  cyan: { bullish: '#22c55e', bearish: '#ef4444', accent: '#48cbff' },
+  orange: { bullish: '#22c55e', bearish: '#ef4444', accent: '#f97316' },
+  purple: { bullish: '#22c55e', bearish: '#ef4444', accent: '#a855f7' },
+  green: { bullish: '#4ade80', bearish: '#ef4444', accent: '#22c55e' },
+  monochrome: { bullish: '#a1a1aa', bearish: '#71717a', accent: '#52525b' },
+  cli: { bullish: '#d4a55a', bearish: '#b54444', accent: '#e8c07a' },
+  nsa: { bullish: '#00ff41', bearish: '#ff2040', accent: '#00cc33' },
+}
+
+// Favicon per theme (collapsed sidebar icon)
+export const THEME_FAVICONS: Record<ColorScheme, string> = {
+  cyan: '/favicon-cyan.svg',
+  orange: '/favicon-orange.svg',
+  purple: '/favicon-purple.svg',
+  green: '/favicon-green.svg',
+  monochrome: '/favicon-mono.svg',
+  cli: '/favicon-cli.svg',
+  nsa: '/favicon-nsa.svg',
+}
 
 // Color scheme definitions for each mode
 export const COLOR_SCHEMES: Record<ColorScheme, {
@@ -345,6 +370,128 @@ export const COLOR_SCHEMES: Record<ColorScheme, {
       spotBg: 'rgba(82, 82, 91, 0.15)',
       volume: '#52525b',
     }
+  },
+  cli: {
+    name: 'CLI',
+    logo: '/logo-cli.svg',
+    dark: {
+      primary: '#d4a55a',
+      primaryDark: '#b8893e',
+      primaryLight: '#e8c07a',
+      primaryRgb: '212, 165, 90',
+      bgMain: '#000000',
+      bgSecondary: '#080808',
+      bgTertiary: '#111111',
+      bgCard: 'rgba(8, 8, 8, 0.95)',
+      bgModal: 'rgba(4, 4, 4, 0.98)',
+      bgInput: 'rgba(12, 12, 12, 0.95)',
+      textMain: '#cccccc',
+      textSecondary: 'rgba(204, 204, 204, 0.7)',
+      textMuted: 'rgba(204, 204, 204, 0.45)',
+      textDisabled: 'rgba(204, 204, 204, 0.3)',
+      textSubtle: '#666666',
+      textDark: '#555555',
+      textDarker: '#333333',
+      textLightGray: '#999999',
+      textMediumGray: '#777777',
+      borderSubtle: 'rgba(212, 165, 90, 0.15)',
+      borderVisible: 'rgba(212, 165, 90, 0.3)',
+      borderStrong: 'rgba(212, 165, 90, 0.5)',
+      borderDark: '#1a1a1a',
+      spot: '#d4a55a',
+      spotBg: 'rgba(212, 165, 90, 0.12)',
+      volume: '#d4a55a',
+    },
+    light: {
+      // Terminal themes stay dark — duplicate dark values as fallback
+      primary: '#d4a55a',
+      primaryDark: '#b8893e',
+      primaryLight: '#e8c07a',
+      primaryRgb: '212, 165, 90',
+      bgMain: '#000000',
+      bgSecondary: '#080808',
+      bgTertiary: '#111111',
+      bgCard: 'rgba(8, 8, 8, 0.95)',
+      bgModal: 'rgba(4, 4, 4, 0.98)',
+      bgInput: 'rgba(12, 12, 12, 0.95)',
+      textMain: '#cccccc',
+      textSecondary: 'rgba(204, 204, 204, 0.7)',
+      textMuted: 'rgba(204, 204, 204, 0.45)',
+      textDisabled: 'rgba(204, 204, 204, 0.3)',
+      textSubtle: '#666666',
+      textDark: '#555555',
+      textDarker: '#333333',
+      textLightGray: '#999999',
+      textMediumGray: '#777777',
+      borderSubtle: 'rgba(212, 165, 90, 0.15)',
+      borderVisible: 'rgba(212, 165, 90, 0.3)',
+      borderStrong: 'rgba(212, 165, 90, 0.5)',
+      borderDark: '#1a1a1a',
+      spot: '#d4a55a',
+      spotBg: 'rgba(212, 165, 90, 0.12)',
+      volume: '#d4a55a',
+    }
+  },
+  nsa: {
+    name: 'NSA',
+    logo: '/logo-nsa.svg',
+    dark: {
+      primary: '#00ff41',
+      primaryDark: '#00cc33',
+      primaryLight: '#33ff66',
+      primaryRgb: '0, 255, 65',
+      bgMain: '#040804',
+      bgSecondary: '#060e06',
+      bgTertiary: '#0a150a',
+      bgCard: 'rgba(5, 10, 5, 0.92)',
+      bgModal: 'rgba(4, 8, 4, 0.98)',
+      bgInput: 'rgba(8, 16, 8, 0.92)',
+      textMain: '#b8f0b8',
+      textSecondary: 'rgba(160, 230, 160, 0.75)',
+      textMuted: 'rgba(120, 200, 120, 0.45)',
+      textDisabled: 'rgba(100, 180, 100, 0.3)',
+      textSubtle: '#2a7a2a',
+      textDark: '#1a5a1a',
+      textDarker: '#103a10',
+      textLightGray: '#5cbb5c',
+      textMediumGray: '#358835',
+      borderSubtle: 'rgba(0, 255, 65, 0.1)',
+      borderVisible: 'rgba(0, 255, 65, 0.2)',
+      borderStrong: 'rgba(0, 255, 65, 0.35)',
+      borderDark: '#0c1e0c',
+      spot: '#00ff41',
+      spotBg: 'rgba(0, 255, 65, 0.1)',
+      volume: '#00ff41',
+    },
+    light: {
+      // Terminal themes stay dark — duplicate dark values as fallback
+      primary: '#00ff41',
+      primaryDark: '#00cc33',
+      primaryLight: '#33ff66',
+      primaryRgb: '0, 255, 65',
+      bgMain: '#040804',
+      bgSecondary: '#060e06',
+      bgTertiary: '#0a150a',
+      bgCard: 'rgba(5, 10, 5, 0.92)',
+      bgModal: 'rgba(4, 8, 4, 0.98)',
+      bgInput: 'rgba(8, 16, 8, 0.92)',
+      textMain: '#b8f0b8',
+      textSecondary: 'rgba(160, 230, 160, 0.75)',
+      textMuted: 'rgba(120, 200, 120, 0.45)',
+      textDisabled: 'rgba(100, 180, 100, 0.3)',
+      textSubtle: '#2a7a2a',
+      textDark: '#1a5a1a',
+      textDarker: '#103a10',
+      textLightGray: '#5cbb5c',
+      textMediumGray: '#358835',
+      borderSubtle: 'rgba(0, 255, 65, 0.1)',
+      borderVisible: 'rgba(0, 255, 65, 0.2)',
+      borderStrong: 'rgba(0, 255, 65, 0.35)',
+      borderDark: '#0c1e0c',
+      spot: '#00ff41',
+      spotBg: 'rgba(0, 255, 65, 0.1)',
+      volume: '#00ff41',
+    }
   }
 }
 
@@ -375,6 +522,12 @@ interface ThemeColors {
   spot: string
   spotBg: string
   volume: string
+}
+
+// Generate favicon SVG data URL from primary color (bypasses browser favicon cache)
+function makeThemeFaviconDataUrl(color: string): string {
+  const svg = `<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g stroke="${color}" stroke-width="2" stroke-linecap="round"><path d="M3 11V5.5C3 4.12 4.12 3 5.5 3H11"/><path d="M21 3H26.5C27.88 3 29 4.12 29 5.5V11"/><path d="M29 21V26.5C29 27.88 27.88 29 26.5 29H21"/><path d="M11 29H5.5C4.12 29 3 27.88 3 26.5V21"/><path d="M14.5 21.5H11.75C11.06 21.5 10.5 20.94 10.5 20.25V17.5"/><path d="M17.5 21.5H20.25C20.94 21.5 21.5 20.94 21.5 20.25V17.5"/><path d="M13.5003 21.5H16.2503"/><path d="M14.4922 10.5H11.7422C11.0522 10.5 10.4922 11.06 10.4922 11.75V14.5"/><path d="M17.4922 10.5H20.2422C20.9322 10.5 21.4922 11.06 21.4922 11.75V14.5"/><path d="M7.50034 17.5H10.2503"/><path d="M24.6403 17.5H21.8903"/><path d="M11.5 17.5H18.1421"/><path d="M13.5003 10.5H16.2503"/></g></svg>`
+  return 'data:image/svg+xml,' + encodeURIComponent(svg)
 }
 
 // Apply theme to document
@@ -436,9 +589,28 @@ export function applyTheme(settings: ThemeSettings) {
     root.style.setProperty('--scrollbar-thumb-hover', 'rgba(255, 255, 255, 0.25)')
   }
 
+  // Terminal design language tokens
+  const isTerminal = TERMINAL_SCHEMES.includes(colorScheme)
+  root.style.setProperty('--theme-font', isTerminal ? "'Courier New', 'Fira Mono', 'Consolas', monospace" : "'Lato', sans-serif")
+  root.style.setProperty('--theme-radius', isTerminal ? '0px' : '10px')
+  root.style.setProperty('--theme-radius-sm', isTerminal ? '0px' : '6px')
+  root.style.setProperty('--theme-radius-lg', isTerminal ? '0px' : '12px')
+  root.style.setProperty('--theme-shadow', isTerminal ? 'none' : '0 2px 8px rgba(0,0,0,0.3)')
+
   // Set data attribute for CSS hooks
   root.setAttribute('data-theme', mode)
   root.setAttribute('data-color-scheme', colorScheme)
+
+  // Update browser favicon to match theme (data URL bypasses browser favicon cache)
+  const faviconDataUrl = makeThemeFaviconDataUrl(colors.primary)
+  let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null
+  if (!link) {
+    link = document.createElement('link') as HTMLLinkElement
+    link.rel = 'icon'
+    document.head.appendChild(link)
+  }
+  link.type = 'image/svg+xml'
+  link.href = faviconDataUrl
 }
 
 // Helper to convert hex to RGB string
