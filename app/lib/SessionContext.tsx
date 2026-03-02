@@ -43,26 +43,26 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   }
 
   useEffect(() => {
-    const fetchRole = (userId: string) => {
-      supabaseClient.from('profiles').select('role').eq('id', userId).single()
-        .then(({ data }) => setRole(data?.role ?? 'user'))
+    const fetchRole = async (userId: string) => {
+      const { data } = await supabaseClient.from('profiles').select('role').eq('id', userId).single()
+      setRole(data?.role ?? 'user')
     }
 
-    // Get initial session
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    // Get initial session — keep loading=true until role is resolved
+    supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchRole(session.user.id)
+      if (session?.user) await fetchRole(session.user.id)
       setLoading(false)
     })
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+    } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchRole(session.user.id)
+      if (session?.user) await fetchRole(session.user.id)
       else setRole(null)
       setLoading(false)
     })
