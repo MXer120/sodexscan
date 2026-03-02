@@ -4,6 +4,31 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabaseClient'
 
+const ROLE_CACHE_KEY = 'user_role_cache'
+const ROLE_CACHE_TTL = 6 * 60 * 60 * 1000
+
+function getCachedRole(userId: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(ROLE_CACHE_KEY)
+    if (!raw) return null
+    const { role, uid, ts } = JSON.parse(raw)
+    if (uid !== userId) return null
+    if (Date.now() - ts > ROLE_CACHE_TTL) return null
+    return role
+  } catch { return null }
+}
+
+function setCachedRole(userId: string, role: string) {
+  try {
+    localStorage.setItem(ROLE_CACHE_KEY, JSON.stringify({ role, uid: userId, ts: Date.now() }))
+  } catch {}
+}
+
+function clearCachedRole() {
+  try { localStorage.removeItem(ROLE_CACHE_KEY) } catch {}
+}
+
 interface SessionContextType {
   session: Session | null
   user: User | null
@@ -45,26 +70,49 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   useEffect(() => {
     const fetchRole = async (userId: string) => {
       const { data } = await supabaseClient.from('profiles').select('role').eq('id', userId).single()
-      setRole(data?.role ?? 'user')
+      const fetched = data?.role ?? 'user'
+      setRole(fetched)
+      setCachedRole(userId, fetched)
     }
 
-    // Get initial session — keep loading=true until role is resolved
     supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) await fetchRole(session.user.id)
-      setLoading(false)
+      if (session?.user) {
+        const cached = getCachedRole(session.user.id)
+        if (cached) {
+          setRole(cached)
+          setLoading(false)
+          fetchRole(session.user.id) // background refresh
+        } else {
+          await fetchRole(session.user.id)
+          setLoading(false)
+        }
+      } else {
+        setLoading(false)
+      }
     })
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) await fetchRole(session.user.id)
-      else setRole(null)
-      setLoading(false)
+      if (session?.user) {
+        const cached = getCachedRole(session.user.id)
+        if (cached) {
+          setRole(cached)
+          setLoading(false)
+          fetchRole(session.user.id)
+        } else {
+          await fetchRole(session.user.id)
+          setLoading(false)
+        }
+      } else {
+        setRole(null)
+        clearCachedRole()
+        setLoading(false)
+      }
     })
 
     return () => subscription.unsubscribe()
