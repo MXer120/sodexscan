@@ -100,6 +100,25 @@ export default function AggregatorPage() {
     }
   }, [agg.isLoading])
 
+  // Auto-apply scan preset if active page has no widgets after load
+  const scanAutoApplied = useRef(false)
+  useEffect(() => {
+    if (agg.isLoading) return
+    if (scanAutoApplied.current) return
+    const widgetCount = Object.keys(agg.activePage?.widgets || {}).length
+    if (widgetCount === 0) {
+      scanAutoApplied.current = true
+      agg.loadPresetTemplate('preset-scan')
+    }
+  }, [agg.isLoading, agg.activePage])
+
+  // Deactivate edit mode when page is locked
+  useEffect(() => {
+    if (agg.activePage?.locked === true && agg.editMode !== false) {
+      agg.setEditMode(false)
+    }
+  }, [agg.activePage?.locked])
+
   const handleCloseTutorial = useCallback(() => {
     setShowTutorial(false)
     if (typeof window !== 'undefined') localStorage.setItem('agg-tutorial-seen', '1')
@@ -482,12 +501,6 @@ export default function AggregatorPage() {
 
       {/* Main content */}
       <div className={`agg-content${devicePreview ? ' agg-content--device-preview' : ''}`}>
-        {currentPageLocked && (
-          <div className="agg-page-locked-banner">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Page locked
-          </div>
-        )}
         {agg.performanceMode ? (
           <div className="agg-grid-wrapper" ref={gridWrapperRef} style={{ position: 'relative', maxWidth: devicePreviewWidth }}>
             {widgetEntries.length === 0 ? (
