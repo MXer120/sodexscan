@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useModGuard } from '../hooks/useModGuard'
 import { useSessionContext } from '../lib/SessionContext'
 import AdminPages from './admin/AdminPages'
+import AdminNavbar from './admin/AdminNavbar'
 import AdminAnnouncements from './admin/AdminAnnouncements'
 import AdminSoPoints from './admin/AdminSoPoints'
 import AdminCms from './admin/AdminCms'
@@ -12,6 +13,7 @@ import '../styles/Admin.css'
 
 const BASE_TABS = [
   { id: 'pages', label: 'Pages' },
+  { id: 'navbar', label: 'Navbar' },
   { id: 'announcements', label: 'Announcements' },
   { id: 'sopoints', label: 'SoPoints' },
   { id: 'cms', label: 'CMS' },
@@ -50,6 +52,7 @@ export default function AdminPage() {
 
       <div className="admin-panel">
         {activeTab === 'pages' && <AdminPages />}
+        {activeTab === 'navbar' && <AdminNavbar />}
         {activeTab === 'announcements' && <AdminAnnouncements />}
         {activeTab === 'sopoints' && <AdminSoPoints />}
         {activeTab === 'cms' && <AdminCms />}

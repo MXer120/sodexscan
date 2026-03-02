@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSessionContext } from '../lib/SessionContext'
 import { configCache, loadPageConfigs, isConfigLoaded } from '../lib/pageConfig'
