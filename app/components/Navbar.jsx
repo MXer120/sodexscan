@@ -55,6 +55,7 @@ function Navbar() {
 
     if (isMod) {
       base.push({ path: '/tickets', label: 'Tickets', protected: true })
+      base.push({ path: '/admin', label: 'Admin', protected: true })
     }
 
     base.push({
@@ -377,6 +378,7 @@ function Navbar() {
                   <>
                     <div className="menu-divider"></div>
                     <Link href="/tickets" onClick={() => setMobileActiveTab(null)}>Moderator Tickets</Link>
+                    <Link href="/admin" onClick={() => setMobileActiveTab(null)}>Admin</Link>
                   </>
                 )}
               </div>

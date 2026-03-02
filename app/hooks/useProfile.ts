@@ -32,7 +32,7 @@ export function useUserProfile() {
           .from('leaderboard')
           .select('cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
           .eq('wallet_address', profile.data.own_wallet)
-          .single()
+          .maybeSingle()
         leaderboardStats = leaderboard
       }
 

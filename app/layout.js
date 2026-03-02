@@ -2,6 +2,8 @@ import './styles/index.css'
 import './styles/App.css'
 import Navbar from './components/Navbar'
 import AnnouncementBar from './components/AnnouncementBar'
+import PageController from './components/PageController'
+import CmsEditToggle from './components/CmsEditToggle'
 import StatusBar from './components/StatusBar'
 import CommandPalette from './components/CommandPalette'
 import { Analytics } from '@vercel/analytics/next'
@@ -63,6 +65,8 @@ export default function RootLayout({ children }) {
         <Providers>
           <Navbar />
           <AnnouncementBar />
+          <PageController />
+          <CmsEditToggle />
           {children}
           <StatusBar />
           <CommandPalette />

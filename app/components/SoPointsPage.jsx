@@ -6,6 +6,7 @@ import { useTheme } from '../lib/ThemeContext'
 import '../styles/SoPoints.css'
 import { supabase } from '../lib/supabaseClient'
 import { useUserProfile } from '../hooks/useProfile'
+import { useSoPointsConfig } from '../hooks/useSoPointsConfig'
 import { globalCache } from '../lib/globalCache'
 import Link from 'next/link'
 
@@ -52,6 +53,7 @@ const SoPointsPage = () => {
     const [pointsLbPage, setPointsLbPage] = useState(1)
     const POINTS_PAGE_SIZE = 20
 
+    const { getWeekConfig } = useSoPointsConfig()
     const { data: profileData } = useUserProfile()
     const ownWallet = profileData?.profile?.own_wallet
 
@@ -322,6 +324,9 @@ const SoPointsPage = () => {
         const isLive = selectedPointsWeek === lbMeta.current_week_number
         const prevWeek = selectedPointsWeek - 1
 
+        const weekConfig = getWeekConfig(selectedPointsWeek)
+        const effectiveMultiplier = weekConfig.spot_multiplier
+
         // Determine spot data sources based on live vs historical
         const baseSnapshotRaw = prevWeek >= 1 ? spotSnapshots[prevWeek] : null
         const weekFutures = isLive ? futuresDataByWeek[0] : futuresDataByWeek[selectedPointsWeek]
@@ -358,18 +363,24 @@ const SoPointsPage = () => {
         const entries = []
         for (const addr of allAddrs) {
             const spot = spotWeeklyMap[addr]
-            const futuresVol = weekFutures?.[addr] || 0
-            const weeklySpot = spot?.weeklySpot || 0
+            const rawFuturesVol = weekFutures?.[addr] || 0
+            const rawWeeklySpot = spot?.weeklySpot || 0
+            const rawAllTimeSpot = spot?.allTimeSpot || 0
 
-            if (weeklySpot === 0 && futuresVol === 0) continue
+            // Apply per-week config exclusions
+            const weeklySpotVol = weekConfig.include_spot ? rawWeeklySpot : 0
+            const allTimeSpotVol = weekConfig.include_spot ? rawAllTimeSpot : 0
+            const weeklyFuturesVol = weekConfig.include_futures ? rawFuturesVol : 0
+
+            if (weeklySpotVol === 0 && weeklyFuturesVol === 0) continue
 
             entries.push({
                 walletAddress: spot?.originalAddr || addr,
                 userId: spot?.userId || '',
-                weeklySpotVol: weeklySpot,
-                allTimeSpotVol: spot?.allTimeSpot || 0,
-                weeklyFuturesVol: futuresVol,
-                weightedVolume: weeklySpot * SPOT_MULTIPLIER + futuresVol
+                weeklySpotVol,
+                allTimeSpotVol,
+                weeklyFuturesVol,
+                weightedVolume: weeklySpotVol * effectiveMultiplier + weeklyFuturesVol
             })
         }
 
@@ -390,8 +401,8 @@ const SoPointsPage = () => {
             e.points = Math.round(e.share * TOTAL_POOL)
         })
 
-        return { entries: qualified, totalWeighted: qualifiedWeighted }
-    }, [spotAllTime, spotSnapshots, futuresDataByWeek, futuresLoading, selectedPointsWeek, lbMeta])
+        return { entries: qualified, totalWeighted: qualifiedWeighted, weekConfig }
+    }, [spotAllTime, spotSnapshots, futuresDataByWeek, futuresLoading, selectedPointsWeek, lbMeta, getWeekConfig])
 
     // Find user's position in points LB
     const userPointsEntry = useMemo(() => {
@@ -690,8 +701,17 @@ const SoPointsPage = () => {
                                 ))}
                             </select>
                         </div>
-                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                            {pointsLeaderboard.entries.length} traders · Spot {SPOT_MULTIPLIER}x weighted
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>{pointsLeaderboard.entries.length} traders · Spot {pointsLeaderboard.weekConfig.spot_multiplier}x weighted</span>
+                            {!pointsLeaderboard.weekConfig.include_spot && (
+                                <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; spot excluded</span>
+                            )}
+                            {!pointsLeaderboard.weekConfig.include_futures && (
+                                <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; futures excluded</span>
+                            )}
+                            {pointsLeaderboard.weekConfig.spot_multiplier !== SPOT_MULTIPLIER && pointsLeaderboard.weekConfig.include_spot && pointsLeaderboard.weekConfig.include_futures && (
+                                <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; custom multiplier</span>
+                            )}
                         </span>
                     </div>
                     <table className="sopoints-table points-lb-table">
