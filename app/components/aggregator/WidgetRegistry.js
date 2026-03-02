@@ -19,6 +19,7 @@ const UserGrowthChartWidget = lazy(() => import('./widgets/UserGrowthChartWidget
 const MilestoneProjectionWidget = lazy(() => import('./widgets/MilestoneProjectionWidget'))
 const UpcomingListingsWidget = lazy(() => import('./widgets/UpcomingListingsWidget'))
 const ReverseSearchWidget = lazy(() => import('./widgets/ReverseSearchWidget'))
+const SearchBarWidget = lazy(() => import('./widgets/SearchBarWidget'))
 
 // ── New scanner widgets ────────────────────────────────────────────
 const AccountValueWidget = lazy(() => import('./widgets/AccountValueWidget'))
@@ -38,7 +39,7 @@ const TransfersWidget = lazy(() => import('./widgets/TransfersWidget'))
 const PerformanceWidget = lazy(() => import('./widgets/PerformanceWidget'))
 const MasterElementWidget = lazy(() => import('./widgets/MasterElementWidget'))
 
-// smH / mdH = default h for sm (2-col) / md (6-col) breakpoints
+// smH / mdH = default h for sm (4-col) / md (12-col) breakpoints
 export const WIDGET_REGISTRY = {
   // ── Market ─────────────────────────────────────────────────────
   'top-pairs': {
@@ -46,7 +47,7 @@ export const WIDGET_REGISTRY = {
     label: 'Top Pairs',
     description: 'Ranked pairs by 24h volume',
     category: 'market',
-    defaultSize: { w: 4, h: 5, minW: 2, minH: 3 }, smH: 15, mdH: 5,
+    defaultSize: { w: 8, h: 5, minW: 4, minH: 3 }, smH: 15, mdH: 5,
     defaultSettings: { filter: 'All' },
     settingsSchema: [
       { key: 'filter', type: 'select', label: 'Filter', options: ['All', 'Spot', 'Futures'] }
@@ -62,7 +63,7 @@ export const WIDGET_REGISTRY = {
     label: 'New Traders',
     description: 'Latest traders by first trade',
     category: 'market',
-    defaultSize: { w: 4, h: 5, minW: 2, minH: 3 }, smH: 15, mdH: 5,
+    defaultSize: { w: 8, h: 5, minW: 4, minH: 3 }, smH: 15, mdH: 5,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
@@ -72,7 +73,7 @@ export const WIDGET_REGISTRY = {
     label: 'Upcoming Listings',
     description: 'Upcoming spot & futures listings',
     category: 'market',
-    defaultSize: { w: 4, h: 5, minW: 2, minH: 3 }, smH: 15, mdH: 5,
+    defaultSize: { w: 8, h: 5, minW: 4, minH: 3 }, smH: 15, mdH: 5,
     defaultSettings: { filter: 'All' },
     settingsSchema: [
       { key: 'filter', type: 'select', label: 'Filter', options: ['All', 'Spot', 'Futures'] }
@@ -86,7 +87,7 @@ export const WIDGET_REGISTRY = {
     label: 'Perps Leaderboard',
     description: 'Top perps traders',
     category: 'leaderboard',
-    defaultSize: { w: 6, h: 6, minW: 2, minH: 3 }, smH: 18, mdH: 6,
+    defaultSize: { w: 12, h: 6, minW: 4, minH: 3 }, smH: 18, mdH: 6,
     defaultSettings: { sortBy: 'volume', timeRange: 'all', excludeSodex: true },
     settingsSchema: [
       { key: 'sortBy', type: 'select', label: 'Sort By', options: ['volume', 'pnl'] },
@@ -105,7 +106,7 @@ export const WIDGET_REGISTRY = {
     label: 'Spot Leaderboard',
     description: 'Top spot traders by volume',
     category: 'leaderboard',
-    defaultSize: { w: 6, h: 6, minW: 2, minH: 3 }, smH: 18, mdH: 6,
+    defaultSize: { w: 12, h: 6, minW: 4, minH: 3 }, smH: 18, mdH: 6,
     defaultSettings: { timeRange: 'all' },
     settingsSchema: [],
     visibilitySchema: []
@@ -115,7 +116,7 @@ export const WIDGET_REGISTRY = {
     label: 'Weekly Perps LB',
     description: 'Weekly perps leaderboard',
     category: 'leaderboard',
-    defaultSize: { w: 6, h: 6, minW: 2, minH: 3 }, smH: 18, mdH: 6,
+    defaultSize: { w: 12, h: 6, minW: 4, minH: 3 }, smH: 18, mdH: 6,
     defaultSettings: { sortBy: 'volume', weekOffset: 0 },
     settingsSchema: [
       { key: 'sortBy', type: 'select', label: 'Sort By', options: ['volume', 'pnl'] },
@@ -128,7 +129,7 @@ export const WIDGET_REGISTRY = {
     label: 'Weekly Spot LB',
     description: 'Weekly spot leaderboard',
     category: 'leaderboard',
-    defaultSize: { w: 6, h: 6, minW: 2, minH: 3 }, smH: 18, mdH: 6,
+    defaultSize: { w: 12, h: 6, minW: 4, minH: 3 }, smH: 18, mdH: 6,
     defaultSettings: { weekOffset: 0 },
     settingsSchema: [
       { key: 'weekOffset', type: 'select', label: 'Week', options: [0, 1, 2, 3, 4], optionLabels: ['Current (Live)', 'Last Week', '2 Weeks Ago', '3 Weeks Ago', '4 Weeks Ago'] }
@@ -142,7 +143,7 @@ export const WIDGET_REGISTRY = {
     label: 'Snapshot Countdown',
     description: 'Time until next SoPoints snapshot',
     category: 'sopoints',
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 }, smH: 6, mdH: 2,
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 }, smH: 6, mdH: 2,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: [
@@ -154,7 +155,7 @@ export const WIDGET_REGISTRY = {
     label: 'Estimated Reward',
     description: 'Your estimated SoPoints reward',
     category: 'sopoints',
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 }, smH: 6, mdH: 2,
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 }, smH: 6, mdH: 2,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
@@ -164,7 +165,7 @@ export const WIDGET_REGISTRY = {
     label: 'Week Table',
     description: 'SoPoints week statistics',
     category: 'sopoints',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 3 }, smH: 14, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 3 }, smH: 14, mdH: 5,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
@@ -174,7 +175,7 @@ export const WIDGET_REGISTRY = {
     label: 'Points Leaderboard',
     description: 'SoPoints rankings',
     category: 'sopoints',
-    defaultSize: { w: 6, h: 6, minW: 2, minH: 3 }, smH: 18, mdH: 6,
+    defaultSize: { w: 12, h: 6, minW: 4, minH: 3 }, smH: 18, mdH: 6,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
@@ -186,17 +187,21 @@ export const WIDGET_REGISTRY = {
     label: 'Referral Codes',
     description: 'Browse referral codes',
     category: 'social',
-    defaultSize: { w: 4, h: 5, minW: 2, minH: 3 }, smH: 14, mdH: 5,
-    defaultSettings: {},
+    defaultSize: { w: 8, h: 5, minW: 4, minH: 3 }, smH: 14, mdH: 5,
+    defaultSettings: { showCode: true, showDiscord: true, showTelegram: true },
     settingsSchema: [],
-    visibilitySchema: []
+    visibilitySchema: [
+      { key: 'showCode',     label: 'Code Column',     default: true },
+      { key: 'showDiscord',  label: 'Discord Column',  default: true },
+      { key: 'showTelegram', label: 'Telegram Column', default: true }
+    ]
   },
   'watchlist': {
     component: WatchlistWidget,
     label: 'Watchlist',
     description: 'Your tracked wallets',
     category: 'social',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 3 }, smH: 14, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 3 }, smH: 14, mdH: 5,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
@@ -208,7 +213,7 @@ export const WIDGET_REGISTRY = {
     label: 'User Growth Chart',
     description: 'Platform user growth with projection',
     category: 'platform',
-    defaultSize: { w: 6, h: 4, minW: 2, minH: 2 }, smH: 12, mdH: 4,
+    defaultSize: { w: 12, h: 4, minW: 4, minH: 2 }, smH: 12, mdH: 4,
     defaultSettings: { timeframeDays: 30, projectionDays: 7 },
     settingsSchema: [
       { key: 'timeframeDays', type: 'select', label: 'Timeframe', options: [7, 30, 90, null], optionLabels: ['1W', '1M', '3M', 'ALL'] },
@@ -224,19 +229,32 @@ export const WIDGET_REGISTRY = {
     label: 'Milestone Projection',
     description: 'User milestone ETAs',
     category: 'platform',
-    defaultSize: { w: 3, h: 4, minW: 2, minH: 3 }, smH: 12, mdH: 4,
+    defaultSize: { w: 6, h: 4, minW: 4, minH: 3 }, smH: 12, mdH: 4,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
   },
 
   // ── Tools ──────────────────────────────────────────────────────
+  'search-bar': {
+    component: SearchBarWidget,
+    label: 'Search Bar',
+    description: 'Search input to navigate to wallet/scan pages',
+    category: 'tools',
+    defaultSize: { w: 8, h: 2, minW: 4, minH: 2 }, smH: 4, mdH: 2,
+    defaultSettings: { filterType: 'all', placeholder: 'Search wallet, tag, ...' },
+    settingsSchema: [
+      { key: 'filterType', type: 'select', label: 'Filter', options: ['all', 'address'], optionLabels: ['All', 'Address only'] },
+      { key: 'placeholder', type: 'text', label: 'Placeholder' }
+    ],
+    visibilitySchema: []
+  },
   'reverse-search': {
     component: ReverseSearchWidget,
     label: 'Reverse Search',
     description: 'Find wallets by partial address',
     category: 'tools',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 2 }, smH: 14, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 2 }, smH: 14, mdH: 5,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: [
@@ -250,7 +268,7 @@ export const WIDGET_REGISTRY = {
     label: 'Account Value',
     description: 'Total account value for a wallet',
     category: 'scanner',
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 }, smH: 6, mdH: 2,
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 }, smH: 6, mdH: 2,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -262,7 +280,7 @@ export const WIDGET_REGISTRY = {
     label: 'Account Equity',
     description: 'Futures, Spot & Vault balances',
     category: 'scanner',
-    defaultSize: { w: 3, h: 3, minW: 2, minH: 2 }, smH: 8, mdH: 3,
+    defaultSize: { w: 6, h: 3, minW: 4, minH: 2 }, smH: 8, mdH: 3,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -277,7 +295,7 @@ export const WIDGET_REGISTRY = {
     label: 'Futures Stats',
     description: 'Unrealized PnL, leverage, all-time stats',
     category: 'scanner',
-    defaultSize: { w: 3, h: 3, minW: 2, minH: 2 }, smH: 8, mdH: 3,
+    defaultSize: { w: 6, h: 3, minW: 4, minH: 2 }, smH: 8, mdH: 3,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -294,7 +312,7 @@ export const WIDGET_REGISTRY = {
     label: 'Win Rate / Sharpe',
     description: 'Win rate & Sharpe ratio',
     category: 'scanner',
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 }, smH: 6, mdH: 2,
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 }, smH: 6, mdH: 2,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -306,7 +324,7 @@ export const WIDGET_REGISTRY = {
     label: 'Deposit / Withdrawal',
     description: 'Deposited, withdrawn & delta',
     category: 'scanner',
-    defaultSize: { w: 3, h: 3, minW: 2, minH: 2 }, smH: 8, mdH: 3,
+    defaultSize: { w: 6, h: 3, minW: 4, minH: 2 }, smH: 8, mdH: 3,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -318,7 +336,7 @@ export const WIDGET_REGISTRY = {
     label: 'Rankings',
     description: 'PnL & volume rank for a wallet',
     category: 'scanner',
-    defaultSize: { w: 3, h: 2, minW: 2, minH: 2 }, smH: 6, mdH: 2,
+    defaultSize: { w: 6, h: 2, minW: 4, minH: 2 }, smH: 6, mdH: 2,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -330,7 +348,7 @@ export const WIDGET_REGISTRY = {
     label: 'Social Info',
     description: 'Referral code, Discord, Telegram, X',
     category: 'scanner',
-    defaultSize: { w: 3, h: 3, minW: 2, minH: 2 }, smH: 8, mdH: 3,
+    defaultSize: { w: 6, h: 3, minW: 4, minH: 2 }, smH: 8, mdH: 3,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -342,7 +360,7 @@ export const WIDGET_REGISTRY = {
     label: 'PnL Chart',
     description: 'Cumulative & daily PnL chart',
     category: 'scanner',
-    defaultSize: { w: 6, h: 4, minW: 2, minH: 2 }, smH: 12, mdH: 4,
+    defaultSize: { w: 12, h: 4, minW: 4, minH: 2 }, smH: 12, mdH: 4,
     defaultSettings: { walletAddress: '', timeframe: '1M' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' },
@@ -358,7 +376,7 @@ export const WIDGET_REGISTRY = {
     label: 'PnL Calendar',
     description: 'Calendar heatmap of daily PnL',
     category: 'scanner',
-    defaultSize: { w: 6, h: 4, minW: 2, minH: 2 }, smH: 12, mdH: 4,
+    defaultSize: { w: 12, h: 4, minW: 4, minH: 2 }, smH: 12, mdH: 4,
     defaultSettings: { walletAddress: '', view: 'monthly' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' },
@@ -371,7 +389,7 @@ export const WIDGET_REGISTRY = {
     label: 'Activity Feed',
     description: 'Recent trades, deposits, withdrawals',
     category: 'scanner',
-    defaultSize: { w: 4, h: 5, minW: 2, minH: 2 }, smH: 14, mdH: 5,
+    defaultSize: { w: 8, h: 5, minW: 4, minH: 2 }, smH: 14, mdH: 5,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -388,7 +406,7 @@ export const WIDGET_REGISTRY = {
     label: 'Open Positions',
     description: 'Active futures positions',
     category: 'scanner',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 2 }, smH: 15, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 2 }, smH: 15, mdH: 5,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -408,7 +426,7 @@ export const WIDGET_REGISTRY = {
     label: 'Balances',
     description: 'Futures & spot coin balances',
     category: 'scanner',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 2 }, smH: 15, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 2 }, smH: 15, mdH: 5,
     defaultSettings: { walletAddress: '', balanceType: 'futures' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' },
@@ -426,7 +444,7 @@ export const WIDGET_REGISTRY = {
     label: 'Trade History',
     description: 'Closed positions & trades',
     category: 'scanner',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 2 }, smH: 15, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 2 }, smH: 15, mdH: 5,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -447,7 +465,7 @@ export const WIDGET_REGISTRY = {
     label: 'Transfers',
     description: 'Withdrawals & fund transfers',
     category: 'scanner',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 2 }, smH: 15, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 2 }, smH: 15, mdH: 5,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -465,7 +483,7 @@ export const WIDGET_REGISTRY = {
     label: 'Performance',
     description: 'Trade & asset performance analysis',
     category: 'scanner',
-    defaultSize: { w: 6, h: 5, minW: 2, minH: 2 }, smH: 15, mdH: 5,
+    defaultSize: { w: 12, h: 5, minW: 4, minH: 2 }, smH: 15, mdH: 5,
     defaultSettings: { walletAddress: '', view: 'trade' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' },
@@ -482,7 +500,7 @@ export const WIDGET_REGISTRY = {
     label: 'Master Element',
     description: 'Container that holds multiple sub-widgets',
     category: 'containers',
-    defaultSize: { w: 6, h: 6, minW: 2, minH: 2 }, smH: 20, mdH: 6,
+    defaultSize: { w: 12, h: 6, minW: 4, minH: 2 }, smH: 20, mdH: 6,
     defaultSettings: { columns: 2, subWidgets: [] },
     settingsSchema: [
       { key: 'columns', type: 'select', label: 'Columns', options: [1, 2, 3, 4], optionLabels: ['1', '2', '3', '4'] }
@@ -513,34 +531,34 @@ export const PRESET_TEMPLATES = [
     description: 'Wallet scanner with PnL, positions & trades',
     layouts: {
       lg: [
-        { i: 'ps-acv',   x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-        { i: 'ps-ace',   x: 3, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
-        { i: 'ps-fst',   x: 6, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
-        { i: 'ps-rnk',   x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-        { i: 'ps-pnlc',  x: 0, y: 3, w: 6, h: 4, minW: 2, minH: 2 },
-        { i: 'ps-pos',   x: 6, y: 3, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'ps-trd',   x: 0, y: 7, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'ps-bal',   x: 6, y: 8, w: 6, h: 5, minW: 2, minH: 2 },
+        { i: 'ps-acv',   x: 0,  y: 0, w: 6,  h: 2, minW: 4, minH: 2 },
+        { i: 'ps-ace',   x: 6,  y: 0, w: 6,  h: 3, minW: 4, minH: 2 },
+        { i: 'ps-fst',   x: 12, y: 0, w: 6,  h: 3, minW: 4, minH: 2 },
+        { i: 'ps-rnk',   x: 18, y: 0, w: 6,  h: 2, minW: 4, minH: 2 },
+        { i: 'ps-pnlc',  x: 0,  y: 3, w: 12, h: 4, minW: 4, minH: 2 },
+        { i: 'ps-pos',   x: 12, y: 3, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'ps-trd',   x: 0,  y: 7, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'ps-bal',   x: 12, y: 8, w: 12, h: 5, minW: 4, minH: 2 },
       ],
       md: [
-        { i: 'ps-acv',   x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-        { i: 'ps-ace',   x: 3, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
-        { i: 'ps-fst',   x: 0, y: 3, w: 3, h: 3, minW: 2, minH: 2 },
-        { i: 'ps-rnk',   x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 2 },
-        { i: 'ps-pnlc',  x: 0, y: 6, w: 6, h: 4, minW: 2, minH: 2 },
-        { i: 'ps-pos',   x: 0, y: 10, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'ps-trd',   x: 0, y: 15, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'ps-bal',   x: 0, y: 20, w: 6, h: 5, minW: 2, minH: 2 },
+        { i: 'ps-acv',   x: 0,  y: 0,  w: 6,  h: 2, minW: 4, minH: 2 },
+        { i: 'ps-ace',   x: 6,  y: 0,  w: 6,  h: 3, minW: 4, minH: 2 },
+        { i: 'ps-fst',   x: 0,  y: 3,  w: 6,  h: 3, minW: 4, minH: 2 },
+        { i: 'ps-rnk',   x: 6,  y: 2,  w: 6,  h: 2, minW: 4, minH: 2 },
+        { i: 'ps-pnlc',  x: 0,  y: 6,  w: 12, h: 4, minW: 4, minH: 2 },
+        { i: 'ps-pos',   x: 0,  y: 10, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'ps-trd',   x: 0,  y: 15, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'ps-bal',   x: 0,  y: 20, w: 12, h: 5, minW: 4, minH: 2 },
       ],
       sm: [
-        { i: 'ps-acv',   x: 0, y: 0,  w: 2, h: 2 },
-        { i: 'ps-ace',   x: 0, y: 2,  w: 2, h: 3 },
-        { i: 'ps-fst',   x: 0, y: 5,  w: 2, h: 3 },
-        { i: 'ps-rnk',   x: 0, y: 8,  w: 2, h: 2 },
-        { i: 'ps-pnlc',  x: 0, y: 10, w: 2, h: 4 },
-        { i: 'ps-pos',   x: 0, y: 14, w: 2, h: 5 },
-        { i: 'ps-trd',   x: 0, y: 19, w: 2, h: 5 },
-        { i: 'ps-bal',   x: 0, y: 24, w: 2, h: 5 },
+        { i: 'ps-acv',   x: 0, y: 0,  w: 4, h: 2 },
+        { i: 'ps-ace',   x: 0, y: 2,  w: 4, h: 3 },
+        { i: 'ps-fst',   x: 0, y: 5,  w: 4, h: 3 },
+        { i: 'ps-rnk',   x: 0, y: 8,  w: 4, h: 2 },
+        { i: 'ps-pnlc',  x: 0, y: 10, w: 4, h: 4 },
+        { i: 'ps-pos',   x: 0, y: 14, w: 4, h: 5 },
+        { i: 'ps-trd',   x: 0, y: 19, w: 4, h: 5 },
+        { i: 'ps-bal',   x: 0, y: 24, w: 4, h: 5 },
       ],
     },
     widgets: {
@@ -561,28 +579,28 @@ export const PRESET_TEMPLATES = [
     description: 'Perps, spot & weekly rankings',
     layouts: {
       lg: [
-        { i: 'pl-perp',  x: 0, y: 0,  w: 6, h: 6, minW: 2, minH: 2 },
-        { i: 'pl-spot',  x: 6, y: 0,  w: 6, h: 6, minW: 2, minH: 2 },
-        { i: 'pl-wperp', x: 0, y: 6,  w: 6, h: 6, minW: 2, minH: 2 },
-        { i: 'pl-wspot', x: 6, y: 6,  w: 6, h: 6, minW: 2, minH: 2 },
-        { i: 'pl-pairs', x: 0, y: 12, w: 4, h: 5, minW: 2, minH: 2 },
-        { i: 'pl-new',   x: 4, y: 12, w: 4, h: 5, minW: 2, minH: 2 },
+        { i: 'pl-perp',  x: 0,  y: 0,  w: 12, h: 6, minW: 4, minH: 2 },
+        { i: 'pl-spot',  x: 12, y: 0,  w: 12, h: 6, minW: 4, minH: 2 },
+        { i: 'pl-wperp', x: 0,  y: 6,  w: 12, h: 6, minW: 4, minH: 2 },
+        { i: 'pl-wspot', x: 12, y: 6,  w: 12, h: 6, minW: 4, minH: 2 },
+        { i: 'pl-pairs', x: 0,  y: 12, w: 8,  h: 5, minW: 4, minH: 2 },
+        { i: 'pl-new',   x: 8,  y: 12, w: 8,  h: 5, minW: 4, minH: 2 },
       ],
       md: [
-        { i: 'pl-perp',  x: 0, y: 0,  w: 6, h: 6 },
-        { i: 'pl-spot',  x: 0, y: 6,  w: 6, h: 6 },
-        { i: 'pl-wperp', x: 0, y: 12, w: 6, h: 6 },
-        { i: 'pl-wspot', x: 0, y: 18, w: 6, h: 6 },
-        { i: 'pl-pairs', x: 0, y: 24, w: 3, h: 5 },
-        { i: 'pl-new',   x: 3, y: 24, w: 3, h: 5 },
+        { i: 'pl-perp',  x: 0, y: 0,  w: 12, h: 6 },
+        { i: 'pl-spot',  x: 0, y: 6,  w: 12, h: 6 },
+        { i: 'pl-wperp', x: 0, y: 12, w: 12, h: 6 },
+        { i: 'pl-wspot', x: 0, y: 18, w: 12, h: 6 },
+        { i: 'pl-pairs', x: 0, y: 24, w: 6,  h: 5 },
+        { i: 'pl-new',   x: 6, y: 24, w: 6,  h: 5 },
       ],
       sm: [
-        { i: 'pl-perp',  x: 0, y: 0,  w: 2, h: 6 },
-        { i: 'pl-spot',  x: 0, y: 6,  w: 2, h: 6 },
-        { i: 'pl-wperp', x: 0, y: 12, w: 2, h: 6 },
-        { i: 'pl-wspot', x: 0, y: 18, w: 2, h: 6 },
-        { i: 'pl-pairs', x: 0, y: 24, w: 2, h: 5 },
-        { i: 'pl-new',   x: 0, y: 29, w: 2, h: 5 },
+        { i: 'pl-perp',  x: 0, y: 0,  w: 4, h: 6 },
+        { i: 'pl-spot',  x: 0, y: 6,  w: 4, h: 6 },
+        { i: 'pl-wperp', x: 0, y: 12, w: 4, h: 6 },
+        { i: 'pl-wspot', x: 0, y: 18, w: 4, h: 6 },
+        { i: 'pl-pairs', x: 0, y: 24, w: 4, h: 5 },
+        { i: 'pl-new',   x: 0, y: 29, w: 4, h: 5 },
       ],
     },
     widgets: {
@@ -601,25 +619,25 @@ export const PRESET_TEMPLATES = [
     description: 'Snapshot timer, rewards & points rankings',
     layouts: {
       lg: [
-        { i: 'psp-cd',   x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-        { i: 'psp-rw',   x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-        { i: 'psp-wt',   x: 6, y: 0, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'psp-plb',  x: 0, y: 2, w: 6, h: 6, minW: 2, minH: 2 },
-        { i: 'psp-tp',   x: 6, y: 5, w: 6, h: 5, minW: 2, minH: 2 },
+        { i: 'psp-cd',   x: 0,  y: 0, w: 6,  h: 2, minW: 4, minH: 2 },
+        { i: 'psp-rw',   x: 6,  y: 0, w: 6,  h: 2, minW: 4, minH: 2 },
+        { i: 'psp-wt',   x: 12, y: 0, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'psp-plb',  x: 0,  y: 2, w: 12, h: 6, minW: 4, minH: 2 },
+        { i: 'psp-tp',   x: 12, y: 5, w: 12, h: 5, minW: 4, minH: 2 },
       ],
       md: [
-        { i: 'psp-cd',   x: 0, y: 0,  w: 3, h: 2 },
-        { i: 'psp-rw',   x: 3, y: 0,  w: 3, h: 2 },
-        { i: 'psp-wt',   x: 0, y: 2,  w: 6, h: 5 },
-        { i: 'psp-plb',  x: 0, y: 7,  w: 6, h: 6 },
-        { i: 'psp-tp',   x: 0, y: 13, w: 6, h: 5 },
+        { i: 'psp-cd',   x: 0, y: 0,  w: 6,  h: 2 },
+        { i: 'psp-rw',   x: 6, y: 0,  w: 6,  h: 2 },
+        { i: 'psp-wt',   x: 0, y: 2,  w: 12, h: 5 },
+        { i: 'psp-plb',  x: 0, y: 7,  w: 12, h: 6 },
+        { i: 'psp-tp',   x: 0, y: 13, w: 12, h: 5 },
       ],
       sm: [
-        { i: 'psp-cd',   x: 0, y: 0,  w: 2, h: 2 },
-        { i: 'psp-rw',   x: 0, y: 2,  w: 2, h: 2 },
-        { i: 'psp-wt',   x: 0, y: 4,  w: 2, h: 5 },
-        { i: 'psp-plb',  x: 0, y: 9,  w: 2, h: 6 },
-        { i: 'psp-tp',   x: 0, y: 15, w: 2, h: 5 },
+        { i: 'psp-cd',   x: 0, y: 0,  w: 4, h: 2 },
+        { i: 'psp-rw',   x: 0, y: 2,  w: 4, h: 2 },
+        { i: 'psp-wt',   x: 0, y: 4,  w: 4, h: 5 },
+        { i: 'psp-plb',  x: 0, y: 9,  w: 4, h: 6 },
+        { i: 'psp-tp',   x: 0, y: 15, w: 4, h: 5 },
       ],
     },
     widgets: {
@@ -637,25 +655,25 @@ export const PRESET_TEMPLATES = [
     description: 'User growth, milestones & market overview',
     layouts: {
       lg: [
-        { i: 'pp-ugc',   x: 0, y: 0, w: 8, h: 4, minW: 2, minH: 2 },
-        { i: 'pp-mp',    x: 8, y: 0, w: 4, h: 4, minW: 2, minH: 3 },
-        { i: 'pp-tp',    x: 0, y: 4, w: 4, h: 5, minW: 2, minH: 2 },
-        { i: 'pp-nt',    x: 4, y: 4, w: 4, h: 5, minW: 2, minH: 2 },
-        { i: 'pp-ul',    x: 8, y: 4, w: 4, h: 5, minW: 2, minH: 2 },
+        { i: 'pp-ugc',   x: 0,  y: 0, w: 16, h: 4, minW: 4, minH: 2 },
+        { i: 'pp-mp',    x: 16, y: 0, w: 8,  h: 4, minW: 4, minH: 3 },
+        { i: 'pp-tp',    x: 0,  y: 4, w: 8,  h: 5, minW: 4, minH: 2 },
+        { i: 'pp-nt',    x: 8,  y: 4, w: 8,  h: 5, minW: 4, minH: 2 },
+        { i: 'pp-ul',    x: 16, y: 4, w: 8,  h: 5, minW: 4, minH: 2 },
       ],
       md: [
-        { i: 'pp-ugc',   x: 0, y: 0,  w: 6, h: 4 },
-        { i: 'pp-mp',    x: 0, y: 4,  w: 3, h: 4 },
-        { i: 'pp-tp',    x: 3, y: 4,  w: 3, h: 5 },
-        { i: 'pp-nt',    x: 0, y: 9,  w: 3, h: 5 },
-        { i: 'pp-ul',    x: 3, y: 9,  w: 3, h: 5 },
+        { i: 'pp-ugc',   x: 0, y: 0,  w: 12, h: 4 },
+        { i: 'pp-mp',    x: 0, y: 4,  w: 6,  h: 4 },
+        { i: 'pp-tp',    x: 6, y: 4,  w: 6,  h: 5 },
+        { i: 'pp-nt',    x: 0, y: 9,  w: 6,  h: 5 },
+        { i: 'pp-ul',    x: 6, y: 9,  w: 6,  h: 5 },
       ],
       sm: [
-        { i: 'pp-ugc',   x: 0, y: 0,  w: 2, h: 4 },
-        { i: 'pp-mp',    x: 0, y: 4,  w: 2, h: 4 },
-        { i: 'pp-tp',    x: 0, y: 8,  w: 2, h: 5 },
-        { i: 'pp-nt',    x: 0, y: 13, w: 2, h: 5 },
-        { i: 'pp-ul',    x: 0, y: 18, w: 2, h: 5 },
+        { i: 'pp-ugc',   x: 0, y: 0,  w: 4, h: 4 },
+        { i: 'pp-mp',    x: 0, y: 4,  w: 4, h: 4 },
+        { i: 'pp-tp',    x: 0, y: 8,  w: 4, h: 5 },
+        { i: 'pp-nt',    x: 0, y: 13, w: 4, h: 5 },
+        { i: 'pp-ul',    x: 0, y: 18, w: 4, h: 5 },
       ],
     },
     widgets: {
@@ -673,22 +691,22 @@ export const PRESET_TEMPLATES = [
     description: 'Watchlist, referrals & new trader feed',
     layouts: {
       lg: [
-        { i: 'pso-wl',  x: 0, y: 0, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'pso-ref', x: 6, y: 0, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'pso-nt',  x: 0, y: 5, w: 6, h: 5, minW: 2, minH: 2 },
-        { i: 'pso-rs',  x: 6, y: 5, w: 6, h: 5, minW: 2, minH: 2 },
+        { i: 'pso-wl',  x: 0,  y: 0, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'pso-ref', x: 12, y: 0, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'pso-nt',  x: 0,  y: 5, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'pso-rs',  x: 12, y: 5, w: 12, h: 5, minW: 4, minH: 2 },
       ],
       md: [
-        { i: 'pso-wl',  x: 0, y: 0,  w: 6, h: 5 },
-        { i: 'pso-ref', x: 0, y: 5,  w: 6, h: 5 },
-        { i: 'pso-nt',  x: 0, y: 10, w: 6, h: 5 },
-        { i: 'pso-rs',  x: 0, y: 15, w: 6, h: 5 },
+        { i: 'pso-wl',  x: 0, y: 0,  w: 12, h: 5 },
+        { i: 'pso-ref', x: 0, y: 5,  w: 12, h: 5 },
+        { i: 'pso-nt',  x: 0, y: 10, w: 12, h: 5 },
+        { i: 'pso-rs',  x: 0, y: 15, w: 12, h: 5 },
       ],
       sm: [
-        { i: 'pso-wl',  x: 0, y: 0,  w: 2, h: 5 },
-        { i: 'pso-ref', x: 0, y: 5,  w: 2, h: 5 },
-        { i: 'pso-nt',  x: 0, y: 10, w: 2, h: 5 },
-        { i: 'pso-rs',  x: 0, y: 15, w: 2, h: 5 },
+        { i: 'pso-wl',  x: 0, y: 0,  w: 4, h: 5 },
+        { i: 'pso-ref', x: 0, y: 5,  w: 4, h: 5 },
+        { i: 'pso-nt',  x: 0, y: 10, w: 4, h: 5 },
+        { i: 'pso-rs',  x: 0, y: 15, w: 4, h: 5 },
       ],
     },
     widgets: {
@@ -700,13 +718,203 @@ export const PRESET_TEMPLATES = [
   },
 ]
 
+// ── Layout Presets ─────────────────────────────────────────────────
+// Structural arrangements using master-element containers.
+// Applied globally to all breakpoints at once.
+export const LAYOUT_PRESETS = [
+  {
+    id: 'lp-sidebar-left',
+    name: 'Left Sidebar',
+    icon: '◧',
+    description: 'Narrow sidebar left, main content right',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0,  y: 0, w: 6,  h: 20, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 6,  y: 0, w: 18, h: 20, minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0, w: 4,  h: 16, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 4, y: 0, w: 8,  h: 16, minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0,  w: 4, h: 8,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 8,  w: 4, h: 16, minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 2, subWidgets: [] } },
+    },
+  },
+  {
+    id: 'lp-sidebar-right',
+    name: 'Right Sidebar',
+    icon: '◨',
+    description: 'Main content left, narrow sidebar right',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0,  y: 0, w: 18, h: 20, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 18, y: 0, w: 6,  h: 20, minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0, w: 8, h: 16, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 8, y: 0, w: 4, h: 16, minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0,  w: 4, h: 16, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 16, w: 4, h: 8,  minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 2, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+    },
+  },
+  {
+    id: 'lp-top-navbar',
+    name: 'Top Navbar',
+    icon: '⬛',
+    description: 'Full-width header bar, content below',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0, y: 0, w: 24, h: 3,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 3, w: 24, h: 17, minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0, w: 12, h: 3,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 3, w: 12, h: 14, minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0, w: 4, h: 3,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 3, w: 4, h: 14, minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 4, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 3, subWidgets: [] } },
+    },
+  },
+  {
+    id: 'lp-navbar-sidebar',
+    name: 'Navbar + Sidebar',
+    icon: '▣',
+    description: 'Top bar with sidebar and main content',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0,  y: 0, w: 24, h: 3,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0,  y: 3, w: 6,  h: 17, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 6,  y: 3, w: 18, h: 17, minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0, w: 12, h: 3,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 3, w: 4,  h: 14, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 4, y: 3, w: 8,  h: 14, minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0,  w: 4, h: 3,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 3,  w: 4, h: 6,  minW: 1, minH: 1 },
+        { i: 'lp-c', x: 0, y: 9,  w: 4, h: 14, minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 4, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+      'lp-c': { type: 'master-element', settings: { columns: 2, subWidgets: [] } },
+    },
+  },
+  {
+    id: 'lp-three-col',
+    name: 'Three Columns',
+    icon: '⊟',
+    description: 'Three equal-width content columns',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0,  y: 0, w: 8, h: 20, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 8,  y: 0, w: 8, h: 20, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 16, y: 0, w: 8, h: 20, minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0, w: 4, h: 16, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 4, y: 0, w: 4, h: 16, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 8, y: 0, w: 4, h: 16, minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0,  w: 4, h: 10, minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 10, w: 4, h: 10, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 0, y: 20, w: 4, h: 10, minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+      'lp-c': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+    },
+  },
+  {
+    id: 'lp-header-two-panel',
+    name: 'Header + Two Panels',
+    icon: '⊞',
+    description: 'Header row, then two equal content panels',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0,  y: 0, w: 24, h: 4,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0,  y: 4, w: 12, h: 16, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 12, y: 4, w: 12, h: 16, minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0, w: 12, h: 4,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 4, w: 6,  h: 13, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 6, y: 4, w: 6,  h: 13, minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0,  w: 4, h: 4,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 4,  w: 4, h: 10, minW: 1, minH: 1 },
+        { i: 'lp-c', x: 0, y: 14, w: 4, h: 10, minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 3, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+      'lp-c': { type: 'master-element', settings: { columns: 1, subWidgets: [] } },
+    },
+  },
+  {
+    id: 'lp-sections',
+    name: 'Stacked Sections',
+    icon: '☰',
+    description: 'Three full-width stacked content sections',
+    layouts: {
+      lg: [
+        { i: 'lp-a', x: 0, y: 0,  w: 24, h: 5,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 5,  w: 24, h: 8,  minW: 1, minH: 1 },
+        { i: 'lp-c', x: 0, y: 13, w: 24, h: 8,  minW: 1, minH: 1 },
+      ],
+      md: [
+        { i: 'lp-a', x: 0, y: 0,  w: 12, h: 5,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 5,  w: 12, h: 8,  minW: 1, minH: 1 },
+        { i: 'lp-c', x: 0, y: 13, w: 12, h: 8,  minW: 1, minH: 1 },
+      ],
+      sm: [
+        { i: 'lp-a', x: 0, y: 0,  w: 4, h: 5,  minW: 1, minH: 1 },
+        { i: 'lp-b', x: 0, y: 5,  w: 4, h: 8,  minW: 1, minH: 1 },
+        { i: 'lp-c', x: 0, y: 13, w: 4, h: 8,  minW: 1, minH: 1 },
+      ],
+    },
+    widgets: {
+      'lp-a': { type: 'master-element', settings: { columns: 4, subWidgets: [] } },
+      'lp-b': { type: 'master-element', settings: { columns: 3, subWidgets: [] } },
+      'lp-c': { type: 'master-element', settings: { columns: 3, subWidgets: [] } },
+    },
+  },
+]
+
 // ── V2 Default Layout ──────────────────────────────────────────────
 // Scan preset copied inline so DEFAULT_LAYOUT_V2 doesn't import PRESET_TEMPLATES
 // (avoids circular reference issues at module init time)
 const _scanPreset = PRESET_TEMPLATES[0]
 
 export const DEFAULT_LAYOUT_V2 = {
-  version: 2,
+  version: 3,
   navDock: 'left',
   navPosition: null,
   navExpanded: false,

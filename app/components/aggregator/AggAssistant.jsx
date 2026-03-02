@@ -48,6 +48,7 @@ export default function AggAssistant({
   onUnhideWidget,
   allWidgets = {},
   effectiveBP = 'lg',
+  onShowHotkeySettings,
 }) {
   const [addingDevice, setAddingDevice] = useState(false)
   const [deviceName, setDeviceName] = useState('')
@@ -287,6 +288,12 @@ export default function AggAssistant({
       {/* Layout Tools */}
       <div className="agg-assistant-section">
         <div className="agg-assistant-section-title">Layout Tools</div>
+        {onShowHotkeySettings && (
+          <button className="agg-assistant-action-btn" style={{ marginBottom: 6 }} onClick={onShowHotkeySettings}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+            Hotkeys
+          </button>
+        )}
         <button className="agg-assistant-action-btn" onClick={onFixGaps}>
           <IconGrid />
           Fix Layout Gaps

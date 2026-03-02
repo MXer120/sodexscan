@@ -13,6 +13,8 @@ const Icons = {
   expand: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15,3 21,3 21,9"/><polyline points="9,21 3,21 3,15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
   collapse: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4,14 10,14 10,20"/><polyline points="20,10 14,10 14,4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
   close: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  locked: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  unlocked: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
   reset: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
   folder: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
   trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
@@ -29,7 +31,7 @@ export default function AggNav({
   navExpanded,
   onSetNavExpanded,
   pages, activePageIndex,
-  onSetActivePage, onAddPage, onRemovePage, onRenamePage,
+  onSetActivePage, onAddPage, onRemovePage, onRenamePage, onTogglePageLock,
   onAddWidget, onResetToDefault,
   onShowTemplateManager,
   quickLinks = [], onAddQuickLink, onRemoveQuickLink, onUpdateQuickLink, onReorderQuickLinks,
@@ -43,6 +45,7 @@ export default function AggNav({
   onToggleAssistant,
   assistantOpen = false,
   walletHighlight = false,
+  onShowLayoutManager,
 }) {
   const [showSiteLinks, setShowSiteLinks] = useState(false)
   const [showWalletSettings, setShowWalletSettings] = useState(false)
@@ -253,6 +256,13 @@ export default function AggNav({
               ) : (
                 <span onDoubleClick={() => startRename(idx)}>{page.name}</span>
               )}
+              <button
+                className={`agg-nav-page-lock${page.locked ? ' locked' : ''}`}
+                onClick={e => { e.stopPropagation(); onTogglePageLock(idx) }}
+                title={page.locked ? 'Unlock page' : 'Lock page'}
+              >
+                {page.locked ? Icons.locked : Icons.unlocked}
+              </button>
               {pages.length > 1 && (
                 <button className="agg-nav-page-close" onClick={e => { e.stopPropagation(); onRemovePage(idx) }}>
                   {Icons.close}
@@ -285,6 +295,12 @@ export default function AggNav({
           <button data-tour="templates" className="agg-nav-item" onClick={onShowTemplateManager} title="Templates">
             {Icons.template}
             <span className="agg-nav-item-label">Templates</span>
+          </button>
+          <button className="agg-nav-item" onClick={onShowLayoutManager} title="Layouts">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/><rect x="14" y="17" width="7" height="4" rx="1"/>
+            </svg>
+            <span className="agg-nav-item-label">Layouts</span>
           </button>
         </div>
 

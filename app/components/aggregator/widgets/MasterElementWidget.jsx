@@ -485,7 +485,7 @@ export default function MasterElementWidget({ config, onUpdateConfig, editMode =
                 config={{ settings: sub.settings }}
                 settingsSchema={reg.settingsSchema || []}
                 visibilitySchema={reg.visibilitySchema || []}
-                onUpdate={(id, newSettings) => { handleSubUpdate(id, newSettings); setSettingsPanel(null) }}
+                onUpdate={(id, newSettings) => handleSubUpdate(id, newSettings)}
                 onClose={() => setSettingsPanel(null)}
                 recentColors={[]}
                 onAddRecentColor={() => {}}

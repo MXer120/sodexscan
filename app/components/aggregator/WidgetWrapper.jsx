@@ -139,7 +139,7 @@ function WidgetWrapper({ instanceId, config, onRemove, onUpdateConfig, recentCol
                     <div className="agg-widget-size-stepper">
                       <button onClick={() => setSize(Math.max(1, layoutItem.w - 1), layoutItem.h)}>−</button>
                       <input
-                        type="number" min="1" max="12"
+                        type="number" min="1" step="1"
                         value={layoutItem.w}
                         onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 1) setSize(v, layoutItem.h) }}
                       />

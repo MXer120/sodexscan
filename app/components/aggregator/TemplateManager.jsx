@@ -310,7 +310,7 @@ export default function TemplateManager({
   }, [onClose, editingTemplate])
 
   const handleCreate = () => {
-    if (!newName.trim() || templates.length >= 5) return
+    if (!newName.trim() || templates.length >= 10) return
     onSaveAsTemplate(newName.trim())
     setNewName('')
   }
@@ -460,7 +460,7 @@ export default function TemplateManager({
           <div className="agg-tmpl-section">
             <div className="agg-tmpl-section-title">My Templates</div>
 
-            {templates.length < 5 && (
+            {templates.length < 10 && (
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <input
                   type="text"
@@ -514,9 +514,9 @@ export default function TemplateManager({
               ))}
             </div>
 
-            {templates.length >= 5 && (
+            {templates.length >= 10 && (
               <div style={{ marginTop: 8, fontSize: 11, color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                Maximum 5 templates reached
+                Maximum 10 templates reached
               </div>
             )}
           </div>

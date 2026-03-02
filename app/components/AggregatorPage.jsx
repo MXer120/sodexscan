@@ -9,12 +9,15 @@ import { THEME_FAVICONS } from '../lib/themes'
 import { useUserProfile } from '../hooks/useProfile'
 import { useSessionContext } from '../lib/SessionContext'
 import { useGlobalTemplates, useGlobalTemplateMutations } from '../hooks/useGlobalTemplates'
+import { useGlobalLayouts, useGlobalLayoutMutations } from '../hooks/useGlobalLayouts'
 import WidgetWrapper from './aggregator/WidgetWrapper'
 import AddWidgetModal from './aggregator/AddWidgetModal'
 import AggNav from './aggregator/AggNav'
 import TemplateManager from './aggregator/TemplateManager'
+import LayoutManager from './aggregator/LayoutManager'
 import AggTutorial from './aggregator/AggTutorial'
 import AggAssistant from './aggregator/AggAssistant'
+import HotkeySettings from './aggregator/HotkeySettings'
 import { PerformanceModeContext } from '../lib/PerformanceModeContext'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
@@ -31,10 +34,14 @@ export default function AggregatorPage() {
   const profileWallet = profileData?.profile?.own_wallet || ''
   const { data: globalTemplates = [] } = useGlobalTemplates()
   const globalMutations = useGlobalTemplateMutations()
+  const { data: globalLayouts = [] } = useGlobalLayouts()
+  const globalLayoutMutations = useGlobalLayoutMutations()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showTemplateManager, setShowTemplateManager] = useState(false)
+  const [showLayoutManager, setShowLayoutManager] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   const [showAssistant, setShowAssistant] = useState(false)
+  const [showHotkeySettings, setShowHotkeySettings] = useState(false)
   const [walletHighlight, setWalletHighlight] = useState(false)
   const [devicePreview, setDevicePreview] = useState(null) // null | 'md' | 'sm' | number (custom width)
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
@@ -97,6 +104,43 @@ export default function AggregatorPage() {
     setShowTutorial(false)
     if (typeof window !== 'undefined') localStorage.setItem('agg-tutorial-seen', '1')
   }, [])
+
+  // Global hotkey listener
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = document.activeElement?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      // Ignore if a modal is open that manages its own keys
+      if (showHotkeySettings) return
+
+      const hk = agg.hotkeyMap
+      const k = e.key
+
+      if (k === hk.prevPage || k === hk.prevPageAlt) {
+        e.preventDefault()
+        agg.setActivePage(
+          (agg.activePageIndex - 1 + agg.pages.length) % agg.pages.length
+        )
+      } else if (k === hk.nextPage || k === hk.nextPageAlt) {
+        e.preventDefault()
+        agg.setActivePage(
+          (agg.activePageIndex + 1) % agg.pages.length
+        )
+      } else if (k === hk.perfMode) {
+        agg.setPerformanceMode(!agg.performanceMode)
+      } else if (k === hk.editMode) {
+        agg.setEditMode(!(agg.editMode !== false))
+      } else if (k === hk.assistant) {
+        setShowAssistant(v => !v)
+      } else if (k === hk.tutorial) {
+        setShowTutorial(v => !v)
+      } else if (k === hk.sidebar) {
+        agg.setNavExpanded(!agg.navExpanded)
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [agg, showHotkeySettings])
 
   // Device preview constrains grid width to force a breakpoint
   const devicePreviewWidth =
@@ -164,32 +208,39 @@ export default function AggregatorPage() {
     return { ok: true }
   }, [agg, rowHeight, effectiveBP])
 
+  const currentPageLocked = agg.activePage?.locked === true
+
   const handleRemoveWidgets = useCallback((ids) => {
+    if (currentPageLocked) return
     ids.forEach(id => agg.removeWidget(id))
-  }, [agg])
+  }, [agg, currentPageLocked])
 
   const handleResizeWidget = useCallback((instanceId, dw, dh) => {
+    if (currentPageLocked) return
     const bp = effectiveBP
-    const cols = { lg: 12, md: 6, sm: 2 }[bp] || 12
+    const cols = { lg: 24, md: 12, sm: 4 }[bp] || 24
     const layout = agg.layouts?.[bp] || []
     const item = layout.find(l => l.i === instanceId)
     if (!item) return
-    const newW = Math.max(1, Math.min(cols - item.x, item.w + dw))
+    const newW = Math.max(1, Math.min(cols - item.x, Math.round(item.w + dw)))
     const newH = Math.max(1, item.h + dh)
     agg.updateBreakpointLayout(bp, layout.map(l => l.i === instanceId ? { ...l, w: newW, h: newH } : l))
   }, [agg, effectiveBP])
 
   // Only update the currently active breakpoint — never let RGL overwrite other breakpoints
   const handleLayoutChange = useCallback((currentLayout) => {
+    if (currentPageLocked) return
     agg.updateBreakpointLayout(effectiveBP, currentLayout)
-  }, [agg.updateBreakpointLayout, effectiveBP])
+  }, [agg.updateBreakpointLayout, effectiveBP, currentPageLocked])
 
   const handleRemoveWidget = useCallback((instanceId) => {
+    if (currentPageLocked) return
     agg.removeWidget(instanceId)
-  }, [agg.removeWidget])
+  }, [agg.removeWidget, currentPageLocked])
 
   // Horizontal bidirectional resize between adjacent widgets
   const handleHorizontalResizeStart = useCallback((instanceId, startClientX) => {
+    if (currentPageLocked) return
     const startLayouts = JSON.parse(JSON.stringify(agg.layouts || {}))
     horizontalDragState.current = { instanceId, startClientX, startLayouts, lastDeltaCol: 0, rafId: null }
 
@@ -200,7 +251,7 @@ export default function AggregatorPage() {
 
       const ew = devicePreviewWidth || window.innerWidth
       const currentBP = ew >= 1200 ? 'lg' : ew >= 768 ? 'md' : 'sm'
-      const cols = { lg: 12, md: 6, sm: 2 }[currentBP] || 12
+      const cols = { lg: 24, md: 12, sm: 4 }[currentBP] || 24
       const bpLayout = ds.startLayouts[currentBP] || ds.startLayouts.lg || []
 
       const item = bpLayout.find(l => l.i === ds.instanceId)
@@ -237,7 +288,7 @@ export default function AggregatorPage() {
 
       const containerWidth = containerEl.getBoundingClientRect().width
       const ww = window.innerWidth
-      const cols = ww >= 1200 ? 12 : ww >= 768 ? 6 : 2
+      const cols = ww >= 1200 ? 24 : ww >= 768 ? 12 : 4
       const pixelPerCol = (containerWidth - 8 * (cols - 1)) / cols + 8
       const deltaCol = Math.round(deltaX / pixelPerCol)
 
@@ -259,12 +310,21 @@ export default function AggregatorPage() {
     document.body.style.userSelect = 'none'
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
-  }, [agg, devicePreviewWidth])
+  }, [agg, devicePreviewWidth, currentPageLocked])
 
   const widgetEntries = useMemo(
     () => Object.entries(agg.widgets || {}),
     [agg.widgets]
   )
+
+  // Strip minW/minH from RGL layouts so drag min matches +/- min (1)
+  const rglLayouts = useMemo(() => {
+    const result = {}
+    for (const [bp, items] of Object.entries(agg.layouts || {})) {
+      result[bp] = items.map(item => ({ ...item, minW: 1, minH: 1 }))
+    }
+    return result
+  }, [agg.layouts])
 
   const currentBPLayout = useMemo(() => {
     return agg.layouts?.[effectiveBP] || agg.layouts?.lg || []
@@ -279,7 +339,7 @@ export default function AggregatorPage() {
   const adjacentPairs = useMemo(() => {
     if (isMobile || !gridContainerWidth) return []
     const currentBP = effectiveBP
-    const cols = { lg: 12, md: 6, sm: 2 }[currentBP] || 12
+    const cols = { lg: 24, md: 12, sm: 4 }[currentBP] || 24
     const bpLayout = agg.layouts?.[currentBP] || agg.layouts?.lg || []
     if (!bpLayout.length) return []
 
@@ -385,13 +445,15 @@ export default function AggregatorPage() {
         onAddPage={agg.addPage}
         onRemovePage={agg.removePage}
         onRenamePage={agg.renamePage}
-        onAddWidget={() => setShowAddModal(true)}
+        onTogglePageLock={agg.togglePageLock}
+        onAddWidget={() => { if (!currentPageLocked) setShowAddModal(true) }}
         onResetToDefault={agg.resetToDefault}
         templates={agg.templates}
         onSaveAsTemplate={agg.saveAsTemplate}
         onLoadTemplate={agg.loadTemplate}
         onDeleteTemplate={agg.deleteTemplate}
-        onShowTemplateManager={() => setShowTemplateManager(true)}
+        onShowTemplateManager={() => { if (!currentPageLocked) setShowTemplateManager(true) }}
+        onShowLayoutManager={() => { if (!currentPageLocked) setShowLayoutManager(true) }}
         quickLinks={agg.quickLinks}
         onAddQuickLink={agg.addQuickLink}
         onRemoveQuickLink={agg.removeQuickLink}
@@ -410,8 +472,8 @@ export default function AggregatorPage() {
         onSetAutoUseWallet={agg.setAutoUseWallet}
         performanceMode={agg.performanceMode}
         onSetPerformanceMode={agg.setPerformanceMode}
-        editMode={agg.editMode}
-        onSetEditMode={agg.setEditMode}
+        editMode={currentPageLocked ? false : agg.editMode}
+        onSetEditMode={(val) => { if (!currentPageLocked) agg.setEditMode(val) }}
         onShowTutorial={() => setShowTutorial(true)}
         onToggleAssistant={() => setShowAssistant(v => !v)}
         assistantOpen={showAssistant}
@@ -420,6 +482,12 @@ export default function AggregatorPage() {
 
       {/* Main content */}
       <div className={`agg-content${devicePreview ? ' agg-content--device-preview' : ''}`}>
+        {currentPageLocked && (
+          <div className="agg-page-locked-banner">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Page locked
+          </div>
+        )}
         {agg.performanceMode ? (
           <div className="agg-grid-wrapper" ref={gridWrapperRef} style={{ position: 'relative', maxWidth: devicePreviewWidth }}>
             {widgetEntries.length === 0 ? (
@@ -430,14 +498,14 @@ export default function AggregatorPage() {
               <>
                 <ResponsiveGridLayout
                   className="agg-grid"
-                  layouts={agg.layouts}
+                  layouts={rglLayouts}
                   breakpoints={{ lg: 1200, md: 768, sm: 0 }}
-                  cols={{ lg: 12, md: 6, sm: 2 }}
+                  cols={{ lg: 24, md: 12, sm: 4 }}
                   rowHeight={rowHeight}
                   containerPadding={[0, 0]}
                   margin={[8, 8]}
-                  isDraggable={!isMobile && agg.editMode !== false}
-                  isResizable={!isMobile && agg.editMode !== false}
+                  isDraggable={!isMobile && agg.editMode !== false && !currentPageLocked}
+                  isResizable={!isMobile && agg.editMode !== false && !currentPageLocked}
                   draggableHandle=".widget-drag-handle"
                   onLayoutChange={handleLayoutChange}
                   compactType="vertical"
@@ -489,9 +557,9 @@ export default function AggregatorPage() {
                 <>
                   <ResponsiveGridLayout
                     className="agg-grid"
-                    layouts={agg.layouts}
+                    layouts={rglLayouts}
                     breakpoints={{ lg: 1200, md: 768, sm: 0 }}
-                    cols={{ lg: 12, md: 6, sm: 2 }}
+                    cols={{ lg: 24, md: 12, sm: 4 }}
                     rowHeight={rowHeight}
                     containerPadding={[0, 0]}
                     margin={[8, 8]}
@@ -590,6 +658,7 @@ export default function AggregatorPage() {
               onUnhideWidget={agg.unhideWidgetOnBP}
               allWidgets={agg.widgets}
               effectiveBP={effectiveBP}
+              onShowHotkeySettings={() => setShowHotkeySettings(true)}
             />
           </motion.div>
         )}
@@ -598,6 +667,29 @@ export default function AggregatorPage() {
       {/* Tutorial */}
       {showTutorial && <AggTutorial onClose={handleCloseTutorial} />}
 
+      {/* Hotkey Settings */}
+      {showHotkeySettings && (
+        <HotkeySettings
+          hotkeyMap={agg.hotkeyMap}
+          onSave={(updates) => agg.updateHotkeyMap(updates)}
+          onClose={() => setShowHotkeySettings(false)}
+        />
+      )}
+      {showLayoutManager && (
+        <LayoutManager
+          userLayouts={agg.userLayouts}
+          onApplyLayout={agg.applyLayout}
+          onSaveLayout={agg.saveUserLayout}
+          onDeleteLayout={agg.deleteUserLayout}
+          onRenameLayout={agg.renameUserLayout}
+          onClose={() => setShowLayoutManager(false)}
+          isOwner={isOwner}
+          globalLayouts={globalLayouts}
+          onCreateGlobalLayout={(name) => globalLayoutMutations.create.mutate({ name, layouts: agg.layouts || { lg: [], md: [], sm: [] }, widgets: agg.widgets || {} })}
+          onUpdateGlobalLayout={(id, updates) => globalLayoutMutations.update.mutate({ id, ...updates })}
+          onDeleteGlobalLayout={(id) => globalLayoutMutations.remove.mutate(id)}
+        />
+      )}
       {showTemplateManager && (
         <TemplateManager
           templates={agg.templates}

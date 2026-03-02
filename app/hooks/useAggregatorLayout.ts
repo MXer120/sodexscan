@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSessionContext } from '../lib/SessionContext'
 import { supabase } from '../lib/supabaseClient'
 import { useCallback, useRef, useState, useEffect } from 'react'
-import { DEFAULT_LAYOUT_V2, WIDGET_REGISTRY, PRESET_TEMPLATES } from '../components/aggregator/WidgetRegistry'
+import { DEFAULT_LAYOUT_V2, WIDGET_REGISTRY, PRESET_TEMPLATES, LAYOUT_PRESETS } from '../components/aggregator/WidgetRegistry'
 
 // ── Types ──────────────────────────────────────────────────────────
 interface WidgetConfig {
@@ -19,6 +19,7 @@ interface PageConfig {
   layouts: { lg: any[]; md: any[]; sm: any[] }
   widgets: Record<string, WidgetConfig>
   hiddenPerBP?: { lg: any[]; md: any[]; sm: any[] }
+  locked?: boolean
 }
 
 interface TemplateConfig {
@@ -47,6 +48,37 @@ interface CustomDevice {
   width: number
 }
 
+interface UserLayout {
+  id: string
+  name: string
+  layouts: { lg: any[]; md: any[]; sm: any[] }
+  widgets: Record<string, WidgetConfig>
+}
+
+interface HotkeyMap {
+  prevPage: string
+  nextPage: string
+  prevPageAlt: string
+  nextPageAlt: string
+  perfMode: string
+  editMode: string
+  assistant: string
+  tutorial: string
+  sidebar: string
+}
+
+const DEFAULT_HOTKEY_MAP: HotkeyMap = {
+  prevPage: 'ArrowLeft',
+  nextPage: 'ArrowRight',
+  prevPageAlt: 'ArrowUp',
+  nextPageAlt: 'ArrowDown',
+  perfMode: 'p',
+  editMode: 'e',
+  assistant: 'a',
+  tutorial: 't',
+  sidebar: 's',
+}
+
 interface AggregatorData {
   version: number
   navDock: 'left' | 'right' | 'top' | 'bottom'
@@ -58,11 +90,13 @@ interface AggregatorData {
   performanceMode?: boolean
   editMode?: boolean
   rowHeight?: number
+  hotkeyMap?: HotkeyMap
   pages: PageConfig[]
   templates: TemplateConfig[]
   quickLinks: QuickLink[]
   folders: FolderConfig[]
   customDevices?: CustomDevice[]
+  userLayouts?: UserLayout[]
 }
 
 // ── Template sync helper ──────────────────────────────────────────
@@ -76,6 +110,48 @@ function syncPageToTemplate(d: AggregatorData, page: PageConfig): AggregatorData
       widgets: JSON.parse(JSON.stringify(page.widgets)),
     }
   })
+}
+
+// ── V2 → V3 Migration (12→24 col doubling) ────────────────────────
+const doubleLayoutItems = (items: any[]) =>
+  (items || []).map((item: any) => ({ ...item, x: item.x * 2, w: item.w * 2 }))
+
+const doubleLayouts = (layouts: any) => ({
+  lg: doubleLayoutItems(layouts?.lg),
+  md: doubleLayoutItems(layouts?.md),
+  sm: doubleLayoutItems(layouts?.sm),
+})
+
+// Detect if layouts are still in old 12-col format (sm max cols was 2, now 4)
+function needsColMigration(layouts: any): boolean {
+  const smItems: any[] = layouts?.sm || []
+  if (smItems.length) {
+    const maxSmCol = Math.max(...smItems.map((i: any) => (i.x || 0) + (i.w || 1)))
+    return maxSmCol <= 2
+  }
+  const lgItems: any[] = layouts?.lg || []
+  if (!lgItems.length) return false
+  const maxLgCol = Math.max(...lgItems.map((i: any) => (i.x || 0) + (i.w || 1)))
+  return maxLgCol <= 12
+}
+
+function migrateV2toV3(data: any): AggregatorData {
+  const migratePages = (pages: any[]) =>
+    (pages || []).map((p: any) => ({ ...p, layouts: doubleLayouts(p.layouts) }))
+
+  const migrateTemplates = (templates: any[]) =>
+    (templates || []).map((t: any) => ({ ...t, layouts: doubleLayouts(t.layouts) }))
+
+  const migrateUserLayouts = (userLayouts: any[]) =>
+    (userLayouts || []).map((ul: any) => ({ ...ul, layouts: doubleLayouts(ul.layouts) }))
+
+  return {
+    ...data,
+    version: 3,
+    pages: migratePages(data.pages),
+    templates: migrateTemplates(data.templates || []),
+    userLayouts: migrateUserLayouts(data.userLayouts || []),
+  }
 }
 
 // ── V1 → V2 Migration ─────────────────────────────────────────────
@@ -102,15 +178,24 @@ function migrateV1toV2(v1: any): AggregatorData {
 
 function ensureV2(data: any): AggregatorData {
   if (!data) return JSON.parse(JSON.stringify(DEFAULT_LAYOUT_V2)) as AggregatorData
-  if (data.version === 2) {
+
+  // v1 → v2 → v3
+  if (data.layouts && data.widgets && !data.pages) data = migrateV1toV2(data)
+
+  // v2 → v3: double all x and w values
+  if (data.version === 2) data = migrateV2toV3(data)
+
+  if (data.version === 3) {
     if (!data.quickLinks) data.quickLinks = []
     if (!data.folders) data.folders = []
     if (!data.customDevices) data.customDevices = []
+    if (!data.userLayouts) data.userLayouts = []
     if (!data.globalWallet) data.globalWallet = ''
+    if (!data.hotkeyMap) data.hotkeyMap = { ...DEFAULT_HOTKEY_MAP }
     // On load: populate pages from their templates + ensure defaultWallet exists
     if (data.pages) {
       data.pages = data.pages.map((p: any) => {
-        const page = { defaultWallet: '', ...p }
+        const page = { defaultWallet: '', locked: false, ...p }
         if (!page.templateId || !data.templates) return page
         const t = (data.templates || []).find((t: any) => t.id === page.templateId)
         if (!t) return { ...page, templateId: null }
@@ -123,12 +208,12 @@ function ensureV2(data: any): AggregatorData {
     }
     return data as AggregatorData
   }
-  if (data.layouts && data.widgets && !data.pages) return migrateV1toV2(data)
+
   return JSON.parse(JSON.stringify(DEFAULT_LAYOUT_V2)) as AggregatorData
 }
 
 // ── localStorage cache helpers ──────────────────────────────────────
-const LS_KEY = (userId: string) => `agg-v2-${userId}`
+const LS_KEY = (userId: string) => `agg-v3-${userId}`
 
 function readLS(userId: string): AggregatorData | null {
   if (typeof window === 'undefined') return null
@@ -287,6 +372,15 @@ export function useAggregatorLayout() {
     })
   }, [updateLocal])
 
+  const togglePageLock = useCallback((pageIndex: number) => {
+    immediatelySaveRef.current = true
+    updateLocal(d => {
+      const pages = [...d.pages]
+      pages[pageIndex] = { ...pages[pageIndex], locked: !pages[pageIndex].locked }
+      return { ...d, pages }
+    })
+  }, [updateLocal])
+
   // ── Layout & widget ops (with template auto-sync) ─────────────
   const updateLayout = useCallback((newLayouts: any) => {
     updateLocal(d => {
@@ -335,8 +429,8 @@ export function useAggregatorLayout() {
       const page = { ...pages[d.activePageIndex] }
       page.layouts = {
         lg: [...(page.layouts?.lg || []), newItem],
-        md: [...(page.layouts?.md || []), { ...newItem, w: Math.min(w, 6), h: mdH }],
-        sm: [...(page.layouts?.sm || []), { ...newItem, x: 0, w: Math.min(w, 2), h: smH }],
+        md: [...(page.layouts?.md || []), { ...newItem, w: Math.min(w, 12), h: mdH }],
+        sm: [...(page.layouts?.sm || []), { ...newItem, x: 0, w: Math.min(w, 4), h: smH }],
       }
       // Auto-inject wallet if autoUseWallet is enabled
       const settings = { ...reg.defaultSettings }
@@ -440,7 +534,7 @@ export function useAggregatorLayout() {
   // ── Template CRUD ─────────────────────────────────────────────
   const saveAsTemplate = useCallback((name: string) => {
     updateLocal(d => {
-      if (d.templates.length >= 3) return d
+      if (d.templates.length >= 10) return d
       const page = d.pages[d.activePageIndex]
       const id = `t-${Date.now()}`
       const template: TemplateConfig = {
@@ -490,12 +584,13 @@ export function useAggregatorLayout() {
 
   // Apply arbitrary layouts+widgets to current page (for global templates)
   const applyLayoutPreset = useCallback((layouts: any, widgets: any) => {
+    const migratedLayouts = needsColMigration(layouts) ? doubleLayouts(layouts) : layouts
     updateLocal(d => {
       const pages = [...d.pages]
       pages[d.activePageIndex] = {
         ...pages[d.activePageIndex],
         templateId: null,
-        layouts: JSON.parse(JSON.stringify(layouts)),
+        layouts: JSON.parse(JSON.stringify(migratedLayouts)),
         widgets: JSON.parse(JSON.stringify(widgets)),
       }
       return { ...d, pages }
@@ -629,12 +724,62 @@ export function useAggregatorLayout() {
     }))
   }, [updateLocal])
 
+  // ── User Layouts ──────────────────────────────────────────────
+  const saveUserLayout = useCallback((name: string) => {
+    updateLocal(d => {
+      if ((d.userLayouts || []).length >= 10) return d
+      const page = d.pages[d.activePageIndex]
+      const id = `ul-${Date.now()}`
+      const layout: UserLayout = {
+        id, name,
+        layouts: JSON.parse(JSON.stringify(page.layouts)),
+        widgets: JSON.parse(JSON.stringify(page.widgets)),
+      }
+      return { ...d, userLayouts: [...(d.userLayouts || []), layout] }
+    })
+  }, [updateLocal])
+
+  const deleteUserLayout = useCallback((id: string) => {
+    updateLocal(d => ({ ...d, userLayouts: (d.userLayouts || []).filter(l => l.id !== id) }))
+  }, [updateLocal])
+
+  const renameUserLayout = useCallback((id: string, name: string) => {
+    updateLocal(d => ({
+      ...d,
+      userLayouts: (d.userLayouts || []).map(l => l.id === id ? { ...l, name } : l)
+    }))
+  }, [updateLocal])
+
+  // Apply layout preset: always applies all breakpoints (global)
+  const applyLayout = useCallback((layouts: any, widgets: any) => {
+    immediatelySaveRef.current = true
+    const migratedLayouts = needsColMigration(layouts) ? doubleLayouts(layouts) : layouts
+    updateLocal(d => {
+      const pages = [...d.pages]
+      pages[d.activePageIndex] = {
+        ...pages[d.activePageIndex],
+        templateId: null,
+        layouts: JSON.parse(JSON.stringify(migratedLayouts)),
+        widgets: JSON.parse(JSON.stringify(widgets)),
+      }
+      return { ...d, pages }
+    })
+  }, [updateLocal])
+
+  // ── Hotkey Map ────────────────────────────────────────────────
+  const updateHotkeyMap = useCallback((updates: Partial<HotkeyMap>) => {
+    updateLocal(d => ({
+      ...d,
+      hotkeyMap: { ...(d.hotkeyMap || DEFAULT_HOTKEY_MAP), ...updates }
+    }))
+  }, [updateLocal])
+
   // ── Gap Wizard ────────────────────────────────────────────────
   const fixGaps = useCallback(() => {
     updateLocal(d => {
       const pages = [...d.pages]
       const page = { ...pages[d.activePageIndex] }
-      const bpCols: Record<string, number> = { lg: 12, md: 6, sm: 2 }
+      const bpCols: Record<string, number> = { lg: 24, md: 12, sm: 4 }
       const newLayouts: any = {}
       for (const [bp, cols] of Object.entries(bpCols)) {
         const items: any[] = page.layouts?.[bp] || []
@@ -690,7 +835,7 @@ export function useAggregatorLayout() {
     loadingProgress,
 
     // Page ops
-    setActivePage, addPage, removePage, renamePage,
+    setActivePage, addPage, removePage, renamePage, togglePageLock,
 
     // Layout/widget ops
     updateLayout, updateBreakpointLayout, updateWidgetConfig, addWidget, removeWidget, resetToDefault,
@@ -702,6 +847,10 @@ export function useAggregatorLayout() {
 
     // Templates
     saveAsTemplate, updateTemplate, loadTemplate, loadPresetTemplate, applyLayoutPreset, deleteTemplate, renameTemplate, addRecentColor,
+
+    // User Layouts
+    userLayouts: current.userLayouts || [],
+    saveUserLayout, deleteUserLayout, renameUserLayout, applyLayout,
 
     // Quick Links
     quickLinks: current.quickLinks || [],
@@ -738,5 +887,9 @@ export function useAggregatorLayout() {
     customDevices: current.customDevices || [],
     addCustomDevice,
     removeCustomDevice,
+
+    // Hotkeys
+    hotkeyMap: current.hotkeyMap || DEFAULT_HOTKEY_MAP,
+    updateHotkeyMap,
   }
 }
