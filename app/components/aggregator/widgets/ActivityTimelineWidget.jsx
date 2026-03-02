@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useCallback, useEffect } from 'react'
-import { useWalletData } from '../../../hooks/useWalletData'
+import { useWalletSlowData as useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo, { getBaseCoin } from '../../ui/CoinLogo'
 
 const PAGE_SIZE = 25

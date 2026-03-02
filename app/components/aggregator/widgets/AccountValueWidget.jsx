@@ -1,6 +1,6 @@
 'use client'
 
-import { useWalletData } from '../../../hooks/useWalletData'
+import { useWalletLiveData as useWalletData } from '../../../hooks/useWalletData'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '-'

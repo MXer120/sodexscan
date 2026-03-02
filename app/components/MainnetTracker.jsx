@@ -355,6 +355,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [toastMessage, setToastMessage] = useState(null)
   const [toastExiting, setToastExiting] = useState(false)
   const toastTimerRef = useRef(null)
+  const realtimeIntervalRef = useRef(null)
+  const isFetchingLiveRef = useRef(false)
+  const pollCountRef = useRef(0)
 
   const showToast = (msg) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -430,7 +433,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   // Sorting states
   const [withdrawSortField, setWithdrawSortField] = useState('date')
   const [withdrawSortDir, setWithdrawSortDir] = useState('desc')
-  const [positionSortField, setPositionSortField] = useState(null)
+  const [positionSortField, setPositionSortField] = useState('notional')
   const [positionSortDir, setPositionSortDir] = useState('desc')
   const [balanceSortField, setBalanceSortField] = useState(null)
   const [balanceSortDir, setBalanceSortDir] = useState('desc')
@@ -648,6 +651,22 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [accountId])
 
+  // Real-time polling — every 1s, only external APIs, no social/rankings/account_flow
+  useEffect(() => {
+    if (!accountId || loading) {
+      clearInterval(realtimeIntervalRef.current)
+      return
+    }
+    realtimeIntervalRef.current = setInterval(async () => {
+      if (isFetchingLiveRef.current) return
+      isFetchingLiveRef.current = true
+      pollCountRef.current++
+      const includeSlow = pollCountRef.current % 5 === 0
+      try { await fetchRealtimeData(includeSlow) } finally { isFetchingLiveRef.current = false }
+    }, 1000)
+    return () => clearInterval(realtimeIntervalRef.current)
+  }, [accountId, loading])
+
   // Prepare Activity Timeline - memoized to prevent random reordering on re-renders
   // Store rawSymbol so getBaseCoin can be called at render time with current coinRegistry
   // Must be placed before any early returns to maintain hook order
@@ -730,6 +749,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         case 'symbol': valA = a.symbol; valB = b.symbol; break
         case 'side': valA = a.positionSide; valB = b.positionSide; break
         case 'size': valA = parseFloat(a.positionSize); valB = parseFloat(b.positionSize); break
+        case 'notional': valA = parseFloat(a.positionSize) * parseFloat(a.entryPrice); valB = parseFloat(b.positionSize) * parseFloat(b.entryPrice); break
         case 'entry': valA = parseFloat(a.entryPrice); valB = parseFloat(b.entryPrice); break
         case 'liq': valA = calculateLiquidationPrice(a, leverageBrackets); valB = calculateLiquidationPrice(b, leverageBrackets); break
         case 'margin': valA = parseFloat(a.isolatedMargin); valB = parseFloat(b.isolatedMargin); break
@@ -1144,6 +1164,103 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       console.error('Failed to fetch mainnet data:', error)
       setLoading(false)
     }
+  }
+
+  const fetchRealtimeData = async (includeSlow = false) => {
+    if (!accountId) return
+    try {
+      // Fast (every 1s): positions, balances, overview, mark prices
+      const fastPromises = [
+        fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
+        fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
+        fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
+        fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/q/mark-price')
+      ]
+      // Slow (every 5s): chart, orders, transfers
+      const slowPromises = includeSlow ? [
+        fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
+        fetch(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
+        fetch(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
+      ] : []
+
+      const allRes = await Promise.all([...fastPromises, ...slowPromises])
+      const [detailsData, balanceData, overviewData, markPriceData, ...slowData] = await Promise.all(
+        allRes.map(r => r.json())
+      )
+
+      // Fast updates
+      if (detailsData.code === 0 && detailsData.data) {
+        setAccountDetails(detailsData.data)
+        setPositions(detailsData.data.positions || [])
+      }
+
+      if (overviewData.code === 0 && overviewData.data) {
+        setOverviewStats({
+          volume: parseFloat(overviewData.data.cumulative_quote_volume) || 0,
+          cumulativePnl: parseFloat(overviewData.data.cumulative_pnl) || 0
+        })
+      }
+
+      if (balanceData.code === '0' || balanceData.code === 0) {
+        const balances = balanceData.data?.spotBalance || []
+        setSpotBalances(balances)
+        const priceMap = {}
+        if (markPriceData.code === 0 && markPriceData.data) {
+          markPriceData.data.forEach(item => { priceMap[item.s] = parseFloat(item.p) || 0 })
+          setMarkPrices(priceMap)
+        }
+        let totalUSDC = 0
+        if (detailsData.code === 0 && detailsData.data?.balances?.[0]?.walletBalance) {
+          totalUSDC += parseFloat(detailsData.data.balances[0].walletBalance) || 0
+        }
+        balances.forEach(bal => {
+          const balance = parseFloat(bal.balance) || 0
+          const coin = (bal.coin || '').trim()
+          if (!coin || balance === 0) return
+          const cleanCoin = getBaseCoin(coin)
+          if (cleanCoin.toUpperCase() === 'USDC') { totalUSDC += balance; return }
+          const symbol = cleanCoin.toUpperCase() === 'XAUT' ? 'XAUt-USD' : `${cleanCoin.toUpperCase()}-USD`
+          const price = priceMap[symbol] || 0
+          if (price > 0) totalUSDC += balance * price
+        })
+        setTotalAssets(totalUSDC)
+      }
+
+      // Slow updates (every 5s)
+      if (includeSlow && slowData.length === 3) {
+        const [pnlData, posHistoryData, fundsData] = slowData
+
+        if (pnlData.code === 0 && pnlData.data?.items) {
+          const sortedItems = [...pnlData.data.items].sort((a, b) => a.ts_ms - b.ts_ms)
+          setPnlHistory(sortedItems.map((item, idx) => {
+            const cumulative = parseFloat(item.pnl)
+            const prevCumulative = idx > 0 ? parseFloat(sortedItems[idx - 1].pnl) : 0
+            return { date: new Date(item.ts_ms).toISOString().split('T')[0], cumulative, daily: cumulative - prevCumulative }
+          }))
+        }
+
+        if (posHistoryData.code === 0 && posHistoryData.data) {
+          setPositionHistory(posHistoryData.data)
+        }
+
+        if (fundsData.code === 0 && fundsData.data?.fundTransfers) {
+          setFundTransfers(fundsData.data.fundTransfers.map(f => {
+            const fallback = f.amount && f.amount.length > 12 ? { symbol: '?', decimals: 18 } : { symbol: '??', decimals: 6 }
+            const assetInfo = assetRegistry[f.assetAddress] || {
+              symbol: f.coin || f.token || f.asset || f.symbol || fallback.symbol,
+              decimals: f.decimals || fallback.decimals
+            }
+            const isType2 = f.transferType === 2
+            return {
+              stmp: f.blockTimestamp, amount: f.amount, decimals: assetInfo.decimals, coin: assetInfo.symbol,
+              type: isType2 ? 'Spot to Fund Transfer' : 'Chain Transfer', status: 'Success',
+              txHash: f.txHash, fromOverride: isType2 ? 'Spot' : 'N/A', toOverride: isType2 ? 'Fund' : 'N/A',
+              network: 'Sodex Chain', isFundTransfer: true
+            }
+          }))
+        }
+      }
+    } catch { /* silent during polling */ }
   }
 
   const trimToMaxDecimals = (value, decimals = 2) => {

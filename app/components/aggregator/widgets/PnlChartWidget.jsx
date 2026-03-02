@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useWalletData } from '../../../hooks/useWalletData'
+import { useWalletSlowData as useWalletData } from '../../../hooks/useWalletData'
 import { usePerformanceMode } from '../../../lib/PerformanceModeContext'
 import {
   ComposedChart, Area, Bar, XAxis, YAxis, Tooltip,

@@ -19,6 +19,37 @@ export function useWalletData(address: string | null) {
   })
 }
 
+// 5s polling for chart, orders, trades, transfers, recent activity
+export function useWalletSlowData(address: string | null) {
+  return useQuery({
+    queryKey: ['wallet-slow-data', address],
+    queryFn: async () => {
+      if (!address) return null
+      const res = await fetch(`/api/public/wallet/${address}/live`)
+      if (!res.ok) throw new Error('Failed to fetch wallet slow data')
+      return res.json()
+    },
+    enabled: !!address,
+    staleTime: 0,
+    refetchInterval: 5000,
+  })
+}
+
+export function useWalletLiveData(address: string | null) {
+  return useQuery({
+    queryKey: ['wallet-live-data', address],
+    queryFn: async () => {
+      if (!address) return null
+      const res = await fetch(`/api/public/wallet/${address}/live`)
+      if (!res.ok) throw new Error('Failed to fetch wallet live data')
+      return res.json()
+    },
+    enabled: !!address,
+    staleTime: 0,
+    refetchInterval: 1000,
+  })
+}
+
 export function useWalletLeaderboard(accountId: string | null) {
   return useQuery({
     queryKey: ['wallet-leaderboard', accountId],

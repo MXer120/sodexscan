@@ -1,6 +1,6 @@
 'use client'
 
-import { useWalletData } from '../../../hooks/useWalletData'
+import { useWalletLiveData as useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo from '../../ui/CoinLogo'
 
 function fmt(n) {

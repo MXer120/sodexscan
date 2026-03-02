@@ -175,7 +175,7 @@
     position: sticky;
     top: -20px;
     z-index: 10;
-    background: #101010;
+    background: var(--color-bg-card);
     margin: -20px -24px 8px -24px !important;
     padding: 20px 24px 8px 24px !important;
 }

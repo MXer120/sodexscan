@@ -1,6 +1,6 @@
 'use client'
 
-import { useWalletData } from '../../../hooks/useWalletData'
+import { useWalletLiveData as useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo from '../../ui/CoinLogo'
 
 function fmt(n) {
@@ -28,8 +28,10 @@ export default function PositionsWidget({ config, onUpdateConfig }) {
 
   if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
 
-  // open positions from account_details.data.positions
-  const positions = data?.data?.account_details?.data?.positions || []
+  // open positions sorted by notional (size * entry) desc for stable order
+  const positions = [...(data?.data?.account_details?.data?.positions || [])].sort((a, b) =>
+    (parseFloat(b.positionSize) * parseFloat(b.entryPrice)) - (parseFloat(a.positionSize) * parseFloat(a.entryPrice))
+  )
   const showCoinLogos = config.showCoinLogos !== false
   const showSide = config.showSide !== false
   const showSize = config.showSize !== false
