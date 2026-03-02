@@ -10,6 +10,7 @@ import {
 } from '../hooks/useWalletTags'
 import { GROUP_COLORS, COLOR_HEX, GroupColor } from '../lib/walletTags'
 import { useTheme } from '../lib/ThemeContext'
+import { supabase } from '../lib/supabaseClient'
 import { COLOR_SCHEMES, ColorScheme, ThemeMode, BULLISH_PRESETS, BEARISH_PRESETS, ACCENT_PRESETS, TERMINAL_SCHEMES, THEME_AUTO_COLORS, isValidHex } from '../lib/themes'
 import WalletDisplay from './WalletDisplay'
 import '../styles/Profile.css'

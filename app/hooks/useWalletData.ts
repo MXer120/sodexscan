@@ -28,7 +28,7 @@ export function useWalletLeaderboard(accountId: string | null) {
         .from('leaderboard_smart')
         .select('pnl_rank, volume_rank, cumulative_pnl, cumulative_volume')
         .eq('account_id', accountId)
-        .single()
+        .maybeSingle()
       if (error) return null
       return data
     },

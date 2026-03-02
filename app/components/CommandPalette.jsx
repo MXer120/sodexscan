@@ -189,10 +189,10 @@ export default function CommandPalette() {
                 { count: tradersGt2k },
                 { count: usersGt1kVol }
             ] = await Promise.all([
-                supabase.from('leaderboard').select('id', { count: 'exact', head: true }),
-                supabase.from('leaderboard').select('id', { count: 'exact', head: true }).or('cumulative_pnl.neq.0,cumulative_volume.gt.0'),
-                supabase.from('leaderboard').select('id', { count: 'exact', head: true }).gt('cumulative_volume', 2000),
-                supabase.from('leaderboard').select('id', { count: 'exact', head: true }).gt('cumulative_volume', 1000)
+                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }),
+                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }).or('cumulative_pnl.neq.0,cumulative_volume.gt.0'),
+                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }).gt('cumulative_volume', 2000),
+                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }).gt('cumulative_volume', 1000)
             ])
 
             setStats({

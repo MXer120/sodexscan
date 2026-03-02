@@ -535,7 +535,8 @@ export function applyTheme(settings: ThemeSettings) {
   if (typeof window === 'undefined') return
 
   const { colorScheme, mode, bullishColor, bearishColor, accentColor } = settings
-  const colors = COLOR_SCHEMES[colorScheme][mode]
+  const scheme = COLOR_SCHEMES[colorScheme] ?? COLOR_SCHEMES['cyan']
+  const colors = scheme[mode] ?? scheme['dark']
   const root = document.documentElement
 
   // Apply color scheme colors
@@ -627,5 +628,5 @@ export function isValidHex(hex: string): boolean {
 
 // Get logo for current theme
 export function getThemeLogo(colorScheme: ColorScheme): string {
-  return COLOR_SCHEMES[colorScheme].logo
+  return (COLOR_SCHEMES[colorScheme] ?? COLOR_SCHEMES['cyan']).logo
 }

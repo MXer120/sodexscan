@@ -302,7 +302,7 @@ export function useAggregatorLayout() {
     updateLocal(d => {
       const pages = [...d.pages]
       const cur = pages[d.activePageIndex]
-      const page = { ...cur, layouts: { ...(cur.layouts || {}), [bp]: bpLayout } }
+      const page = { ...cur, layouts: { ...(cur.layouts || {}), [bp]: bpLayout } as PageConfig['layouts'] }
       pages[d.activePageIndex] = page
       return { ...d, pages, templates: syncPageToTemplate(d, page) }
     })
@@ -730,7 +730,6 @@ export function useAggregatorLayout() {
 
     // Explicit save
     saveNow,
-    isSaving: saveMutation.isPending,
 
     // Gap wizard
     fixGaps,
