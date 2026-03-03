@@ -207,7 +207,8 @@ const SoPointsPage = () => {
     const loadPlatformVolume = async () => {
         setPlatformVolumeLoading(true)
         try {
-            const base = 'https://mainnet-data.sodex.dev/api/v1/dashboard/volume?start_date=2024-01-01&end_date=2026-03-04&market_type='
+            const today = new Date().toISOString().split('T')[0]
+            const base = `https://mainnet-data.sodex.dev/api/v1/dashboard/volume?start_date=2024-01-01&end_date=${today}&market_type=`
             const [allRes, spotRes, futRes] = await Promise.all([
                 fetch(base + 'all').then(r => r.json()),
                 fetch(base + 'spot').then(r => r.json()),
@@ -220,17 +221,22 @@ const SoPointsPage = () => {
         setPlatformVolumeLoading(false)
     }
 
-    // ── Load all weeks data for the volume chart ──
+    // ── Load all weeks data for the volume chart (sequential to avoid connection pool exhaustion) ──
     const loadAllChartData = async (currentWeek) => {
         try {
             await loadSpotAllTime()
-            await Promise.all([
-                ...Array.from({ length: currentWeek + 1 }, (_, i) => i).map(w => loadSpotSnapshot(w)),
-                ...Array.from({ length: currentWeek }, (_, i) => i).map(w => loadFuturesForWeek(w)),
-            ])
+            // Load spot snapshots sequentially (weeks 1..currentWeek)
+            for (let w = 1; w <= currentWeek; w++) {
+                await loadSpotSnapshot(w)
+            }
+            // Load futures sequentially (week 0 = live, weeks 1..currentWeek-1 = frozen)
+            for (let w = 0; w < currentWeek; w++) {
+                await loadFuturesForWeek(w)
+            }
             setChartDataLoaded(true)
         } catch (err) {
             console.error('Failed to load chart data:', err)
+            setChartDataLoaded(true) // prevent stuck state on error
         }
     }
 
