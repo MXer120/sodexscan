@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useTheme } from '../lib/ThemeContext'
 import '../styles/SoPoints.css'
 import { supabase } from '../lib/supabaseClient'
@@ -47,6 +48,18 @@ const SoPointsPage = () => {
     // Weekly futures data for all users (from weekly LB RPC)
     const [futuresDataByWeek, setFuturesDataByWeek] = useState({}) // weekNum -> addr->vol map
     const [futuresLoading, setFuturesLoading] = useState(false)
+
+    // Volume chart state
+    const [platformVolume, setPlatformVolume] = useState({ all: null, spot: null, futures: null })
+    const [platformVolumeLoading, setPlatformVolumeLoading] = useState(false)
+    const [chartFilter, setChartFilter] = useState('all')
+    const [chartDataLoaded, setChartDataLoaded] = useState(false)
+    const [spotWeight, setSpotWeight] = useState(2)
+
+    // Volume chart zoom
+    const [zoomRange, setZoomRange] = useState({ start: 0, end: null })
+    const mouseRatioRef = useRef(0.5)
+    const [legacyExpanded, setLegacyExpanded] = useState(false)
 
     // Points leaderboard state
     const [selectedPointsWeek, setSelectedPointsWeek] = useState(null) // null = current week (set after meta loads)
@@ -109,29 +122,37 @@ const SoPointsPage = () => {
     useEffect(() => {
         loadMeta()
         loadStats()
+        loadPlatformVolume()
     }, [])
 
-    // Set default selected week + load data once meta is available
+    // Set default selected week + load data once meta + legacy section available
     useEffect(() => {
-        if (lbMeta) {
+        if (lbMeta && legacyExpanded) {
             const week = selectedPointsWeek || lbMeta.current_week_number
             if (!selectedPointsWeek) setSelectedPointsWeek(week)
             loadPointsWeekData(week)
         }
-    }, [lbMeta])
+    }, [lbMeta, legacyExpanded])
 
-    // When selected week changes, load its data
+    // When selected week changes, load its data (only if legacy expanded)
     useEffect(() => {
-        if (selectedPointsWeek && lbMeta) {
+        if (selectedPointsWeek && lbMeta && legacyExpanded) {
             setPointsLbPage(1)
             loadPointsWeekData(selectedPointsWeek)
         }
     }, [selectedPointsWeek])
 
-    // Load reward estimate when wallet available
+    // Load reward estimate when wallet available and legacy section expanded
     useEffect(() => {
-        if (ownWallet) loadRewardEstimate(ownWallet)
-    }, [ownWallet])
+        if (ownWallet && legacyExpanded) loadRewardEstimate(ownWallet)
+    }, [ownWallet, legacyExpanded])
+
+    // Load all weeks data for chart when wallet + meta available
+    useEffect(() => {
+        if (ownWallet && lbMeta && !chartDataLoaded) {
+            loadAllChartData(lbMeta.current_week_number)
+        }
+    }, [ownWallet, lbMeta, chartDataLoaded])
 
     // ── Load all-time spot data from GitHub ──
     const loadSpotAllTime = async () => {
@@ -179,6 +200,37 @@ const SoPointsPage = () => {
         } catch (err) {
             console.error('Failed to load weekly futures:', err)
             return null
+        }
+    }
+
+    // ── Load platform volume from API (all / spot / futures) ──
+    const loadPlatformVolume = async () => {
+        setPlatformVolumeLoading(true)
+        try {
+            const base = 'https://mainnet-data.sodex.dev/api/v1/dashboard/volume?start_date=2024-01-01&end_date=2026-03-04&market_type='
+            const [allRes, spotRes, futRes] = await Promise.all([
+                fetch(base + 'all').then(r => r.json()),
+                fetch(base + 'spot').then(r => r.json()),
+                fetch(base + 'futures').then(r => r.json()),
+            ])
+            setPlatformVolume({ all: allRes, spot: spotRes, futures: futRes })
+        } catch (err) {
+            console.error('Failed to load platform volume:', err)
+        }
+        setPlatformVolumeLoading(false)
+    }
+
+    // ── Load all weeks data for the volume chart ──
+    const loadAllChartData = async (currentWeek) => {
+        try {
+            await loadSpotAllTime()
+            await Promise.all([
+                ...Array.from({ length: currentWeek + 1 }, (_, i) => i).map(w => loadSpotSnapshot(w)),
+                ...Array.from({ length: currentWeek }, (_, i) => i).map(w => loadFuturesForWeek(w)),
+            ])
+            setChartDataLoaded(true)
+        } catch (err) {
+            console.error('Failed to load chart data:', err)
         }
     }
 
@@ -410,6 +462,96 @@ const SoPointsPage = () => {
         return pointsLeaderboard.entries.find(e => e.walletAddress.toLowerCase() === ownWallet.toLowerCase())
     }, [pointsLeaderboard, ownWallet])
 
+    // Week 4 spot snapshot was broken — zero out spot for W4, use W3 snapshot as base for W5
+    const BROKEN_SPOT_WEEK = 4
+
+    // ── Volume chart data ──
+    const volumeChartData = useMemo(() => {
+        if (!lbMeta) return []
+        const currentWeek = lbMeta.current_week_number
+        const platformRaw = chartFilter === 'spot' ? platformVolume.spot
+            : chartFilter === 'futures' ? platformVolume.futures
+            : platformVolume.all
+
+        // API response: { code, data: { data: [...] } }
+        const extractArr = (d) => {
+            if (!d) return []
+            if (Array.isArray(d)) return d
+            if (d.data?.data && Array.isArray(d.data.data)) return d.data.data
+            if (d.data && Array.isArray(d.data)) return d.data
+            return []
+        }
+
+        // Each entry has `timestamp` (ms) and `cumulative` (string)
+        const getCumVolAtDate = (arr, targetDate) => {
+            const targetMs = targetDate.getTime()
+            let best = null
+            let bestMs = -Infinity
+            for (const p of arr) {
+                const ms = p.timestamp ?? new Date(p.day_date || p.date || p.time).getTime()
+                if (!ms || isNaN(ms)) continue
+                if (ms <= targetMs && ms > bestMs) { best = p; bestMs = ms }
+            }
+            return best ? parseFloat(best.cumulative ?? best.cumulative_volume ?? best.total ?? 0) : 0
+        }
+
+        const platformArr = extractArr(platformRaw)
+
+        return Array.from({ length: currentWeek }, (_, i) => {
+            const w = i + 1
+            const isLive = w === currentWeek
+            const walletLow = ownWallet?.toLowerCase()
+
+            // User futures vol
+            const weekFutures = futuresDataByWeek[isLive ? 0 : w]
+            const userFuturesVol = walletLow && weekFutures ? (weekFutures[walletLow] || 0) : 0
+
+            // User spot vol — week 4 snapshot was broken
+            let userSpotVol = 0
+            if (w === BROKEN_SPOT_WEEK) {
+                userSpotVol = 0 // zeroed out due to broken snapshot
+            } else if (walletLow) {
+                const spotSrc = isLive ? spotAllTime : spotSnapshots[w]
+                // For the week after the broken one, skip the broken snapshot and use the one before it
+                const prevSnapWeek = w === BROKEN_SPOT_WEEK + 1 ? BROKEN_SPOT_WEEK - 1 : w - 1
+                const prevSnap = w > 1 ? spotSnapshots[prevSnapWeek] : null
+                if (spotSrc) {
+                    const cur = spotSrc[walletLow]?.vol || spotSrc[ownWallet]?.vol || 0
+                    const prev = prevSnap ? (prevSnap[walletLow]?.vol || prevSnap[ownWallet]?.vol || 0) : 0
+                    userSpotVol = Math.max(0, cur - prev)
+                }
+            }
+
+            const userVol = chartFilter === 'spot' ? userSpotVol
+                : chartFilter === 'futures' ? userFuturesVol
+                : userSpotVol + userFuturesVol
+
+            // Platform weekly vol — same broken week treatment as user spot
+            const weekEnd = new Date(WEEK1_START.getTime() + w * WEEK_DURATION)
+            let platformVol = 0
+            if (w !== BROKEN_SPOT_WEEK) {
+                const platformStart = w === BROKEN_SPOT_WEEK + 1
+                    ? new Date(WEEK1_START.getTime() + (BROKEN_SPOT_WEEK - 1) * WEEK_DURATION)
+                    : new Date(WEEK1_START.getTime() + (w - 1) * WEEK_DURATION)
+                platformVol = Math.max(0, getCumVolAtDate(platformArr, weekEnd) - getCumVolAtDate(platformArr, platformStart))
+            }
+
+            // Weighted vol (spot × spotWeight + futures); always computed, chart shows it conditionally
+            const userWeightedVol = userSpotVol * spotWeight + userFuturesVol
+
+            // Actual Competitiveness: user vol as % of platform vol
+            const actualCompetitiveness = platformVol > 0 ? (userVol / platformVol) * 100 : 0
+
+            return { week: `W${w}`, weekLabel: getWeekDateRange(w), userVol, userWeightedVol, platformVol, actualCompetitiveness, brokenSpot: w === BROKEN_SPOT_WEEK }
+        })
+    }, [lbMeta, platformVolume, chartFilter, futuresDataByWeek, spotAllTime, spotSnapshots, ownWallet, spotWeight])
+
+    const visibleChartData = useMemo(() => {
+        if (!volumeChartData.length) return volumeChartData
+        const end = zoomRange.end ?? volumeChartData.length
+        return volumeChartData.slice(zoomRange.start, end)
+    }, [volumeChartData, zoomRange])
+
     const closedAlphaStats = {
         totalUsers: 4708,
         traders: 1800,
@@ -489,85 +631,147 @@ const SoPointsPage = () => {
 
     return (
         <div className="sopoints-container">
-            <div className="sopoints-header">
-                {/* Current Week Pool Card */}
-                <div className="sopoints-card pool-card">
-                    <div className="pool-label">Week {currentWeekNum} Reward Pool</div>
-                    <div className="pool-amount" style={{ fontSize: '32px' }}>
-                        {formatNumber(poolSize)} <span style={{ color: 'var(--color-primary)' }}>SoPoints</span>
+            {/* ─── Volume Chart ─── */}
+            <div className="sopoints-table-container"
+                style={{ marginBottom: '24px', padding: '20px 24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                    <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Weekly Volume</h2>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Market filter */}
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {['all', 'spot', 'futures'].map(f => (
+                                <button key={f} onClick={() => setChartFilter(f)} style={{
+                                    padding: '4px 12px', borderRadius: '6px',
+                                    border: '1px solid var(--color-border-subtle)',
+                                    background: chartFilter === f ? 'var(--color-primary)' : 'transparent',
+                                    color: chartFilter === f ? '#fff' : 'var(--color-text-secondary)',
+                                    fontSize: '12px', cursor: 'pointer',
+                                    fontWeight: chartFilter === f ? 600 : 400, transition: 'all 0.15s'
+                                }}>
+                                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                        {/* Spot weight */}
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Spot Weight:</span>
+                            {[1, 1.5, 2, 3, 5].map(w => (
+                                <button key={w} onClick={() => setSpotWeight(w)} style={{
+                                    padding: '4px 8px', borderRadius: '6px',
+                                    border: '1px solid var(--color-border-subtle)',
+                                    background: spotWeight === w ? 'var(--color-primary)' : 'transparent',
+                                    color: spotWeight === w ? '#fff' : 'var(--color-text-secondary)',
+                                    fontSize: '11px', cursor: 'pointer',
+                                    fontWeight: spotWeight === w ? 600 : 400, transition: 'all 0.15s'
+                                }}>
+                                    {w}x
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-                        Spot volume weighted {SPOT_MULTIPLIER}x vs futures
+                </div>
+                {volumeChartData.some(d => d.brokenSpot) && chartFilter !== 'futures' && (
+                    <div style={{ fontSize: '12px', color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '6px', padding: '6px 12px', marginBottom: '12px' }}>
+                        &#9888; Spot data for W{BROKEN_SPOT_WEEK} was not recorded correctly — spot volume is $0 for that week and included in W{BROKEN_SPOT_WEEK + 1}. Platform volume follows the same adjustment.
                     </div>
-                    <div className="countdown-container">
+                )}
+                {platformVolumeLoading ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                        Loading chart...
+                    </div>
+                ) : (
+                    <>
+                        <div
+                            style={{ touchAction: 'none' }}
+                            onMouseMove={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                mouseRatioRef.current = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+                            }}
+                            onWheel={(e) => {
+                                e.preventDefault()
+                                const total = volumeChartData.length
+                                if (total <= 2) return
+                                const ratio = mouseRatioRef.current
+                                setZoomRange(prev => {
+                                    const start = prev.start
+                                    const end = prev.end ?? total
+                                    const range = end - start
+                                    const newRange = e.deltaY < 0 ? range - 2 : range + 2
+                                    if (newRange < 2 || (e.deltaY > 0 && start === 0 && end >= total)) return prev
+                                    const pivotIndex = start + ratio * range
+                                    let newStart = Math.round(pivotIndex - ratio * newRange)
+                                    let newEnd = newStart + newRange
+                                    if (newEnd > total) { newEnd = total; newStart = newEnd - newRange }
+                                    if (newStart < 0) { newStart = 0; newEnd = Math.min(total, newRange) }
+                                    return { start: newStart, end: newEnd }
+                                })
+                            }}
+                        >
+                        <ResponsiveContainer width="100%" height={280}>
+                            <LineChart data={visibleChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" opacity={0.5} />
+                                <XAxis dataKey="week" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                                <YAxis yAxisId="vol" tickFormatter={v => '$' + formatVol(v)} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={60} />
+                                <YAxis yAxisId="pct" orientation="right" tickFormatter={v => v.toFixed(2) + '%'} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={65} />
+                                <Tooltip
+                                    content={({ active, payload, label }) => {
+                                        if (!active || !payload?.length) return null
+                                        const d = visibleChartData.find(x => x.week === label)
+                                        return (
+                                            <div style={{ background: 'var(--color-bg-modal)', border: '1px solid var(--color-border-subtle)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px' }}>
+                                                <div style={{ fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-main)' }}>{d?.weekLabel || label}</div>
+                                                {payload.map((p, i) => (
+                                                    <div key={i} style={{ color: p.color, marginBottom: '2px' }}>
+                                                        {p.name}: <strong>{p.dataKey === 'actualCompetitiveness' ? p.value.toFixed(4) + '%' : '$' + formatVol(p.value)}</strong>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )
+                                    }}
+                                />
+                                <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--color-text-secondary)' }} />
+                                {ownWallet && (
+                                    <Line yAxisId="vol" type="monotone" dataKey="userVol" name="Your Volume"
+                                        stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4, fill: 'var(--color-primary)' }} connectNulls activeDot={{ r: 6 }} />
+                                )}
+                                {ownWallet && chartFilter === 'all' && spotWeight > 1 && (
+                                    <Line yAxisId="vol" type="monotone" dataKey="userWeightedVol" name={`Weighted Volume (${spotWeight}x spot)`}
+                                        stroke="#10b981" strokeWidth={2} dot={{ r: 4, fill: '#10b981' }} connectNulls activeDot={{ r: 6 }} />
+                                )}
+                                {ownWallet && (
+                                    <Line yAxisId="pct" type="monotone" dataKey="actualCompetitiveness" name="Actual Competitiveness"
+                                        stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4, fill: '#6366f1' }} connectNulls activeDot={{ r: 6 }} />
+                                )}
+                            </LineChart>
+                        </ResponsiveContainer>
+                        </div>
+                        {!ownWallet && (
+                            <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                                Connect your wallet in <a href="/profile" style={{ color: 'var(--color-primary)' }}>Profile</a> to see your volume lines
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            <div className="sopoints-card pool-card" style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                    <div>
+                        <div className="pool-label">Week {currentWeekNum} Reward Pool</div>
+                        <div className="pool-amount" style={{ fontSize: '32px' }}>
+                            {formatNumber(poolSize)} <span style={{ color: 'var(--color-primary)' }}>SoPoints</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                            Spot volume weighted {SPOT_MULTIPLIER}x vs futures
+                        </div>
+                    </div>
+                    <div className="countdown-container" style={{ textAlign: 'right' }}>
                         <div className="countdown-label">Next Snapshot in</div>
                         <div className="countdown-timer">
                             {timeLeft || 'Calculating...'}
                         </div>
                     </div>
                 </div>
-
-                {/* Your Estimated Reward Card */}
-                {ownWallet ? (
-                    <div className="sopoints-card cta-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div className="pool-label" style={{ marginBottom: '8px' }}>Your Estimated Reward</div>
-                        {rewardLoading && !userPointsEntry ? (
-                            <div className="pool-amount" style={{ fontSize: '28px' }}>...</div>
-                        ) : userPointsEntry ? (
-                            <>
-                                <div className="pool-amount" style={{ fontSize: '28px' }}>
-                                    ~{formatSoPoints(userPointsEntry.points)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
-                                </div>
-                                <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
-                                    <span>Futures: ${formatVol(userPointsEntry.weeklyFuturesVol)}</span>
-                                    <span>Spot: ${formatVol(userPointsEntry.weeklySpotVol)}</span>
-                                    <span>Share: {(userPointsEntry.share * 100).toFixed(2)}%</span>
-                                    <span>Rank: #{userPointsEntry.rank}</span>
-                                </div>
-                            </>
-                        ) : rewardEstimate?.found ? (
-                            <>
-                                <div className="pool-amount" style={{ fontSize: '28px' }}>
-                                    ~{formatSoPoints(rewardEstimate.estimated_reward)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
-                                </div>
-                                <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
-                                    <span>Vol: ${parseFloat(rewardEstimate.weekly_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
-                                    <span>Share: {rewardEstimate.total_weekly_volume > 0
-                                        ? ((parseFloat(rewardEstimate.weekly_volume) / parseFloat(rewardEstimate.total_weekly_volume)) * 100).toFixed(2)
-                                        : '0.00'}%</span>
-                                    <span>Rank: #{rewardEstimate.volume_rank || '-'}</span>
-                                </div>
-                            </>
-                        ) : (spotDataLoading || futuresLoading) ? (
-                            <div className="pool-amount" style={{ fontSize: '28px' }}>
-                                <span className="spot-loading-dot">...</span>
-                            </div>
-                        ) : (
-                            <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
-                                No trading volume this week yet
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="sopoints-card cta-card">
-                        <div className="cta-boost">+5% Points Boost</div>
-                        <div className="cta-text">Connect your wallet in <Link href="/profile" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>Profile</Link> to see your estimated reward.</div>
-                        <a
-                            href="https://sodex.com/join/SOSO"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="join-btn"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <line x1="19" y1="8" x2="19" y2="14"></line>
-                                <line x1="22" y1="11" x2="16" y2="11"></line>
-                            </svg>
-                            Join now
-                        </a>
-                    </div>
-                )}
             </div>
 
             <div className="table-controls" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -673,114 +877,154 @@ const SoPointsPage = () => {
                 </table>
             </div>
 
-            {/* ─── Points Leaderboard ─── */}
-            {pointsLeaderboard && (
-                <div className="sopoints-table-container" style={{ marginTop: '24px' }}>
-                    <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
-                                Points Leaderboard
-                            </h2>
-                            <select
-                                value={selectedPointsWeek || currentWeekNum}
-                                onChange={(e) => setSelectedPointsWeek(parseInt(e.target.value))}
-                                style={{
-                                    background: 'var(--color-bg-secondary)',
-                                    border: '1px solid var(--color-border-subtle)',
-                                    borderRadius: '6px',
-                                    padding: '4px 8px',
-                                    fontSize: '13px',
-                                    color: 'var(--color-text-main)',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {Array.from({ length: currentWeekNum }, (_, i) => currentWeekNum - i).map(w => (
-                                    <option key={w} value={w}>
-                                        Week {w}{w === currentWeekNum ? ' (Live)' : ''}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span>{pointsLeaderboard.entries.length} traders · Spot {pointsLeaderboard.weekConfig.spot_multiplier}x weighted</span>
-                            {!pointsLeaderboard.weekConfig.include_spot && (
-                                <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; spot excluded</span>
-                            )}
-                            {!pointsLeaderboard.weekConfig.include_futures && (
-                                <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; futures excluded</span>
-                            )}
-                            {pointsLeaderboard.weekConfig.spot_multiplier !== SPOT_MULTIPLIER && pointsLeaderboard.weekConfig.include_spot && pointsLeaderboard.weekConfig.include_futures && (
-                                <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; custom multiplier</span>
-                            )}
-                        </span>
-                    </div>
-                    <table className="sopoints-table points-lb-table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Wallet</th>
-                                <th style={{ textAlign: 'right' }}>Spot Vol</th>
-                                <th style={{ textAlign: 'right' }}>Futures Vol</th>
-                                <th style={{ textAlign: 'right' }}>Est. Points</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pointsLeaderboard.entries
-                                .slice((pointsLbPage - 1) * POINTS_PAGE_SIZE, pointsLbPage * POINTS_PAGE_SIZE)
-                                .map((entry) => {
-                                    const isUser = ownWallet && entry.walletAddress.toLowerCase() === ownWallet.toLowerCase()
-                                    return (
-                                        <tr key={entry.walletAddress} style={isUser ? { background: 'rgba(var(--color-primary-rgb), 0.08)' } : {}}>
-                                            <td style={{ fontWeight: 600 }}>#{entry.rank}</td>
-                                            <td style={{ fontFamily: 'monospace', fontSize: '13px' }}>
-                                                {isUser ? (
-                                                    <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-                                                        {truncAddr(entry.walletAddress)} <span style={{ fontSize: '10px' }}>(you)</span>
-                                                    </span>
-                                                ) : truncAddr(entry.walletAddress)}
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklySpotVol)}</td>
-                                            <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklyFuturesVol)}</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)' }}>
-                                                {formatSoPoints(entry.points)}
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                        </tbody>
-                    </table>
-                    {pointsLeaderboard.entries.length > POINTS_PAGE_SIZE && (
-                        <div style={{ padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-subtle)' }}>
-                            <button
-                                className="points-lb-page-btn"
-                                onClick={() => setPointsLbPage(p => Math.max(1, p - 1))}
-                                disabled={pointsLbPage === 1}
-                            >
-                                &lt; Prev
-                            </button>
-                            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                                Page {pointsLbPage} of {Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE)}
-                            </span>
-                            <button
-                                className="points-lb-page-btn"
-                                onClick={() => setPointsLbPage(p => Math.min(Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE), p + 1))}
-                                disabled={pointsLbPage >= Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE)}
-                            >
-                                Next &gt;
-                            </button>
-                        </div>
-                    )}
-                    <div style={{ padding: '8px 24px 16px', textAlign: 'center', fontSize: '11px', color: '#666' }}>
-                        Spot data by <a href="https://x.com/eliasing__" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>@eliasing__</a>
-                    </div>
+            {/* ─── Legacy (collapsed) ─── */}
+            <div className="sopoints-table-container" style={{ marginTop: '24px' }}>
+                <div
+                    onClick={() => setLegacyExpanded(v => !v)}
+                    style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                >
+                    <span style={{ fontWeight: 600, fontSize: '16px' }}>Legacy</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: legacyExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--color-text-muted)' }}>
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </div>
-            )}
+                {legacyExpanded && (
+                    <div style={{ borderTop: '1px solid var(--color-border-subtle)', padding: '20px 24px' }}>
+                        {/* Estimated Reward */}
+                        {ownWallet ? (
+                            <div className="sopoints-card cta-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '24px' }}>
+                                <div className="pool-label" style={{ marginBottom: '8px' }}>Your Estimated Reward</div>
+                                {rewardLoading && !userPointsEntry ? (
+                                    <div className="pool-amount" style={{ fontSize: '28px' }}>...</div>
+                                ) : userPointsEntry ? (
+                                    <>
+                                        <div className="pool-amount" style={{ fontSize: '28px' }}>
+                                            ~{formatSoPoints(userPointsEntry.points)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
+                                        </div>
+                                        <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
+                                            <span>Futures: ${formatVol(userPointsEntry.weeklyFuturesVol)}</span>
+                                            <span>Spot: ${formatVol(userPointsEntry.weeklySpotVol)}</span>
+                                            <span>Share: {(userPointsEntry.share * 100).toFixed(2)}%</span>
+                                            <span>Rank: #{userPointsEntry.rank}</span>
+                                        </div>
+                                    </>
+                                ) : rewardEstimate?.found ? (
+                                    <>
+                                        <div className="pool-amount" style={{ fontSize: '28px' }}>
+                                            ~{formatSoPoints(rewardEstimate.estimated_reward)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
+                                        </div>
+                                        <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
+                                            <span>Vol: ${parseFloat(rewardEstimate.weekly_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                                            <span>Share: {rewardEstimate.total_weekly_volume > 0
+                                                ? ((parseFloat(rewardEstimate.weekly_volume) / parseFloat(rewardEstimate.total_weekly_volume)) * 100).toFixed(2)
+                                                : '0.00'}%</span>
+                                            <span>Rank: #{rewardEstimate.volume_rank || '-'}</span>
+                                        </div>
+                                    </>
+                                ) : (spotDataLoading || futuresLoading) ? (
+                                    <div className="pool-amount" style={{ fontSize: '28px' }}>
+                                        <span className="spot-loading-dot">...</span>
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                                        No trading volume this week yet
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="sopoints-card cta-card" style={{ marginBottom: '24px' }}>
+                                <div className="cta-boost">+5% Points Boost</div>
+                                <div className="cta-text">Connect your wallet in <Link href="/profile" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>Profile</Link> to see your estimated reward.</div>
+                                <a href="https://sodex.com/join/SOSO" target="_blank" rel="noopener noreferrer" className="join-btn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <line x1="19" y1="8" x2="19" y2="14"></line>
+                                        <line x1="22" y1="11" x2="16" y2="11"></line>
+                                    </svg>
+                                    Join now
+                                </a>
+                            </div>
+                        )}
 
-            {(spotDataLoading || futuresLoading) && !pointsLeaderboard && (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                    <span className="spot-loading-dot">Loading points leaderboard...</span>
-                </div>
-            )}
+                        {/* Points Leaderboard */}
+                        {pointsLeaderboard && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Points Leaderboard</h2>
+                                        <select
+                                            value={selectedPointsWeek || currentWeekNum}
+                                            onChange={(e) => setSelectedPointsWeek(parseInt(e.target.value))}
+                                            style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', color: 'var(--color-text-main)', cursor: 'pointer' }}
+                                        >
+                                            {Array.from({ length: currentWeekNum }, (_, i) => currentWeekNum - i).map(w => (
+                                                <option key={w} value={w}>Week {w}{w === currentWeekNum ? ' (Live)' : ''}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <span>{pointsLeaderboard.entries.length} traders · Spot {pointsLeaderboard.weekConfig.spot_multiplier}x weighted</span>
+                                        {!pointsLeaderboard.weekConfig.include_spot && <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; spot excluded</span>}
+                                        {!pointsLeaderboard.weekConfig.include_futures && <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; futures excluded</span>}
+                                    </span>
+                                </div>
+                                <table className="sopoints-table points-lb-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Wallet</th>
+                                            <th style={{ textAlign: 'right' }}>Spot Vol</th>
+                                            <th style={{ textAlign: 'right' }}>Futures Vol</th>
+                                            <th style={{ textAlign: 'right' }}>Est. Points</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pointsLeaderboard.entries
+                                            .slice((pointsLbPage - 1) * POINTS_PAGE_SIZE, pointsLbPage * POINTS_PAGE_SIZE)
+                                            .map((entry) => {
+                                                const isUser = ownWallet && entry.walletAddress.toLowerCase() === ownWallet.toLowerCase()
+                                                return (
+                                                    <tr key={entry.walletAddress} style={isUser ? { background: 'rgba(var(--color-primary-rgb), 0.08)' } : {}}>
+                                                        <td style={{ fontWeight: 600 }}>#{entry.rank}</td>
+                                                        <td style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                                                            {isUser ? (
+                                                                <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                                                                    {truncAddr(entry.walletAddress)} <span style={{ fontSize: '10px' }}>(you)</span>
+                                                                </span>
+                                                            ) : truncAddr(entry.walletAddress)}
+                                                        </td>
+                                                        <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklySpotVol)}</td>
+                                                        <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklyFuturesVol)}</td>
+                                                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)' }}>
+                                                            {formatSoPoints(entry.points)}
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })}
+                                    </tbody>
+                                </table>
+                                {pointsLeaderboard.entries.length > POINTS_PAGE_SIZE && (
+                                    <div style={{ padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-subtle)', marginTop: '4px' }}>
+                                        <button className="points-lb-page-btn" onClick={() => setPointsLbPage(p => Math.max(1, p - 1))} disabled={pointsLbPage === 1}>&lt; Prev</button>
+                                        <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Page {pointsLbPage} of {Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE)}</span>
+                                        <button className="points-lb-page-btn" onClick={() => setPointsLbPage(p => Math.min(Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE), p + 1))} disabled={pointsLbPage >= Math.ceil(pointsLeaderboard.entries.length / POINTS_PAGE_SIZE)}>Next &gt;</button>
+                                    </div>
+                                )}
+                                <div style={{ paddingTop: '8px', textAlign: 'center', fontSize: '11px', color: '#666' }}>
+                                    Spot data by <a href="https://x.com/eliasing__" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>@eliasing__</a>
+                                </div>
+                            </div>
+                        )}
+                        {(spotDataLoading || futuresLoading) && !pointsLeaderboard && (
+                            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                                <span className="spot-loading-dot">Loading points leaderboard...</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <style jsx>{`
         .diff-checkbox {

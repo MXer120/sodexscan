@@ -33,11 +33,19 @@ export default function NewTradersWidget() {
       if (cached) { setTraders(cached); setLoading(false); return }
       setLoading(true)
       try {
-        const { data } = await supabase.from('leaderboard').select('wallet_address, first_trade_ts_ms').order('first_trade_ts_ms', { ascending: false, nullsFirst: false }).limit(10)
-        const sorted = (data || []).sort((a, b) => (b.first_trade_ts_ms || 0) - (a.first_trade_ts_ms || 0))
-        globalCache.setNewestTraders(sorted)
-        setTraders(sorted)
-      } catch (err) { console.error(err) }
+        const { data, error } = await supabase
+          .from('leaderboard')
+          .select('wallet_address, first_trade_ts_ms')
+          .not('first_trade_ts_ms', 'is', null)
+          .order('first_trade_ts_ms', { ascending: false })
+          .limit(10)
+        if (error) throw error
+        const results = data || []
+        globalCache.setNewestTraders(results)
+        setTraders(results)
+      } catch (err) {
+        if (err?.name !== 'AbortError') console.error(err)
+      }
       setLoading(false)
     }
     load()

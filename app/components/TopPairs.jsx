@@ -74,10 +74,10 @@ export default function TopPairs() {
   const [newestTradersError, setNewestTradersError] = useState(null)
 
   // Fetch tickers page
-  const loadTickers = useCallback(async (offset = 0, append = false) => {
+  const loadTickers = useCallback(async (offset = 0, append = false, attempt = 0) => {
     if (offset === 0) {
       setIsLoading(true)
-      setTickers([])
+      if (!append) setTickers([])
     } else {
       setIsLoadingMore(true)
     }
@@ -90,11 +90,8 @@ export default function TopPairs() {
         .order('volume_24h', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1)
 
-      if (filter === 'Spot') {
-        query = query.eq('market_type', 'spot')
-      } else if (filter === 'Futures') {
-        query = query.eq('market_type', 'futures')
-      }
+      if (filter === 'Spot') query = query.eq('market_type', 'spot')
+      else if (filter === 'Futures') query = query.eq('market_type', 'futures')
 
       const { data, error: fetchError } = await query
 
@@ -109,8 +106,14 @@ export default function TopPairs() {
         setTickers(results)
       }
     } catch (err) {
+      if (err?.name === 'AbortError') return
+      if (attempt < 2) {
+        // Retry up to 2 times with backoff
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+        return loadTickers(offset, append, attempt + 1)
+      }
       console.error('Failed to load tickers:', err)
-      setError(err.message || 'Error loading market data')
+      setError('Error loading market data')
     } finally {
       setIsLoading(false)
       setIsLoadingMore(false)
@@ -138,23 +141,19 @@ export default function TopPairs() {
       const { data, error } = await supabase
         .from('leaderboard')
         .select('wallet_address, first_trade_ts_ms')
-        .order('first_trade_ts_ms', { ascending: false, nullsFirst: false })
+        .not('first_trade_ts_ms', 'is', null)
+        .order('first_trade_ts_ms', { ascending: false })
         .limit(10)
 
       if (error) throw error
 
-      const sorted = (data || []).sort((a, b) => {
-        if (!a.first_trade_ts_ms && !b.first_trade_ts_ms) return 0
-        if (!a.first_trade_ts_ms) return 1
-        if (!b.first_trade_ts_ms) return -1
-        return (b.first_trade_ts_ms || 0) - (a.first_trade_ts_ms || 0)
-      })
-
-      globalCache.setNewestTraders(sorted)
-      setNewestTraders(sorted)
+      const results = data || []
+      globalCache.setNewestTraders(results)
+      setNewestTraders(results)
     } catch (err) {
+      if (err?.name === 'AbortError') return
       console.error('Failed to load newest traders:', err)
-      setNewestTradersError(err.message || 'Error loading newest traders')
+      setNewestTradersError('Could not load')
     } finally {
       setNewestTradersLoading(false)
     }

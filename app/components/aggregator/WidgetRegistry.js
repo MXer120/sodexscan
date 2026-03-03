@@ -12,6 +12,7 @@ const WeeklySpotLBWidget = lazy(() => import('./widgets/WeeklySpotLBWidget'))
 const SnapshotCountdownWidget = lazy(() => import('./widgets/SnapshotCountdownWidget'))
 const EstimatedRewardWidget = lazy(() => import('./widgets/EstimatedRewardWidget'))
 const WeekTableWidget = lazy(() => import('./widgets/WeekTableWidget'))
+const VolumeChartWidget = lazy(() => import('./widgets/VolumeChartWidget'))
 const PointsLeaderboardWidget = lazy(() => import('./widgets/PointsLeaderboardWidget'))
 const ReferralCodeWidget = lazy(() => import('./widgets/ReferralCodeWidget'))
 const WatchlistWidget = lazy(() => import('./widgets/WatchlistWidget'))
@@ -166,6 +167,16 @@ export const WIDGET_REGISTRY = {
     description: 'SoPoints week statistics',
     category: 'sopoints',
     defaultSize: { w: 12, h: 5, minW: 4, minH: 3 }, smH: 14, mdH: 5,
+    defaultSettings: {},
+    settingsSchema: [],
+    visibilitySchema: []
+  },
+  'volume-chart': {
+    component: VolumeChartWidget,
+    label: 'Volume Chart',
+    description: 'Weekly user vs platform volume',
+    category: 'sopoints',
+    defaultSize: { w: 12, h: 5, minW: 6, minH: 3 }, smH: 14, mdH: 5,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
