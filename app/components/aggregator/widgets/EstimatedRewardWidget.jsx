@@ -36,8 +36,8 @@ export default function EstimatedRewardWidget() {
     )
   }
 
-  const points = reward?.estimated_points ? Math.round(reward.estimated_points) : 0
-  const rank = reward?.estimated_rank || '-'
+  const points = reward?.estimated_reward ? Math.round(reward.estimated_reward) : 0
+  const rank = reward?.volume_rank || '-'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8 }}>

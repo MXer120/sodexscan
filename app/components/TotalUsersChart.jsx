@@ -99,8 +99,11 @@ export default function TotalUsersChart() {
           cumulative += d.count
           return { date: d.date * 1000, newUsers: d.count, totalUsers: cumulative, isActual: true }
         })
+        const apiTotal = json.data.total || cumulative
+        const offset = Math.max(0, apiTotal - cumulative)
+        if (offset > 0) processed.forEach(p => { p.totalUsers += offset })
         setData(processed)
-        setTotalUsers(json.data.total || cumulative)
+        setTotalUsers(apiTotal)
       }
     } catch (err) {
       console.error('Failed to fetch user data:', err)

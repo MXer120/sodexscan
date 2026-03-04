@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabaseClient'
 import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
+import { useSoPointsConfig } from '../../../hooks/useSoPointsConfig'
 import CopyableAddress from '../../ui/CopyableAddress'
 
 const SPOT_MULTIPLIER = 2
@@ -24,6 +25,8 @@ const formatVol = (num) => {
 export default function PointsLeaderboardWidget() {
   const { data: meta } = useLeaderboardMeta()
   const weekNum = meta?.current_week_number || 0
+  const { getWeekConfig } = useSoPointsConfig()
+  const weekConfig = weekNum ? getWeekConfig(weekNum) : { include_spot: true, include_futures: true }
   const [page, setPage] = useState(1)
 
   const { data: spotAllTime = null, isLoading: isLoadingSpot } = useQuery({
@@ -116,8 +119,8 @@ export default function PointsLeaderboardWidget() {
           <tr>
             <th>#</th>
             <th>Wallet</th>
-            <th className="text-right">Spot</th>
-            <th className="text-right">Futures</th>
+            {weekConfig.include_spot && <th className="text-right">Spot</th>}
+            {weekConfig.include_futures && <th className="text-right">Futures</th>}
             <th className="text-right">Points</th>
           </tr>
         </thead>
@@ -126,8 +129,8 @@ export default function PointsLeaderboardWidget() {
             <tr key={e.wallet}>
               <td className="rank">#{e.rank}</td>
               <td><CopyableAddress address={e.wallet} /></td>
-              <td className="text-right">${formatVol(e.weeklySpot)}</td>
-              <td className="text-right">${formatVol(e.futuresVol)}</td>
+              {weekConfig.include_spot && <td className="text-right">${formatVol(e.weeklySpot)}</td>}
+              {weekConfig.include_futures && <td className="text-right">${formatVol(e.futuresVol)}</td>}
               <td className="text-right" style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
                 {e.points.toLocaleString()}
               </td>

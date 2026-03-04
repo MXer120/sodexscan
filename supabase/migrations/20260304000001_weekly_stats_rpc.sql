@@ -1,0 +1,20 @@
+-- Batch weekly leaderboard stats to replace N+1 loop in WeekTableWidget
+CREATE OR REPLACE FUNCTION get_weekly_leaderboard_stats(p_from_week INT, p_to_week INT)
+RETURNS TABLE(
+  week_number INT,
+  traders BIGINT,
+  active_traders BIGINT
+)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT
+    lw.week_number,
+    COUNT(*) FILTER (WHERE lw.cumulative_volume > 0 AND NOT COALESCE(lw.is_sodex_owned, false)) AS traders,
+    COUNT(*) FILTER (WHERE lw.cumulative_volume >= 5000 AND NOT COALESCE(lw.is_sodex_owned, false)) AS active_traders
+  FROM leaderboard_weekly lw
+  WHERE lw.week_number BETWEEN p_from_week AND p_to_week
+  GROUP BY lw.week_number;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_weekly_leaderboard_stats(INT, INT) TO anon, authenticated;

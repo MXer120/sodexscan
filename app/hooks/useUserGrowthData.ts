@@ -18,7 +18,10 @@ async function fetchGrowthData() {
       cumulative += d.count
       return { date: d.date * 1000, newUsers: d.count, totalUsers: cumulative, isActual: true }
     })
-    return { data: processed, totalUsers: json.data.total || cumulative }
+    const apiTotal = json.data.total || cumulative
+    const offset = Math.max(0, apiTotal - cumulative)
+    if (offset > 0) processed.forEach((p: any) => { p.totalUsers += offset })
+    return { data: processed, totalUsers: apiTotal }
   }
   throw new Error('Failed to fetch user growth data')
 }
