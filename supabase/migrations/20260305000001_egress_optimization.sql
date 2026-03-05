@@ -12,12 +12,5 @@ CREATE INDEX IF NOT EXISTS idx_weekly_not_sodex
 DROP INDEX IF EXISTS idx_leaderboard_pnl_desc;
 DROP INDEX IF EXISTS idx_leaderboard_volume_desc;
 
--- 3. Truncate search_history (write-only table, data never read back by any feature)
-TRUNCATE search_history;
-
--- 4. Add weekly cleanup cron for search_history to prevent unbounded growth
-SELECT cron.schedule(
-  'cleanup-search-history',
-  '0 4 * * 0',
-  $$DELETE FROM search_history WHERE searched_at < now() - interval '30 days'$$
-);
+-- 3. Drop search_history table entirely (write-only, never read, no consumers)
+DROP TABLE IF EXISTS search_history;
