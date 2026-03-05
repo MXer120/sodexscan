@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useTheme } from '../lib/ThemeContext'
+import { useUserGrowthData } from '../hooks/useUserGrowthData'
 import {
   ComposedChart,
   Line,
@@ -73,45 +74,12 @@ const calculateYAxisDomain = (data) => {
 
 export default function TotalUsersChart() {
   const { theme } = useTheme()
-  const [data, setData] = useState([])
-  const [totalUsers, setTotalUsers] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const { data: growthData, isLoading: loading, isError } = useUserGrowthData()
   const [projectionDays, setProjectionDays] = useState(7)
   const [timeframeDays, setTimeframeDays] = useState(30)
-  const [error, setError] = useState(null)
 
-  useEffect(() => { fetchData() }, [])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('https://mainnet-data.sodex.dev/api/v1/mirror/users/daily_new', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}'
-      })
-      const json = await res.json()
-      if (json.code === '0' && json.data) {
-        const daily = json.data.daily || []
-        const sorted = [...daily].sort((a, b) => a.date - b.date)
-        let cumulative = 0
-        const processed = sorted.map(d => {
-          cumulative += d.count
-          return { date: d.date * 1000, newUsers: d.count, totalUsers: cumulative, isActual: true }
-        })
-        const apiTotal = json.data.total || cumulative
-        const offset = Math.max(0, apiTotal - cumulative)
-        if (offset > 0) processed.forEach(p => { p.totalUsers += offset })
-        setData(processed)
-        setTotalUsers(apiTotal)
-      }
-    } catch (err) {
-      console.error('Failed to fetch user data:', err)
-      setError('Failed to load data')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const data = growthData?.data || []
+  const totalUsers = growthData?.totalUsers || 0
 
   const predictions = useMemo(() => {
     if (data.length < 7) return { chartData: data, milestones: [], filteredData: data, avgDailyGrowth: 0, yAxisConfig: { domain: [0, 1000], ticks: [0, 500, 1000] } }
@@ -268,8 +236,8 @@ export default function TotalUsersChart() {
         <div className="chart-area">
           {loading ? (
             <div className="chart-loading">Loading...</div>
-          ) : error ? (
-            <div className="chart-error">{error}</div>
+          ) : isError ? (
+            <div className="chart-error">Failed to load data</div>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <ComposedChart data={predictions.filteredData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
@@ -404,7 +372,6 @@ export default function TotalUsersChart() {
           padding: 16px;
           margin-bottom: 24px;
         }
-
         .chart-header-row {
           display: flex;
           justify-content: space-between;
@@ -413,34 +380,20 @@ export default function TotalUsersChart() {
           flex-wrap: wrap;
           gap: 10px;
         }
-
         .chart-title-section {
           display: flex;
           align-items: baseline;
           gap: 10px;
           flex-wrap: wrap;
         }
-
-        .chart-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #fff;
-          margin: 0;
-        }
-
-        .chart-subtitle {
-          font-size: 13px;
-          color: var(--color-primary);
-          font-weight: 500;
-        }
-
+        .chart-title { font-size: 16px; font-weight: 600; color: #fff; margin: 0; }
+        .chart-subtitle { font-size: 13px; color: var(--color-primary); font-weight: 500; }
         .chart-controls-row {
           display: flex;
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
         }
-
         .timeframe-switch,
         .projection-switch {
           display: flex;
@@ -450,14 +403,7 @@ export default function TotalUsersChart() {
           padding: 2px;
           border: 1px solid var(--color-overlay-medium);
         }
-
-        .switch-label {
-          font-size: 10px;
-          color: #666;
-          padding: 0 6px;
-          text-transform: uppercase;
-        }
-
+        .switch-label { font-size: 10px; color: #666; padding: 0 6px; text-transform: uppercase; }
         .timeframe-btn,
         .projection-btn {
           padding: 5px 10px;
@@ -470,30 +416,12 @@ export default function TotalUsersChart() {
           border-radius: 4px;
           transition: all 0.2s;
         }
-
         .timeframe-btn:hover,
         .projection-btn:hover { color: #aaa; }
-
-        .timeframe-btn.active {
-          background: var(--color-overlay-medium);
-          color: #fff;
-        }
-
-        .projection-btn.active {
-          background: ${theme.bullishColor};
-          color: #fff;
-        }
-
-        .chart-body-row {
-          display: flex;
-          gap: 16px;
-        }
-
-        .chart-area {
-          flex: 1;
-          min-width: 0;
-        }
-
+        .timeframe-btn.active { background: var(--color-overlay-medium); color: #fff; }
+        .projection-btn.active { background: ${theme.bullishColor}; color: #fff; }
+        .chart-body-row { display: flex; gap: 16px; }
+        .chart-area { flex: 1; min-width: 0; }
         .chart-loading,
         .chart-error {
           height: 280px;
@@ -503,7 +431,6 @@ export default function TotalUsersChart() {
           color: #888;
           font-size: 14px;
         }
-
         :global(.chart-tooltip) {
           background: rgba(12, 12, 12, 0.98);
           border: 1px solid var(--color-overlay-medium);
@@ -512,7 +439,6 @@ export default function TotalUsersChart() {
           min-width: 130px;
           box-shadow: 0 8px 24px rgba(0,0,0,0.7);
         }
-
         :global(.tooltip-date) {
           color: var(--color-text-muted);
           margin: 0 0 6px 0;
@@ -521,21 +447,13 @@ export default function TotalUsersChart() {
           border-bottom: 1px solid var(--color-overlay-subtle);
           padding-bottom: 5px;
         }
-
         :global(.tooltip-tag) { margin-left: 5px; font-weight: 600; }
         :global(.tooltip-tag.projected) { color: ${theme.bullishColor}; }
         :global(.tooltip-tag.current) { color: var(--color-primary); }
-
-        :global(.tooltip-row) {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 2px;
-        }
-
+        :global(.tooltip-row) { display: flex; justify-content: space-between; margin-bottom: 2px; }
         :global(.tooltip-label) { color: var(--color-text-muted); font-size: 11px; }
         :global(.tooltip-value) { color: #fff; font-weight: 600; font-size: 11px; }
         :global(.tooltip-value.green) { color: ${theme.bullishColor}; }
-
         .milestones-box {
           width: 160px;
           flex-shrink: 0;
@@ -546,7 +464,6 @@ export default function TotalUsersChart() {
           display: flex;
           flex-direction: column;
         }
-
         .milestones-header {
           display: flex;
           justify-content: space-between;
@@ -555,17 +472,9 @@ export default function TotalUsersChart() {
           padding-bottom: 8px;
           border-bottom: 1px solid var(--color-overlay-subtle);
         }
-
         .milestones-title { font-size: 12px; font-weight: 600; color: #fff; }
         .milestones-rate { font-size: 9px; color: ${theme.bullishColor}; font-weight: 500; }
-
-        .milestones-list {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
+        .milestones-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
         .milestone-item {
           display: flex;
           justify-content: space-between;
@@ -575,26 +484,12 @@ export default function TotalUsersChart() {
           border-radius: 5px;
           transition: background 0.2s;
         }
-
         .milestone-item:hover { background: var(--color-overlay-subtle); }
         .milestone-number { font-size: 13px; font-weight: 700; color: #fff; }
-
-        .milestone-eta {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-        }
-
+        .milestone-eta { display: flex; flex-direction: column; align-items: flex-end; }
         .milestone-days { font-size: 11px; font-weight: 600; color: ${theme.bullishColor}; }
         .milestone-date { font-size: 9px; color: #555; }
-
-        .no-milestones {
-          color: #666;
-          font-size: 11px;
-          text-align: center;
-          padding: 16px 0;
-        }
-
+        .no-milestones { color: #666; font-size: 11px; text-align: center; padding: 16px 0; }
         .milestones-legend {
           margin-top: 10px;
           padding-top: 8px;
@@ -603,25 +498,15 @@ export default function TotalUsersChart() {
           flex-direction: column;
           gap: 4px;
         }
-
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 9px;
-          color: #777;
-        }
-
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 9px; color: #777; }
         .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
         .legend-dot.actual { background: var(--color-primary); }
         .legend-dot.current { background: var(--color-primary); border: 2px solid #fff; box-sizing: border-box; }
         .legend-dot.predicted { background: ${theme.bullishColor}; opacity: 0.8; }
-
         @media (max-width: 900px) {
           .chart-header-row { flex-direction: column; align-items: flex-start; }
           .chart-controls-row { width: 100%; justify-content: flex-start; }
         }
-
         @media (max-width: 640px) {
           .total-users-chart-container { padding: 12px; }
           .chart-title { font-size: 14px; }
@@ -636,7 +521,6 @@ export default function TotalUsersChart() {
           .milestone-item { padding: 8px; }
           .milestones-legend { flex-direction: row; justify-content: center; gap: 12px; margin-top: 8px; padding-top: 6px; }
         }
-
         @media (max-width: 400px) {
           .timeframe-btn, .projection-btn { padding: 5px 7px; font-size: 10px; }
           .switch-label { padding: 0 4px; font-size: 9px; }

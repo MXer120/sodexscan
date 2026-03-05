@@ -19,7 +19,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 // Validate colorScheme — migrates removed schemes (e.g. 'modern') to 'cyan'
 function sanitizeColorScheme(scheme: string): ColorScheme {
   if (scheme in COLOR_SCHEMES) return scheme as ColorScheme
-  return 'cyan'
+  return 'cli'
 }
 
 function getInitialTheme(): ThemeSettings {
