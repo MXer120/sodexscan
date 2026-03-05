@@ -37,8 +37,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Fix get_weekly_leaderboard_stats: add total_users column from leaderboard_weekly.
--- WeekTable was falling back to manually-maintained leaderboard_meta.total_user_counts JSON.
-CREATE OR REPLACE FUNCTION get_weekly_leaderboard_stats(p_from_week INT, p_to_week INT)
+-- Must DROP first because return type changes (adding total_users column).
+DROP FUNCTION IF EXISTS get_weekly_leaderboard_stats(INT, INT);
+CREATE FUNCTION get_weekly_leaderboard_stats(p_from_week INT, p_to_week INT)
 RETURNS TABLE(
   week_number INT,
   total_users BIGINT,
