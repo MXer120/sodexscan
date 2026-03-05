@@ -75,32 +75,13 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
                 const data = await res.json()
                 setSpotAllTime(data)
 
-                // Spot snapshots for all weeks
-                const snapResults = await Promise.all(
-                    Array.from({ length: currentWeek + 1 }, (_, i) => i).map(async (w) => {
-                        if (w < 1) return [w, {}]
-                        try {
-                            const { data: snap } = await supabase.rpc('get_spot_snapshot', { p_week: w })
-                            return [w, (snap && typeof snap === 'object') ? snap : {}]
-                        } catch { return [w, {}] }
-                    })
-                )
-                const snapsMap = Object.fromEntries(snapResults)
-                setSpotSnapshots(snapsMap)
-
-                // Futures data: week 0 (live) + frozen weeks
-                const futResults = await Promise.all(
-                    Array.from({ length: currentWeek }, (_, i) => i).map(async (w) => {
-                        try {
-                            const { data: futMap } = await supabase.rpc('get_futures_volume_map', {
-                                p_week: w,
-                                p_exclude_sodex: true
-                            })
-                            return [w, futMap || {}]
-                        } catch { return [w, {}] }
-                    })
-                )
-                setFuturesDataByWeek(Object.fromEntries(futResults))
+                // Fetch all spot snapshots + futures maps in 2 RPCs (was 2×currentWeek queries)
+                const [snapsRes, futRes] = await Promise.all([
+                    supabase.rpc('get_all_spot_snapshots', { p_max_week: currentWeek }),
+                    supabase.rpc('get_all_futures_volume_maps', { p_max_week: currentWeek - 1, p_exclude_sodex: true })
+                ])
+                setSpotSnapshots(snapsRes.data && typeof snapsRes.data === 'object' ? snapsRes.data : {})
+                setFuturesDataByWeek(futRes.data && typeof futRes.data === 'object' ? futRes.data : {})
                 setChartDataLoaded(true)
             } catch (err) {
                 console.error('VolumeChartWidget: chart data error', err)

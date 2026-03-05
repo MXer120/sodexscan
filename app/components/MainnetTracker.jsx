@@ -632,7 +632,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       supabase
         .from('publicdns')
         .select('dc_username, tg_username, tg_displayname, ref_code')
-        .ilike('wallet_address', walletAddress)
+        .eq('wallet_address', walletAddress.toLowerCase())
         .maybeSingle()
         .then(({ data }) => {
           if (data) {

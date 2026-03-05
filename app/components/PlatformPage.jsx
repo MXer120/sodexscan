@@ -3,12 +3,12 @@ import TopPairs from './TopPairs'
 import TotalUsersChart from './TotalUsersChart'
 import '../styles/MainnetPage.css'
 import { supabase } from '../lib/supabaseClient'
+import { useUserGrowthData } from '../hooks/useUserGrowthData'
 
 export default function PlatformPage() {
+  const { data: growthData } = useUserGrowthData()
   const [platformStats, setPlatformStats] = useState({
-    totalUsers: 0,
     totalTraders: 0,
-    activityRate: 0
   })
   const [platformLoading, setPlatformLoading] = useState(true)
 
@@ -56,23 +56,7 @@ export default function PlatformPage() {
 
       if (tradersErr) console.error('traders query error:', tradersErr)
 
-      // Total users in DB
-      let usersQuery = supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true })
-      if (excludeSodexOwned) {
-        usersQuery = usersQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-      }
-      const { count: usersCount, error: usersErr } = await usersQuery
-      if (usersErr) console.error('users query error:', usersErr)
-
-      const totalTraders = tradersCount || 0
-      const totalUsers = usersCount || 0
-      const activityRate = totalUsers > 0 ? (totalTraders / totalUsers) * 100 : 0
-
-      setPlatformStats({
-        totalUsers,
-        totalTraders,
-        activityRate
-      })
+      setPlatformStats({ totalTraders: tradersCount || 0 })
 
       setPlatformLoading(false)
     } catch (err) {
@@ -191,7 +175,7 @@ export default function PlatformPage() {
       <div className="stats-row">
         <div className="stat-item">
           <span className="stat-label">Total Users</span>
-          <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.totalUsers)}</span>
+          <span className="stat-value">{growthData ? formatNumber(growthData.totalUsers) : '...'}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Active Traders</span>
@@ -199,7 +183,7 @@ export default function PlatformPage() {
         </div>
         <div className="stat-item">
           <span className="stat-label">Activity Rate</span>
-          <span className="stat-value">{platformLoading ? '...' : formatPercent(platformStats.activityRate)}</span>
+          <span className="stat-value">{platformLoading || !growthData ? '...' : formatPercent((platformStats.totalTraders / growthData.totalUsers) * 100)}</span>
         </div>
 
         <button

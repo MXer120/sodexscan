@@ -8,13 +8,32 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Module-level bracket cache (static data, changes very rarely)
+let bracketCache = { data: null, timestamp: 0 }
+const BRACKET_TTL = 60 * 60 * 1000 // 1 hour
+
 async function getSodexId(address) {
     const { data } = await supabase
         .from('leaderboard_smart')
         .select('account_id')
-        .ilike('wallet_address', address)
+        .eq('wallet_address', address.toLowerCase())
         .maybeSingle()
     return data?.account_id
+}
+
+async function getBracketList() {
+    if (bracketCache.data && Date.now() - bracketCache.timestamp < BRACKET_TTL) {
+        return bracketCache.data
+    }
+    try {
+        const res = await fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list')
+        if (!res.ok) return bracketCache.data // return stale if available
+        const json = await res.json()
+        bracketCache = { data: json, timestamp: Date.now() }
+        return json
+    } catch {
+        return bracketCache.data
+    }
 }
 
 export async function GET(request, { params }) {
@@ -55,7 +74,7 @@ export async function GET(request, { params }) {
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
         fetchJson(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`),
-        fetchJson('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list')
+        getBracketList()
     ])
 
     // Build symbolId → symbol string map from bracket list

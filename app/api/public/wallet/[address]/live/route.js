@@ -1,13 +1,7 @@
 
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
 
 const fetchJson = async (url, options) => {
     try {
@@ -19,21 +13,15 @@ const fetchJson = async (url, options) => {
     }
 }
 
-// Lightweight real-time endpoint — skips account_flow (paginated/expensive) and bracket list (static)
+// Lightweight real-time endpoint — NO supabase calls, only external APIs
 export async function GET(request, { params }) {
     const { address } = params
+    const { searchParams } = new URL(request.url)
+    const accountId = searchParams.get('accountId')
 
-    const { data: lbData } = await supabase
-        .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at, first_trade_ts_ms')
-        .ilike('wallet_address', address)
-        .maybeSingle()
-
-    if (!lbData?.account_id) {
-        return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
+    if (!accountId) {
+        return NextResponse.json({ error: 'accountId query param required' }, { status: 400 })
     }
-
-    const accountId = lbData.account_id
 
     const [overview, details, balances, dailyPnl, positions, fundTransfers] = await Promise.all([
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
@@ -48,7 +36,7 @@ export async function GET(request, { params }) {
         wallet_address: address,
         account_id: accountId,
         data: {
-            leaderboard_entry: lbData,
+            leaderboard_entry: null,
             overview,
             account_details: details,
             balances,

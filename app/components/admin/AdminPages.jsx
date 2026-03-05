@@ -31,7 +31,7 @@ export default function AdminPages() {
       setLoading(true)
       const { data, error } = await supabase
         .from('page_config')
-        .select('*')
+        .select('path, label, visible, permission, updated_at')
         .order('path')
       if (error) setError(error.message)
       else setRows(data || [])

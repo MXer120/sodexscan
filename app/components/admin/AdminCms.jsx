@@ -18,7 +18,7 @@ export default function AdminCms() {
     setLoading(true)
     const { data, error } = await supabase
       .from('cms_content')
-      .select('*')
+      .select('key, content, updated_at')
       .order('key')
     if (error) setError(error.message)
     else setRows(data || [])

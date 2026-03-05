@@ -31,7 +31,7 @@ export function useUserProfile() {
         const { data: leaderboard } = await supabase
           .from('leaderboard')
           .select('cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
-          .eq('wallet_address', profile.data.own_wallet)
+          .eq('wallet_address', profile.data.own_wallet.toLowerCase())
           .maybeSingle()
         leaderboardStats = leaderboard
       }

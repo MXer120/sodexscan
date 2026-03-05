@@ -48,7 +48,7 @@ export default function AdminNavbar() {
       setLoading(true)
       const { data, error } = await supabase
         .from('nav_config')
-        .select('*')
+        .select('path, label, enabled, tag, sort_order, in_more, updated_at')
         .order('sort_order')
       if (error) setError(error.message)
       else setRows(data || [])

@@ -34,7 +34,7 @@ export default function AdminSoPoints() {
   async function loadAll() {
     const { data } = await supabase
       .from('sopoints_week_config')
-      .select('*')
+      .select('week_num, include_spot, include_futures, spot_multiplier, notes, updated_at')
       .order('week_num', { ascending: false })
     setAllWeeks(data || [])
     return data || []
@@ -44,7 +44,7 @@ export default function AdminSoPoints() {
     setLoading(true)
     const { data } = await supabase
       .from('sopoints_week_config')
-      .select('*')
+      .select('week_num, include_spot, include_futures, spot_multiplier, notes, updated_at')
       .eq('week_num', num)
       .single()
     setConfig(data ? {

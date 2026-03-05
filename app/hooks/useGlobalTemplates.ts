@@ -23,7 +23,7 @@ export function useGlobalTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('global_templates')
-        .select('*')
+        .select('id, name, icon, description, layouts, widgets, sort_order, created_at')
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true })
       if (error) throw error

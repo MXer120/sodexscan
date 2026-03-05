@@ -155,7 +155,7 @@ export default function SocialPage() {
       // Get total count first
       const { count, error: countError } = await supabase
         .from(viewConfig.view)
-        .select('*', { count: 'exact', head: true })
+        .select('user_id', { count: 'exact', head: true })
 
       if (countError) {
         console.error('Count error:', countError)
@@ -168,7 +168,7 @@ export default function SocialPage() {
 
       let query = supabase
         .from(viewConfig.view)
-        .select('*')
+        .select(`user_id, ${viewConfig.valueKey}`)
 
       if (offset > 0) {
         query = query.range(offset, offset + PAGE_SIZE - 1)

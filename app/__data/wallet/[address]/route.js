@@ -11,8 +11,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 async function getStats(address) {
     const { data } = await supabase
         .from('leaderboard_smart')
-        .select('*')
-        .ilike('wallet_address', address)
+        .select('wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at')
+        .eq('wallet_address', address.toLowerCase())
         .maybeSingle()
     return data
 }

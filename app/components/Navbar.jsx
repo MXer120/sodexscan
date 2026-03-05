@@ -34,7 +34,7 @@ async function loadNavConfig() {
   if (navCache.promise) return navCache.promise
   navCache.promise = supabase
     .from('nav_config')
-    .select('*')
+    .select('path, label, enabled, tag, sort_order, in_more')
     .order('sort_order')
     .then(({ data, error }) => {
       navCache.items = (error || !data) ? FALLBACK_NAV : data

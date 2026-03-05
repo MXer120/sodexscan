@@ -1,9 +1,9 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
 
-// Shared hook for wallet-specific data used by scanner widgets in aggregator
+// Full data load (initial) — includes supabase + external APIs
 export function useWalletData(address: string | null) {
   return useQuery({
     queryKey: ['wallet-data', address],
@@ -19,32 +19,46 @@ export function useWalletData(address: string | null) {
   })
 }
 
-// 5s polling for chart, orders, trades, transfers, recent activity
-export function useWalletSlowData(address: string | null) {
+/** Resolve accountId from cached wallet-data query */
+function useResolvedAccountId(address: string | null): string | null {
+  const qc = useQueryClient()
+  const cached = qc.getQueryData<any>(['wallet-data', address])
+  return cached?.account_id ?? null
+}
+
+// 5s polling — external APIs only, no supabase
+export function useWalletSlowData(address: string | null, accountIdOverride?: string | null) {
+  const resolved = useResolvedAccountId(address)
+  const accountId = accountIdOverride ?? resolved
+
   return useQuery({
     queryKey: ['wallet-slow-data', address],
     queryFn: async () => {
-      if (!address) return null
-      const res = await fetch(`/api/public/wallet/${address}/live`)
+      if (!address || !accountId) return null
+      const res = await fetch(`/api/public/wallet/${address}/live?accountId=${accountId}`)
       if (!res.ok) throw new Error('Failed to fetch wallet slow data')
       return res.json()
     },
-    enabled: !!address,
+    enabled: !!address && !!accountId,
     staleTime: 0,
     refetchInterval: 5000,
   })
 }
 
-export function useWalletLiveData(address: string | null) {
+// 1s polling — external APIs only, no supabase
+export function useWalletLiveData(address: string | null, accountIdOverride?: string | null) {
+  const resolved = useResolvedAccountId(address)
+  const accountId = accountIdOverride ?? resolved
+
   return useQuery({
     queryKey: ['wallet-live-data', address],
     queryFn: async () => {
-      if (!address) return null
-      const res = await fetch(`/api/public/wallet/${address}/live`)
+      if (!address || !accountId) return null
+      const res = await fetch(`/api/public/wallet/${address}/live?accountId=${accountId}`)
       if (!res.ok) throw new Error('Failed to fetch wallet live data')
       return res.json()
     },
-    enabled: !!address,
+    enabled: !!address && !!accountId,
     staleTime: 0,
     refetchInterval: 1000,
   })

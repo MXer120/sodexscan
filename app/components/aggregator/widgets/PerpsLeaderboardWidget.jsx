@@ -27,7 +27,7 @@ export default function PerpsLeaderboardWidget({ config }) {
     queryFn: async () => {
       const orderCol = sortBy === 'volume' ? 'volume_rank' : 'pnl_rank'
 
-      let countQ = supabase.from('leaderboard_smart').select('*', { count: 'exact', head: true })
+      let countQ = supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true })
       if (excludeSodex) countQ = countQ.not('is_sodex_owned', 'is', true)
       countQ = countQ.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
       const { count } = await countQ

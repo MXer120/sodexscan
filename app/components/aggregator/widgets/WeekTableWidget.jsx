@@ -16,51 +16,36 @@ export default function WeekTableWidget() {
   const currentWeek = meta?.current_week_number || 1
   const totalUserCounts = meta?.total_user_counts || {}
 
-  // Current live week stats from leaderboard_smart
+  // All stats: 2 RPCs replace 11 individual COUNT queries
   useEffect(() => {
     if (!meta) return
     ;(async () => {
       try {
-        const [{ count: totalUsers }, { count: traders }, { count: activeTraders }] = await Promise.all([
-          supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true })
-            .or('is_sodex_owned.is.null,is_sodex_owned.eq.false'),
-          supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true })
-            .or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
-            .or('is_sodex_owned.is.null,is_sodex_owned.eq.false'),
-          supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true })
-            .gte('cumulative_volume', 5000)
-            .or('is_sodex_owned.is.null,is_sodex_owned.eq.false'),
+        const [currentRes, histRes] = await Promise.all([
+          supabase.rpc('get_current_week_stats'),
+          currentWeek > 1
+            ? supabase.rpc('get_weekly_leaderboard_stats', {
+                p_from_week: Math.max(1, currentWeek - 4),
+                p_to_week: currentWeek - 1
+              })
+            : Promise.resolve({ data: [] })
         ])
-        setCurrentStats({ totalUsers: totalUsers || 0, traders: traders || 0, activeTraders: activeTraders || 0 })
-      } catch (err) { console.error(err) }
-    })()
-  }, [meta])
 
-  // Historical weeks from leaderboard_weekly
-  useEffect(() => {
-    if (!meta || currentWeek <= 1) { setLoading(false); return }
-    ;(async () => {
-      try {
+        if (currentRes.data?.[0]) {
+          const r = currentRes.data[0]
+          setCurrentStats({
+            totalUsers: Number(r.total_users) || 0,
+            traders: Number(r.traders) || 0,
+            activeTraders: Number(r.active_traders) || 0
+          })
+        }
+
         const stats = {}
-        for (let w = currentWeek - 1; w >= 1 && w >= currentWeek - 4; w--) {
-          const { count: traders } = await supabase
-            .from('leaderboard_weekly')
-            .select('account_id', { count: 'exact', head: true })
-            .eq('week_number', w)
-            .gt('cumulative_volume', 0)
-            .not('is_sodex_owned', 'is', true)
-
-          const { count: activeTraders } = await supabase
-            .from('leaderboard_weekly')
-            .select('account_id', { count: 'exact', head: true })
-            .eq('week_number', w)
-            .gte('cumulative_volume', 5000)
-            .not('is_sodex_owned', 'is', true)
-
-          stats[w] = {
-            traders: traders || 0,
-            activeTraders: activeTraders || 0,
-            totalUsers: totalUserCounts[String(w)] || 0
+        for (const row of histRes.data || []) {
+          stats[row.week_number] = {
+            traders: Number(row.traders) || 0,
+            activeTraders: Number(row.active_traders) || 0,
+            totalUsers: Number(row.total_users) || totalUserCounts[String(row.week_number)] || 0
           }
         }
         setWeeklyStats(stats)

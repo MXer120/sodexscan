@@ -6,15 +6,13 @@ import { supabase } from './supabaseClient'
  * @returns Sodex account_id or null if not found
  */
 export const getSodexIdFromWallet = async (address: string): Promise<string | null> => {
-  // Trim whitespace to prevent "not found" from accidental spaces
-  const cleanAddress = address.trim()
+  const cleanAddress = address.trim().toLowerCase()
 
-  // Use ilike for case-insensitive exact match (handles mixed case addresses)
   const { data, error } = await supabase
     .from('leaderboard')
     .select('account_id')
-    .ilike('wallet_address', cleanAddress)
-    .maybeSingle() // Gets one result or null
+    .eq('wallet_address', cleanAddress)
+    .maybeSingle()
 
   if (error) {
     console.error("Database lookup failed:", error.message)

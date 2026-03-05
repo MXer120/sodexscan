@@ -24,7 +24,7 @@ export function useGlobalLayouts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('global_templates')
-        .select('*')
+        .select('id, name, description, layouts, widgets, sort_order, created_at')
         .eq('description', LAYOUT_MARKER)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true })

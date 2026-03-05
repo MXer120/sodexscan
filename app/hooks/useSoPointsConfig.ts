@@ -27,7 +27,7 @@ export function useSoPointsConfig() {
             try {
                 const { data, error } = await supabase
                     .from('sopoints_week_config')
-                    .select('*')
+                    .select('week_num, include_spot, include_futures, spot_multiplier, notes, updated_at')
                 if (error) throw error
                 setConfigs(data || [])
             } catch (err) {

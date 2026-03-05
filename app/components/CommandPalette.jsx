@@ -183,23 +183,16 @@ export default function CommandPalette() {
 
     const loadStats = async () => {
         try {
-            const [
-                { count: totalUsers },
-                { count: activeTraders },
-                { count: tradersGt2k },
-                { count: usersGt1kVol }
-            ] = await Promise.all([
+            const [{ count: totalUsers }, { data: rpcData }] = await Promise.all([
                 supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }),
-                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }).or('cumulative_pnl.neq.0,cumulative_volume.gt.0'),
-                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }).gt('cumulative_volume', 2000),
-                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }).gt('cumulative_volume', 1000)
+                supabase.rpc('get_leaderboard_stats')
             ])
-
+            const parsed = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData
             setStats({
                 totalUsers: totalUsers || 0,
-                activeTraders: activeTraders || 0,
-                tradersGt2k: tradersGt2k || 0,
-                usersGt1kVol: usersGt1kVol || 0
+                activeTraders: parsed?.totalUsers || 0,
+                tradersGt2k: parsed?.gt2kVol || 0,
+                usersGt1kVol: parsed?.gt1kVol || 0
             })
         } catch (err) {
             console.error('Failed stats load', err)

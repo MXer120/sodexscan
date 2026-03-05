@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSessionContext } from '../lib/SessionContext'
 import { supabase } from '../lib/supabaseClient'
-import { useEffect } from 'react'
 
 export type TicketFilter = 'starred' | 'active' | 'inactive' | 'archived' | 'overview' | 'users'
 
@@ -43,48 +42,64 @@ export interface Ticket {
  * - Otherwise keep whatever is set
  */
 function autoProgress(ticket: Ticket): string {
-  // Closed tickets default to 'closed' progress
   if (ticket.status === 'closed') {
     return ticket.progress || 'closed'
   }
-
-  // If manually set to escalated/solved, respect it
   if (ticket.progress === 'escalated' || ticket.progress === 'solved') {
     return ticket.progress
   }
-
-  // No messages = new
   if (!ticket.message_count || ticket.message_count === 0) {
     return 'new'
   }
-
-  // If we have messages, but no mod has ever responded = waiting
   if (!ticket.responding_mods || ticket.responding_mods.length === 0) {
     return 'waiting'
   }
-
-  // If last non-mod message is the latest message = waiting
   if (ticket.last_non_mod_message && ticket.last_message) {
     if (new Date(ticket.last_non_mod_message).getTime() === new Date(ticket.last_message).getTime()) {
       return 'waiting'
     }
   }
-
-  // Otherwise, a mod responded last = attended
   return 'attended'
 }
 
-export function useTickets(filter: TicketFilter) {
+const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
+
+function filterTickets(enriched: Ticket[], filter: TicketFilter): Ticket[] {
+  const now = Date.now()
+  switch (filter) {
+    case 'starred':
+      return enriched.filter((t: Ticket) => t.is_starred)
+    case 'active':
+      return enriched.filter((t: Ticket) => {
+        if (t.status !== 'open') return false
+        if (!t.last_non_mod_message) return true
+        return now - new Date(t.last_non_mod_message).getTime() <= FORTY_EIGHT_HOURS
+      })
+    case 'inactive':
+      return enriched.filter((t: Ticket) => {
+        if (t.status !== 'open') return false
+        if (!t.last_non_mod_message) return false
+        return now - new Date(t.last_non_mod_message).getTime() > FORTY_EIGHT_HOURS
+      })
+    case 'archived':
+      return enriched.filter((t: Ticket) => t.status === 'closed')
+    case 'overview':
+    case 'users':
+    default:
+      return enriched
+  }
+}
+
+/** Base query — fetches ALL tickets once, shared across all useTickets consumers */
+function useAllTickets() {
   const { user, isMod } = useSessionContext()
 
-  const query = useQuery({
-    queryKey: ['tickets', filter, user?.id],
+  return useQuery({
+    queryKey: ['tickets', user?.id],
     queryFn: async (): Promise<Ticket[]> => {
-      // Fetch all tickets with activity data
       const { data: tickets, error } = await supabase.rpc('get_tickets_with_activity')
       if (error) throw error
 
-      // Fetch starred ticket IDs
       const { data: stars } = await supabase
         .from('ticket_stars')
         .select('ticket_id')
@@ -92,49 +107,11 @@ export function useTickets(filter: TicketFilter) {
 
       const starredIds = new Set((stars || []).map((s: any) => s.ticket_id))
 
-      const enriched = (tickets || []).map((t: any) => ({
+      return (tickets || []).map((t: any) => ({
         ...t,
         is_starred: starredIds.has(t.id),
-        // Auto-compute progress
         progress: autoProgress(t),
       }))
-
-      const now = Date.now()
-      const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000
-
-      switch (filter) {
-        case 'starred':
-          // Starred is independent — tickets can be starred AND in any section
-          return enriched.filter((t: Ticket) => t.is_starred)
-
-        case 'active': {
-          // Active = OPEN + last non-mod message within 48h (or no non-mod message yet)
-          return enriched.filter((t: Ticket) => {
-            if (t.status !== 'open') return false // closed = archived, not active
-            if (!t.last_non_mod_message) return true // no non-mod msg yet = still active
-            return now - new Date(t.last_non_mod_message).getTime() <= FORTY_EIGHT_HOURS
-          })
-        }
-
-        case 'inactive':
-          // Inactive = OPEN + last non-mod message older than 48h
-          return enriched.filter((t: Ticket) => {
-            if (t.status !== 'open') return false // closed tickets go to archived
-            if (!t.last_non_mod_message) return false // no msg = active, not inactive
-            return now - new Date(t.last_non_mod_message).getTime() > FORTY_EIGHT_HOURS
-          })
-
-        case 'archived':
-          // Archived = ONLY closed tickets (closed in Discord)
-          return enriched.filter((t: Ticket) => t.status === 'closed')
-
-        case 'overview':
-        case 'users':
-          return enriched
-
-        default:
-          return enriched
-      }
     },
     enabled: !!user && isMod,
     staleTime: 60_000,
@@ -142,8 +119,36 @@ export function useTickets(filter: TicketFilter) {
     refetchOnMount: false,
     refetchOnReconnect: false,
   })
+}
 
-  // TODO: Realtime disabled — investigating update issue. Manual refresh or staleTime handles updates for now.
+/** Filtered view — uses React Query `select` to filter without separate fetch */
+export function useTickets(filter: TicketFilter) {
+  const { user, isMod } = useSessionContext()
 
-  return query
+  return useQuery({
+    queryKey: ['tickets', user?.id],
+    queryFn: async (): Promise<Ticket[]> => {
+      const { data: tickets, error } = await supabase.rpc('get_tickets_with_activity')
+      if (error) throw error
+
+      const { data: stars } = await supabase
+        .from('ticket_stars')
+        .select('ticket_id')
+        .eq('user_id', user!.id)
+
+      const starredIds = new Set((stars || []).map((s: any) => s.ticket_id))
+
+      return (tickets || []).map((t: any) => ({
+        ...t,
+        is_starred: starredIds.has(t.id),
+        progress: autoProgress(t),
+      }))
+    },
+    enabled: !!user && isMod,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    select: (data) => filterTickets(data, filter),
+  })
 }

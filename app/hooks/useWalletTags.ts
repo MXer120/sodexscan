@@ -14,6 +14,7 @@ export function useWalletTags() {
   return useQuery({
     queryKey: ['wallet-tags', user?.id],
     queryFn: fetchUserTags,
+    staleTime: 5 * 60 * 1000,
     enabled: !!user
   })
 }
@@ -97,6 +98,7 @@ export function useWalletGroups() {
   return useQuery({
     queryKey: ['wallet-groups', user?.id],
     queryFn: fetchUserGroups,
+    staleTime: 5 * 60 * 1000,
     enabled: !!user
   })
 }

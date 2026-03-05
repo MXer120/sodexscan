@@ -69,10 +69,18 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
 
   useEffect(() => {
     const fetchRole = async (userId: string) => {
-      const { data } = await supabaseClient.from('profiles').select('role').eq('id', userId).single()
-      const fetched = data?.role ?? 'user'
-      setRole(fetched)
-      setCachedRole(userId, fetched)
+      try {
+        const query = supabaseClient.from('profiles').select('role').eq('id', userId).single()
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        )
+        const { data } = await Promise.race([query, timeoutPromise])
+        const fetched = data?.role ?? 'user'
+        setRole(fetched)
+        setCachedRole(userId, fetched)
+      } catch {
+        setRole(prev => prev ?? 'user')
+      }
     }
 
     supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
@@ -83,7 +91,7 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
         if (cached) {
           setRole(cached)
           setLoading(false)
-          fetchRole(session.user.id) // background refresh
+          fetchRole(session.user.id)
         } else {
           await fetchRole(session.user.id)
           setLoading(false)
@@ -91,6 +99,8 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
       } else {
         setLoading(false)
       }
+    }).catch(() => {
+      setLoading(false)
     })
 
     const {

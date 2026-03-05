@@ -32,7 +32,7 @@ export default function AdminAnnouncements() {
     setLoading(true)
     const { data, error } = await supabase
       .from('announcement_status')
-      .select('*')
+      .select('id, content, type, enabled, created_at')
       .order('enabled', { ascending: false })
       .order('created_at', { ascending: false })
     if (error) setError(error.message)
