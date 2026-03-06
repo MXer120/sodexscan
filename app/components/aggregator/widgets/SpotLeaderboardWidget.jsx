@@ -1,13 +1,8 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../../../lib/supabaseClient'
 import CopyableAddress from '../../ui/CopyableAddress'
 
-const SPOT_DATA_URL = 'https://raw.githubusercontent.com/Eliasdegemu61/sodex-spot-volume-data/main/spot_vol_data.json'
-const SODEX_SPOT_WALLETS = new Set([
-  '0xc50e42e7f49881127e8183755be3f281bb687f7b',
-  '0x1f446dfa225d5c9e8a80cd227bf57444fc141332',
-  '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
-])
 const PAGE_SIZE = 20
 
 const formatNum = (num) => {
@@ -21,18 +16,22 @@ export default function SpotLeaderboardWidget() {
   const [page, setPage] = useState(1)
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['spot-leaderboard'],
+    queryKey: ['spot-leaderboard-db'],
     queryFn: async () => {
-      const res = await fetch(SPOT_DATA_URL)
-      const json = await res.json()
-      return Object.entries(json)
-        .filter(([addr]) => !SODEX_SPOT_WALLETS.has(addr.toLowerCase()))
-        .map(([addr, d]) => ({ wallet: addr, volume: d.vol || 0, userId: d.userId || '' }))
-        .filter(e => e.volume > 0)
-        .sort((a, b) => b.volume - a.volume)
+      const { data, error } = await supabase
+        .from('leaderboard_smart')
+        .select('wallet_address, spot_volume')
+        .gt('spot_volume', 0)
+        .not('is_sodex_owned', 'is', true)
+        .order('spot_volume', { ascending: false })
+        .limit(1000)
+      if (error) throw error
+      return (data || []).map(r => ({
+        wallet: r.wallet_address,
+        volume: parseFloat(r.spot_volume) || 0
+      }))
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000,    // 60 minutes
+    staleTime: 5 * 60 * 1000,
   })
 
   const totalPages = Math.ceil(rows.length / PAGE_SIZE)
@@ -47,7 +46,7 @@ export default function SpotLeaderboardWidget() {
           <tr>
             <th>#</th>
             <th>Wallet</th>
-            <th className="text-right">Volume</th>
+            <th className="text-right">Spot Volume</th>
           </tr>
         </thead>
         <tbody>

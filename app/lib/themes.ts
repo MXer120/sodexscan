@@ -2,7 +2,7 @@
 // All color schemes are defined here - this is the single source of truth
 
 export type ThemeMode = 'dark' | 'light'
-export type ColorScheme = 'cyan' | 'orange' | 'purple' | 'green' | 'monochrome' | 'cli' | 'nsa'
+export type ColorScheme = 'cyan' | 'orange' | 'purple' | 'green' | 'monochrome' | 'cli' | 'nsa' | 'paper'
 
 export interface ThemeSettings {
   colorScheme: ColorScheme
@@ -21,7 +21,7 @@ export const DEFAULT_THEME: ThemeSettings = {
 }
 
 // Schemes that use terminal design language (monospace, sharp corners, no shadows)
-export const TERMINAL_SCHEMES: ColorScheme[] = ['cli', 'nsa']
+export const TERMINAL_SCHEMES: ColorScheme[] = ['cli', 'nsa', 'paper']
 
 // Default bullish/bearish color presets
 export const BULLISH_PRESETS = [
@@ -51,6 +51,7 @@ export const THEME_AUTO_COLORS: Record<ColorScheme, { bullish: string; bearish: 
   monochrome: { bullish: '#a1a1aa', bearish: '#71717a', accent: '#52525b' },
   cli: { bullish: '#d4a55a', bearish: '#b54444', accent: '#e8c07a' },
   nsa: { bullish: '#00ff41', bearish: '#ff2040', accent: '#00cc33' },
+  paper: { bullish: '#15803d', bearish: '#b91c1c', accent: '#333333' },
 }
 
 // Favicon per theme (collapsed sidebar icon)
@@ -62,6 +63,7 @@ export const THEME_FAVICONS: Record<ColorScheme, string> = {
   monochrome: '/favicon-mono.svg',
   cli: '/favicon-cli.svg',
   nsa: '/favicon-nsa.svg',
+  paper: '/favicon-paper.svg',
 }
 
 // Color scheme definitions for each mode
@@ -492,6 +494,67 @@ export const COLOR_SCHEMES: Record<ColorScheme, {
       spotBg: 'rgba(0, 255, 65, 0.1)',
       volume: '#00ff41',
     }
+  },
+  paper: {
+    name: 'Paper',
+    logo: '/logo-mono.svg',
+    dark: {
+      // Paper turns into a lighter dark gray theme inspired by the profile page
+      primary: '#d4d4d4',
+      primaryDark: '#a3a3a3',
+      primaryLight: '#f5f5f5',
+      primaryRgb: '212, 212, 212',
+      bgMain: '#141414',
+      bgSecondary: '#1a1a1a',
+      bgTertiary: '#222222',
+      bgCard: '#1c1c1c',
+      bgModal: '#1a1a1a',
+      bgInput: '#262626',
+      textMain: '#ffffff',
+      textSecondary: 'rgba(255, 255, 255, 0.7)',
+      textMuted: 'rgba(255, 255, 255, 0.45)',
+      textDisabled: 'rgba(255, 255, 255, 0.3)',
+      textSubtle: '#888888',
+      textDark: '#666666',
+      textDarker: '#444444',
+      textLightGray: '#aaaaaa',
+      textMediumGray: '#888888',
+      borderSubtle: 'rgba(255, 255, 255, 0.1)',
+      borderVisible: 'rgba(255, 255, 255, 0.2)',
+      borderStrong: 'rgba(255, 255, 255, 0.3)',
+      borderDark: '#333333',
+      spot: '#d4d4d4',
+      spotBg: 'rgba(212, 212, 212, 0.12)',
+      volume: '#d4d4d4',
+    },
+    light: {
+      primary: '#d4d4d4',
+      primaryDark: '#a3a3a3',
+      primaryLight: '#f5f5f5',
+      primaryRgb: '212, 212, 212',
+      bgMain: '#141414',
+      bgSecondary: '#1a1a1a',
+      bgTertiary: '#222222',
+      bgCard: '#1c1c1c',
+      bgModal: '#1a1a1a',
+      bgInput: '#262626',
+      textMain: '#ffffff',
+      textSecondary: 'rgba(255, 255, 255, 0.7)',
+      textMuted: 'rgba(255, 255, 255, 0.45)',
+      textDisabled: 'rgba(255, 255, 255, 0.3)',
+      textSubtle: '#888888',
+      textDark: '#666666',
+      textDarker: '#444444',
+      textLightGray: '#aaaaaa',
+      textMediumGray: '#888888',
+      borderSubtle: 'rgba(255, 255, 255, 0.1)',
+      borderVisible: 'rgba(255, 255, 255, 0.2)',
+      borderStrong: 'rgba(255, 255, 255, 0.3)',
+      borderDark: '#333333',
+      spot: '#d4d4d4',
+      spotBg: 'rgba(212, 212, 212, 0.12)',
+      volume: '#d4d4d4',
+    }
   }
 }
 
@@ -592,7 +655,12 @@ export function applyTheme(settings: ThemeSettings) {
 
   // Terminal design language tokens
   const isTerminal = TERMINAL_SCHEMES.includes(colorScheme)
-  root.style.setProperty('--theme-font', isTerminal ? "'Courier New', 'Fira Mono', 'Consolas', monospace" : "'Lato', sans-serif")
+  let terminalFont = "'Courier New', 'Fira Mono', 'Consolas', monospace"
+  if (colorScheme === 'paper') {
+    terminalFont = "'JetBrains Mono', 'Andale Mono', 'Lucida Console', monospace"
+  }
+
+  root.style.setProperty('--theme-font', isTerminal ? terminalFont : "'Lato', sans-serif")
   root.style.setProperty('--theme-radius', isTerminal ? '0px' : '10px')
   root.style.setProperty('--theme-radius-sm', isTerminal ? '0px' : '6px')
   root.style.setProperty('--theme-radius-lg', isTerminal ? '0px' : '12px')

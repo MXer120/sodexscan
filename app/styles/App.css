@@ -38,7 +38,7 @@
   font-size: 32px;
   font-weight: 600;
   margin-bottom: 16px;
-  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -287,8 +287,8 @@
 }
 
 .dropdown-header button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-text-main);
 }
 
 .dropdown-item {
@@ -305,7 +305,7 @@
 }
 
 .dropdown-item input {
-  accent-color: #fff;
+  accent-color: var(--color-primary);
 }
 
 .dropdown-item label {
@@ -338,7 +338,7 @@
 
 .legend-item:hover,
 .legend-item.hovered {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .legend-color {

@@ -620,7 +620,7 @@ export default function Profile() {
                 </div>
                 <span className="theme-row-label" style={{ marginTop: '16px' }}>Design</span>
                 <div className="theme-grid">
-                  {(['cli', 'nsa'] as ColorScheme[]).map(scheme => (
+                  {(['cli', 'nsa', 'paper'] as ColorScheme[]).map(scheme => (
                     <button
                       key={scheme}
                       className={`theme-card ${theme.colorScheme === scheme ? 'active' : ''} ${TERMINAL_SCHEMES.includes(scheme) ? 'terminal' : ''}`}

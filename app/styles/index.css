@@ -135,15 +135,37 @@ html[data-color-scheme="nsa"] div {
   font-family: 'Courier New', 'Fira Mono', 'Consolas', monospace !important;
 }
 
+/* Paper theme different font */
+html[data-color-scheme="paper"] body,
+html[data-color-scheme="paper"] input,
+html[data-color-scheme="paper"] select,
+html[data-color-scheme="paper"] textarea,
+html[data-color-scheme="paper"] button,
+html[data-color-scheme="paper"] a,
+html[data-color-scheme="paper"] span,
+html[data-color-scheme="paper"] p,
+html[data-color-scheme="paper"] h1,
+html[data-color-scheme="paper"] h2,
+html[data-color-scheme="paper"] h3,
+html[data-color-scheme="paper"] h4,
+html[data-color-scheme="paper"] td,
+html[data-color-scheme="paper"] th,
+html[data-color-scheme="paper"] label,
+html[data-color-scheme="paper"] div {
+  font-family: 'JetBrains Mono', 'Andale Mono', 'Lucida Console', monospace !important;
+}
+
 /* Kill all border-radius on terminal themes */
 html[data-color-scheme="cli"] *,
-html[data-color-scheme="nsa"] * {
+html[data-color-scheme="nsa"] *,
+html[data-color-scheme="paper"] * {
   border-radius: 0px !important;
 }
 
 /* Kill box-shadows and backdrop-filters */
 html[data-color-scheme="cli"] *,
-html[data-color-scheme="nsa"] * {
+html[data-color-scheme="nsa"] *,
+html[data-color-scheme="paper"] * {
   box-shadow: none !important;
   text-shadow: none !important;
 }
@@ -169,6 +191,16 @@ html[data-color-scheme="nsa"] {
   --scrollbar-thumb-hover: rgba(0, 255, 65, 0.35);
 }
 
+html[data-color-scheme="paper"] {
+  --color-border-subtle: rgba(255, 255, 255, 0.1);
+  --color-overlay-faint: rgba(255, 255, 255, 0.02);
+  --color-overlay-subtle: rgba(255, 255, 255, 0.04);
+  --color-overlay-light: rgba(255, 255, 255, 0.06);
+  --color-overlay-medium: rgba(255, 255, 255, 0.1);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
+}
+
 /* Scanline effect for NSA */
 html[data-color-scheme="nsa"] body::after {
   content: '';
@@ -179,13 +211,11 @@ html[data-color-scheme="nsa"] body::after {
   height: 100%;
   pointer-events: none;
   z-index: 99999;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 255, 65, 0.015) 2px,
-    rgba(0, 255, 65, 0.015) 4px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 65, 0.015) 2px,
+      rgba(0, 255, 65, 0.015) 4px);
 }
 
 /* Slight text glow for NSA (re-enable after global kill) */
@@ -196,7 +226,8 @@ html[data-color-scheme="nsa"] body {
 
 /* CLI prompt-style cursor blink (optional, adds to feel) */
 html[data-color-scheme="cli"] input:focus,
-html[data-color-scheme="nsa"] input:focus {
+html[data-color-scheme="nsa"] input:focus,
+html[data-color-scheme="paper"] input:focus {
   outline: 1px solid var(--color-primary) !important;
   outline-offset: 0;
 }

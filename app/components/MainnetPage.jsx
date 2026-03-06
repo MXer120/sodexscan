@@ -67,17 +67,6 @@ const CopyableAddress = ({ address }) => {
   )
 }
 
-// Spot leaderboard data URL
-const SPOT_DATA_URL = 'https://raw.githubusercontent.com/Eliasdegemu61/sodex-spot-volume-data/main/spot_vol_data.json'
-
-// Sodex-owned wallets to exclude from spot LBs
-const SODEX_SPOT_WALLETS = new Set([
-  '0xc50e42e7f49881127e8183755be3f281bb687f7b',
-  '0x1f446dfa225d5c9e8a80cd227bf57444fc141332',
-  '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
-])
-
-
 export default function MainnetPage() {
   // Leaderboard data - paginated
   const [leaderboardData, setLeaderboardData] = useState([])
@@ -88,17 +77,8 @@ export default function MainnetPage() {
   const [showSyncStatus, setShowSyncStatus] = useState(false)
   const [excludeSodexOwned, setExcludeSodexOwned] = useState(true)
 
-  // Spot leaderboard state
-  const [spotView, setSpotView] = useState(false) // false = perps, true = spot
-  const [spotData, setSpotData] = useState(null) // full parsed array (all-time)
-  const [spotSnapshots, setSpotSnapshots] = useState({}) // weekNum -> snapshot json
-  const [spotWeeklyData, setSpotWeeklyData] = useState(null) // computed weekly diff
-  const [spotLoading, setSpotLoading] = useState(false)
-  const [spotPage, setSpotPage] = useState(1)
-  const [spotTimeRange, setSpotTimeRange] = useState('all') // 'all' | weekNumber (int)
-  const [spotDropdownOpen, setSpotDropdownOpen] = useState(false)
-  const spotDropdownRef = useRef(null)
-  const SPOT_PAGE_SIZE = 20
+  // View mode: 'futures' | 'spot' | 'total'
+  const [viewMode, setViewMode] = useState('futures')
 
   // Week selector: 'all' | 'current' | 1 | 2 | 3...
   const [timeRange, setTimeRange] = useState('all')
@@ -106,16 +86,6 @@ export default function MainnetPage() {
   const [weekDropdownOpen, setWeekDropdownOpen] = useState(false)
 
   const weekDropdownRef = useRef(null)
-
-  // Close spot dropdown on click outside
-  useEffect(() => {
-    if (!spotDropdownOpen) return
-    const handleClick = (e) => { if (spotDropdownRef.current && !spotDropdownRef.current.contains(e.target)) setSpotDropdownOpen(false) }
-    const handleEsc = (e) => { if (e.key === 'Escape') setSpotDropdownOpen(false) }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleEsc)
-    return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleEsc) }
-  }, [spotDropdownOpen])
 
   // Close dropdown on click outside or Escape
   useEffect(() => {
@@ -170,139 +140,21 @@ export default function MainnetPage() {
     }
   }
 
-  // Load spot leaderboard data when spot view selected
-  useEffect(() => {
-    if (spotView && !spotData) loadSpotData()
-  }, [spotView])
-
-  // When spot time range changes, reset page and compute weekly if needed
-  useEffect(() => {
-    setSpotPage(1)
-    if (typeof spotTimeRange === 'number' && lbMeta) {
-      computeSpotWeekly(spotTimeRange)
-    }
-  }, [spotTimeRange])
-
-  // Load a spot snapshot from DB (cached in state)
-  const loadSpotSnapshot = async (weekNum) => {
-    if (weekNum < 1) return null
-    if (spotSnapshots[weekNum]) return spotSnapshots[weekNum]
-    try {
-      const { data, error } = await supabase.rpc('get_spot_snapshot', { p_week: weekNum })
-      if (!error && data && Object.keys(data).length > 0) {
-        setSpotSnapshots(prev => ({ ...prev, [weekNum]: data }))
-        return data
-      }
-    } catch { /* no snapshot */ }
-    return null
-  }
-
-  const loadSpotData = async () => {
-    setSpotLoading(true)
-    try {
-      // Always load all-time from GitHub
-      let allTimeJson = globalCache.getSpotAllTimeData()
-      if (!allTimeJson) {
-        const res = await fetch(SPOT_DATA_URL)
-        allTimeJson = await res.json()
-        globalCache.setSpotAllTimeData(allTimeJson)
-      }
-      setSpotData(parseSpotJson(allTimeJson))
-
-      // Preload current week's base snapshot
-      const currentWeek = lbMeta?.current_week_number || 1
-      await loadSpotSnapshot(currentWeek - 1)
-    } catch (err) {
-      console.error('Failed to load spot data:', err)
-    }
-    setSpotLoading(false)
-  }
-
-  // Compute weekly spot diff for a given week
-  const computeSpotWeekly = async (weekNum) => {
-    setSpotLoading(true)
-    const currentWeek = lbMeta?.current_week_number || 1
-    const isLive = weekNum === currentWeek
-
-    // Load base snapshot (week - 1)
-    const baseSnap = await loadSpotSnapshot(weekNum - 1)
-
-    // For live: use allTime from GitHub. For historical: load week's own snapshot
-    let topSnap
-    if (isLive) {
-      topSnap = globalCache.getSpotAllTimeData()
-      if (!topSnap) {
-        const res = await fetch(SPOT_DATA_URL)
-        topSnap = await res.json()
-        globalCache.setSpotAllTimeData(topSnap)
-      }
-    } else {
-      topSnap = await loadSpotSnapshot(weekNum)
-    }
-
-    if (topSnap) {
-      const weeklyEntries = Object.entries(topSnap)
-        .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
-        .map(([address, d]) => {
-          const vol = d.vol || 0
-          const baseVol = baseSnap?.[address]?.vol || baseSnap?.[address.toLowerCase()]?.vol || 0
-          return {
-            walletAddress: address,
-            accountId: d.userId,
-            volume: Math.max(0, vol - baseVol),
-            lastTs: d.last_ts
-          }
-        }).filter(e => e.volume > 0)
-      weeklyEntries.sort((a, b) => b.volume - a.volume)
-      weeklyEntries.forEach((e, i) => { e.rank = i + 1 })
-      setSpotWeeklyData(weeklyEntries)
-    }
-    setSpotLoading(false)
-  }
-
-  const parseSpotJson = (json) => {
-    const entries = Object.entries(json)
-      .filter(([address]) => !SODEX_SPOT_WALLETS.has(address.toLowerCase()))
-      .map(([address, d]) => ({
-        walletAddress: address,
-        accountId: d.userId,
-        volume: d.vol || 0,
-        lastTs: d.last_ts
-      }))
-    entries.sort((a, b) => b.volume - a.volume)
-    entries.forEach((e, i) => { e.rank = i + 1 })
-    return entries
-  }
-
-  // Export spot data as JSON
-  const exportSpotJSON = () => {
-    const dataToExport = typeof spotTimeRange === 'number' ? spotWeeklyData : spotData
-    if (!dataToExport) return
-    const exportObj = {}
-    dataToExport.forEach(e => {
-      exportObj[e.walletAddress] = { userId: e.accountId, vol: e.volume, rank: e.rank }
-    })
-    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `spot_volume_${spotTimeRange}_${new Date().toISOString().split('T')[0]}.json`
-    link.click()
-  }
-
-  // Active spot data based on time range
-  const activeSpotData = typeof spotTimeRange === 'number' ? spotWeeklyData : spotData
+  // Display value helpers based on viewMode
+  const getDisplayPnl = (user) => viewMode === 'total' ? (user.sodexPnl || 0) : viewMode === 'spot' ? (user.spotPnl || 0) : user.pnl
+  const getDisplayVolume = (user) => viewMode === 'total' ? (user.sodexVolume || 0) : viewMode === 'spot' ? (user.spotVolume || 0) : user.volume
 
   // Reload when filters change
   useEffect(() => {
     setLeaderboardPage(1)
     if (timeRange === 'all') {
-      loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData)
-      loadTop10(showZeroData, excludeSodexOwned)
+      loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData, viewMode)
+      loadTop10(showZeroData, excludeSodexOwned, viewMode)
     } else {
       const weekNum = timeRange === 'current' ? 0 : timeRange
       loadWeeklyPage(1, weekNum, leaderboardType, excludeSodexOwned)
     }
-  }, [excludeSodexOwned, showZeroData, leaderboardType, timeRange])
+  }, [excludeSodexOwned, showZeroData, leaderboardType, timeRange, viewMode])
 
   // ── Weekly leaderboard loading (RPC) ──
   const loadWeeklyPage = async (page, weekNum, type, excludeSodex) => {
@@ -349,7 +201,11 @@ export default function MainnetPage() {
         volume: parseFloat(row.weekly_volume) || 0,
         unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
         pnlRank: row.pnl_rank || null,
-        volumeRank: row.volume_rank || null
+        volumeRank: row.volume_rank || null,
+        sodexVolume: parseFloat(row.weekly_sodex_volume) || 0,
+        sodexPnl: parseFloat(row.weekly_sodex_pnl) || 0,
+        spotVolume: parseFloat(row.weekly_spot_volume) || 0,
+        spotPnl: parseFloat(row.weekly_spot_pnl) || 0
       }))
 
       globalCache.setWeeklyLeaderboardPage(weekNum, page, type, excludeSodex, formattedData)
@@ -361,40 +217,64 @@ export default function MainnetPage() {
   }
 
   // ── All-time leaderboard loading (existing) ──
-  const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false) => {
-    const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex, showZero)
-    if (cachedData) {
-      setLeaderboardData(cachedData)
-      const cachedCount = globalCache.getTotalCount(type, excludeSodex, showZero)
-      if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
-      setLeaderboardLoading(false)
-      return
+  const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false, mode = 'futures') => {
+    // Only use cache for futures view
+    if (mode === 'futures') {
+      const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex, showZero)
+      if (cachedData) {
+        setLeaderboardData(cachedData)
+        const cachedCount = globalCache.getTotalCount(type, excludeSodex, showZero)
+        if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
+        setLeaderboardLoading(false)
+        return
+      }
     }
 
     setLeaderboardLoading(true)
     try {
       const pageSize = 20
-      const orderColumn = type === 'volume' ? 'volume_rank' : 'pnl_rank'
 
-      let totalCount = globalCache.getTotalCount(type, excludeSodex, showZero)
+      // Determine order column and direction based on viewMode
+      let orderColumn, ascending
+      if (mode === 'futures') {
+        orderColumn = type === 'volume' ? 'volume_rank' : 'pnl_rank'
+        ascending = true
+      } else if (mode === 'total') {
+        orderColumn = type === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
+        ascending = false
+      } else {
+        orderColumn = type === 'volume' ? 'spot_volume' : 'spot_pnl'
+        ascending = false
+      }
+
+      // Count query
+      let totalCount = mode === 'futures' ? globalCache.getTotalCount(type, excludeSodex, showZero) : null
       if (totalCount === null) {
         let countQuery = supabase
           .from('leaderboard_smart')
-          .select('id', { count: 'exact', head: true })
+          .select('account_id', { count: 'exact', head: true })
         if (excludeSodex) countQuery = countQuery.not('is_sodex_owned', 'is', true)
-        if (!showZero) countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
+        if (!showZero) {
+          if (mode === 'futures') countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
+          else if (mode === 'total') countQuery = countQuery.or('sodex_total_volume.gt.0,sodex_pnl.neq.0')
+          else countQuery = countQuery.gt('spot_volume', 0)
+        }
         const { count } = await countQuery
         totalCount = count || 0
-        globalCache.setTotalCount(type, excludeSodex, showZero, totalCount)
+        if (mode === 'futures') globalCache.setTotalCount(type, excludeSodex, showZero, totalCount)
       }
       setTotalLeaderboardCount(totalCount)
 
       let dataQuery = supabase
         .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at')
-        .order(orderColumn, { ascending: true, nullsFirst: false })
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at, sodex_total_volume, sodex_pnl, spot_volume, spot_pnl')
+        .order(orderColumn, { ascending, nullsFirst: false })
       if (excludeSodex) dataQuery = dataQuery.not('is_sodex_owned', 'is', true)
-      if (!showZero) dataQuery = dataQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
+      if (!showZero) {
+        if (mode === 'futures') dataQuery = dataQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
+        else if (mode === 'total') dataQuery = dataQuery.or('sodex_total_volume.gt.0,sodex_pnl.neq.0')
+        else dataQuery = dataQuery.gt('spot_volume', 0)
+      }
 
       const { data, error } = await dataQuery.range((page - 1) * pageSize, page * pageSize - 1)
       if (error) throw error
@@ -407,10 +287,14 @@ export default function MainnetPage() {
         unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
         pnlRank: parseInt(row.pnl_rank, 10) || null,
         volumeRank: parseInt(row.volume_rank, 10) || null,
-        lastSyncedAt: row.last_synced_at
+        lastSyncedAt: row.last_synced_at,
+        sodexVolume: parseFloat(row.sodex_total_volume) || 0,
+        sodexPnl: parseFloat(row.sodex_pnl) || 0,
+        spotVolume: parseFloat(row.spot_volume) || 0,
+        spotPnl: parseFloat(row.spot_pnl) || 0
       }))
 
-      globalCache.setLeaderboardPage(page, type, excludeSodex, showZero, formattedData)
+      if (mode === 'futures') globalCache.setLeaderboardPage(page, type, excludeSodex, showZero, formattedData)
       setLeaderboardData(formattedData)
     } catch (err) {
       console.error('Failed to load leaderboard page:', err)
@@ -419,54 +303,58 @@ export default function MainnetPage() {
   }
 
   // Load top 10 gainers/losers (PnL only)
-  const loadTop10 = async (showZero = false, excludeSodex = true) => {
-    const cached = globalCache.getTop10(showZero, excludeSodex)
-    if (cached) {
-      setTopGainersData(cached.gainers)
-      setTopLosersData(cached.losers)
-      setTop10Loading(false)
-      return
+  const loadTop10 = async (showZero = false, excludeSodex = true, mode = 'futures') => {
+    if (mode === 'futures') {
+      const cached = globalCache.getTop10(showZero, excludeSodex)
+      if (cached) {
+        setTopGainersData(cached.gainers)
+        setTopLosersData(cached.losers)
+        setTop10Loading(false)
+        return
+      }
     }
+
+    const pnlColumn = mode === 'total' ? 'sodex_pnl' : mode === 'spot' ? 'spot_pnl' : 'cumulative_pnl'
 
     setTop10Loading(true)
     try {
       let gainersQuery = supabase
         .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned')
-        .order('cumulative_pnl', { ascending: false, nullsFirst: false })
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned, sodex_pnl, spot_pnl')
+        .order(pnlColumn, { ascending: false, nullsFirst: false })
         .limit(10)
       if (excludeSodex) gainersQuery = gainersQuery.not('is_sodex_owned', 'is', true)
       if (!showZero) {
-        gainersQuery = gainersQuery.gt('cumulative_pnl', 0)
+        gainersQuery = gainersQuery.gt(pnlColumn, 0)
       } else {
-        gainersQuery = gainersQuery.or('cumulative_pnl.gt.0,cumulative_pnl.is.null')
+        gainersQuery = gainersQuery.or(`${pnlColumn}.gt.0,${pnlColumn}.is.null`)
       }
       const { data: gainers, error: gainersError } = await gainersQuery
       if (gainersError) throw gainersError
 
       let losersQuery = supabase
         .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned')
-        .order('cumulative_pnl', { ascending: true, nullsFirst: false })
+        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned, sodex_pnl, spot_pnl')
+        .order(pnlColumn, { ascending: true, nullsFirst: false })
         .limit(10)
       if (excludeSodex) losersQuery = losersQuery.not('is_sodex_owned', 'is', true)
       if (!showZero) {
-        losersQuery = losersQuery.lt('cumulative_pnl', 0)
+        losersQuery = losersQuery.lt(pnlColumn, 0)
       } else {
-        losersQuery = losersQuery.or('cumulative_pnl.lt.0,cumulative_pnl.is.null')
+        losersQuery = losersQuery.or(`${pnlColumn}.lt.0,${pnlColumn}.is.null`)
       }
       const { data: losers, error: losersError } = await losersQuery
       if (losersError) throw losersError
 
       const formatUser = (row) => ({
         walletAddress: row.wallet_address,
-        pnl: parseFloat(row.cumulative_pnl) || 0,
+        pnl: mode === 'total' ? (parseFloat(row.sodex_pnl) || 0) : mode === 'spot' ? (parseFloat(row.spot_pnl) || 0) : (parseFloat(row.cumulative_pnl) || 0),
         volume: parseFloat(row.cumulative_volume) || 0
       })
 
       const formattedGainers = (gainers || []).map(formatUser)
       const formattedLosers = (losers || []).map(formatUser)
-      globalCache.setTop10(formattedGainers, formattedLosers, showZero, excludeSodex)
+      if (mode === 'futures') globalCache.setTop10(formattedGainers, formattedLosers, showZero, excludeSodex)
       setTopGainersData(formattedGainers)
       setTopLosersData(formattedLosers)
     } catch (err) {
@@ -536,7 +424,7 @@ export default function MainnetPage() {
 
   const sortedLeaderboard = leaderboardData.map((user, idx) => ({
     ...user,
-    displayRank: isWeeklyView
+    displayRank: isWeeklyView && viewMode === 'futures'
       ? (leaderboardType === 'volume' ? user.volumeRank : user.pnlRank) || ((leaderboardPage - 1) * 20 + idx + 1)
       : (leaderboardPage - 1) * 20 + idx + 1
   }))
@@ -549,7 +437,7 @@ export default function MainnetPage() {
   const handlePageChange = (newPage) => {
     setLeaderboardPage(newPage)
     if (timeRange === 'all') {
-      loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData)
+      loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData, viewMode)
     } else {
       const weekNum = timeRange === 'current' ? 0 : timeRange
       loadWeeklyPage(newPage, weekNum, leaderboardType, excludeSodexOwned)
@@ -559,7 +447,17 @@ export default function MainnetPage() {
   // Export CSV
   const exportLeaderboardCSV = async () => {
     try {
-      const orderColumn = leaderboardType === 'volume' ? 'volume_rank' : 'pnl_rank'
+      let orderColumn, ascending
+      if (viewMode === 'futures') {
+        orderColumn = leaderboardType === 'volume' ? 'volume_rank' : 'pnl_rank'
+        ascending = true
+      } else if (viewMode === 'total') {
+        orderColumn = leaderboardType === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
+        ascending = false
+      } else {
+        orderColumn = leaderboardType === 'volume' ? 'spot_volume' : 'spot_pnl'
+        ascending = false
+      }
       const pageSize = 1000
       const allData = []
       let currentPage = 0
@@ -567,8 +465,8 @@ export default function MainnetPage() {
       while (currentPage * pageSize < totalLeaderboardCount) {
         let query = supabase
           .from('leaderboard_smart')
-          .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank')
-          .order(orderColumn, { ascending: true, nullsFirst: false })
+          .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl, spot_volume, spot_pnl')
+          .order(orderColumn, { ascending, nullsFirst: false })
         if (excludeSodexOwned) query = query.not('is_sodex_owned', 'is', true)
         const { data, error } = await query.range(currentPage * pageSize, (currentPage + 1) * pageSize - 1)
         if (error) throw error
@@ -576,14 +474,17 @@ export default function MainnetPage() {
         currentPage++
       }
 
-      const headers = ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
-      const rows = allData.map((row, idx) => [
-        idx + 1,
-        row.wallet_address,
-        row.cumulative_pnl,
-        row.cumulative_volume,
-        row.unrealized_pnl
-      ])
+      const headers = viewMode === 'futures'
+        ? ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
+        : viewMode === 'total'
+          ? ['rank', 'wallet_address', 'total_pnl', 'total_volume']
+          : ['rank', 'wallet_address', 'spot_pnl', 'spot_volume']
+      const rows = allData.map((row, idx) => viewMode === 'futures'
+        ? [idx + 1, row.wallet_address, row.cumulative_pnl, row.cumulative_volume, row.unrealized_pnl]
+        : viewMode === 'total'
+          ? [idx + 1, row.wallet_address, row.sodex_pnl, row.sodex_total_volume]
+          : [idx + 1, row.wallet_address, row.spot_pnl, row.spot_volume]
+      )
 
       const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -652,134 +553,13 @@ export default function MainnetPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <h1 className="dashboard-title">Leaderboard</h1>
 
-      {/* Perps / Spot Toggle */}
+      {/* Futures / Spot / Total Toggle */}
       <div className="leaderboard-toggle" style={{ marginBottom: '20px', display: 'inline-flex' }}>
-        <button className={!spotView ? 'active' : ''} onClick={() => setSpotView(false)}>Perps</button>
-        <button className={spotView ? 'active' : ''} onClick={() => setSpotView(true)}>Spot</button>
+        <button className={viewMode === 'futures' ? 'active' : ''} onClick={() => setViewMode('futures')}>Futures</button>
+        <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => setViewMode('spot')}>Spot</button>
+        <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
       </div>
 
-      {/* ─── SPOT LEADERBOARD ─── */}
-      {spotView ? (
-        <div className="mainnet-leaderboard" style={{ position: 'relative', opacity: spotLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
-          <div className="leaderboard-header">
-            <h2>{typeof spotTimeRange === 'number' ? `Week ${spotTimeRange}${spotTimeRange === (lbMeta?.current_week_number) ? ' (Live)' : ''} Spot Volume` : 'All-Time Spot Volume'}</h2>
-            <div className="leaderboard-controls">
-              {/* Spot Time Range Dropdown */}
-              <div className="week-selector" ref={spotDropdownRef} style={{ position: 'relative' }}>
-                <button
-                  className="week-selector-btn"
-                  onClick={() => setSpotDropdownOpen(!spotDropdownOpen)}
-                  style={{
-                    padding: '10px 16px',
-                    background: 'rgba(30, 30, 30, 0.6)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    borderRadius: '8px',
-                    color: 'var(--color-text-main)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'border-color 0.2s',
-                    minWidth: '140px',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>{typeof spotTimeRange === 'number' ? `Week ${spotTimeRange}${spotTimeRange === (lbMeta?.current_week_number) ? ' (Live)' : ''}` : 'All Time'}</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: spotDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-                {spotDropdownOpen && (
-                  <div className="week-dropdown" style={{
-                    position: 'absolute', top: '100%', left: 0, marginTop: '4px',
-                    background: 'var(--color-bg-secondary, rgba(25, 25, 25, 0.98))',
-                    border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '8px',
-                    overflow: 'hidden', zIndex: 100, minWidth: '160px',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
-                  }}>
-                    {[
-                      { value: 'all', label: 'All Time' },
-                      ...Array.from({ length: lbMeta?.current_week_number || 1 }, (_, i) => {
-                        const w = (lbMeta?.current_week_number || 1) - i
-                        return { value: w, label: `Week ${w}${w === lbMeta?.current_week_number ? ' (Live)' : ''}` }
-                      })
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => { setSpotTimeRange(opt.value); setSpotDropdownOpen(false) }}
-                        style={{
-                          display: 'block', width: '100%', padding: '10px 16px',
-                          background: opt.value === spotTimeRange ? 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.15)' : 'transparent',
-                          border: 'none',
-                          color: opt.value === spotTimeRange ? 'var(--color-primary)' : 'var(--color-text-main)',
-                          fontSize: '13px', fontWeight: opt.value === spotTimeRange ? '600' : '400',
-                          cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s'
-                        }}
-                        onMouseEnter={(e) => { if (opt.value !== spotTimeRange) e.target.style.background = 'rgba(255, 255, 255, 0.05)' }}
-                        onMouseLeave={(e) => { if (opt.value !== spotTimeRange) e.target.style.background = 'transparent' }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={exportSpotJSON}
-                style={{
-                  padding: '8px 16px', background: 'var(--color-accent)', color: 'white',
-                  border: 'none', borderRadius: '6px', cursor: 'pointer',
-                  fontSize: '13px', fontWeight: '500', transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.opacity = '0.8'}
-                onMouseLeave={(e) => e.target.style.opacity = '1'}
-              >
-                Export JSON
-              </button>
-            </div>
-          </div>
-          {spotLoading && !activeSpotData && (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Loading spot leaderboard...</div>
-          )}
-          {typeof spotTimeRange === 'number' && !spotWeeklyData && !spotLoading && (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>No local snapshot found. Place week 1 snapshot at <code>/data/spot_vol_data.json</code></div>
-          )}
-          {activeSpotData && (
-            <>
-              <div className="table-wrapper">
-                <table className="leaderboard-table">
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Wallet</th>
-                      <th className="text-right">Spot Volume</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeSpotData.slice((spotPage - 1) * SPOT_PAGE_SIZE, spotPage * SPOT_PAGE_SIZE).map((user) => (
-                      <tr key={user.walletAddress}>
-                        <td className="rank-cell">#{user.rank}</td>
-                        <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
-                        <td className="volume-cell text-right">${formatFullNumber(user.volume)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="pagination">
-                <button className="page-btn" onClick={() => setSpotPage(p => Math.max(1, p - 1))} disabled={spotPage === 1}>&lt; Prev</button>
-                <span className="page-info">Page {spotPage} of {Math.ceil(activeSpotData.length / SPOT_PAGE_SIZE)} ({activeSpotData.length} traders)</span>
-                <button className="page-btn" onClick={() => setSpotPage(p => Math.min(Math.ceil(activeSpotData.length / SPOT_PAGE_SIZE), p + 1))} disabled={spotPage === Math.ceil(activeSpotData.length / SPOT_PAGE_SIZE)}>Next &gt;</button>
-              </div>
-              <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '12px', color: '#666' }}>
-                Data provided by <a href="https://x.com/eliasing__" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>@eliasing__</a>
-              </div>
-            </>
-          )}
-        </div>
-      ) : (
       <>
       {/* User Overview Stats */}
       <div className="stats-row">
@@ -1019,8 +799,8 @@ export default function MainnetPage() {
                 <tr>
                   <th>Rank</th>
                   <th>Wallet</th>
-                  <th className="text-right">{isWeeklyView ? 'Weekly PnL' : 'PnL'}</th>
-                  <th className="text-right">{isWeeklyView ? 'Weekly Volume' : 'Volume'}</th>
+                  <th className="text-right">{isWeeklyView ? `Weekly ${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}PnL` : `${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}PnL`}</th>
+                  <th className="text-right">{isWeeklyView ? `Weekly ${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}Volume` : `${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}Volume`}</th>
                   {!isWeeklyView && showSyncStatus && <th className="text-right">Sync</th>}
                 </tr>
               </thead>
@@ -1029,10 +809,10 @@ export default function MainnetPage() {
                   <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl}>
                     <td className="rank-cell" aria-label={`Rank ${user.displayRank}`}>#{user.displayRank}</td>
                     <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
-                    <td className={`pnl-cell text-right ${getPnLClassName(user.pnl)}`} aria-label={`PnL: ${user.pnl}`}>
-                      ${formatPnL(user.pnl)}
+                    <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(user))}`} aria-label={`PnL: ${getDisplayPnl(user)}`}>
+                      ${formatPnL(getDisplayPnl(user))}
                     </td>
-                    <td className="volume-cell text-right" aria-label={`Volume: ${user.volume}`}>${formatFullNumber(user.volume)}</td>
+                    <td className="volume-cell text-right" aria-label={`Volume: ${getDisplayVolume(user)}`}>${formatFullNumber(getDisplayVolume(user))}</td>
                     {!isWeeklyView && showSyncStatus && (
                       <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
                         {formatSyncTime(user.lastSyncedAt)}
@@ -1070,7 +850,6 @@ export default function MainnetPage() {
         <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>Loading leaderboard...</div>
       )}
       </>
-      )}
     </div>
   )
 }

@@ -5,12 +5,6 @@ import { supabase } from '../../../lib/supabaseClient'
 import { useUserProfile } from '../../../hooks/useProfile'
 import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
 
-const SPOT_DATA_URL = 'https://raw.githubusercontent.com/Eliasdegemu61/sodex-spot-volume-data/main/spot_vol_data.json'
-const SODEX_SPOT_WALLETS = new Set([
-    '0xc50e42e7f49881127e8183755be3f281bb687f7b',
-    '0x1f446dfa225d5c9e8a80cd227bf57444fc141332',
-    '0x4b16ce4edb6bfea22aa087fb5cb3cfd654ca99f5'
-])
 const BROKEN_SPOT_WEEK = 4
 const WEEK1_START = new Date('2026-02-02T00:00:00Z')
 const WEEK_DURATION = 7 * 24 * 60 * 60 * 1000
@@ -40,8 +34,7 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
     const [spotWeight, setSpotWeight] = useState(2)
     const [zoomRange, setZoomRange] = useState({ start: 0, end: null })
 
-    const [spotAllTime, setSpotAllTime] = useState(null)
-    const [spotSnapshots, setSpotSnapshots] = useState({})
+    const [userWeeklyData, setUserWeeklyData] = useState({})
     const [futuresDataByWeek, setFuturesDataByWeek] = useState({})
     const [chartDataLoaded, setChartDataLoaded] = useState(false)
 
@@ -68,19 +61,32 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
     useEffect(() => {
         if (!ownWallet || !lbMeta || chartDataLoaded) return
         const currentWeek = lbMeta.current_week_number
+        const walletLow = ownWallet.toLowerCase()
         ;(async () => {
             try {
-                // Spot all-time from GitHub
-                const res = await fetch(SPOT_DATA_URL)
-                const data = await res.json()
-                setSpotAllTime(data)
-
-                // Fetch all spot snapshots + futures maps in 2 RPCs (was 2×currentWeek queries)
-                const [snapsRes, futRes] = await Promise.all([
-                    supabase.rpc('get_all_spot_snapshots', { p_max_week: currentWeek }),
+                // Fetch user's weekly data from leaderboard_weekly
+                const [userWeeklyRes, futRes] = await Promise.all([
+                    supabase
+                        .from('leaderboard_weekly')
+                        .select('week_number, sodex_total_volume, cumulative_volume')
+                        .eq('wallet_address', walletLow)
+                        .lte('week_number', currentWeek),
                     supabase.rpc('get_all_futures_volume_maps', { p_max_week: currentWeek - 1, p_exclude_sodex: true })
                 ])
-                setSpotSnapshots(snapsRes.data && typeof snapsRes.data === 'object' ? snapsRes.data : {})
+
+                // Build user weekly data map: { weekNum: { spot, futures } }
+                const weeklyMap = {}
+                if (userWeeklyRes.data) {
+                    for (const row of userWeeklyRes.data) {
+                        const sodexVol = parseFloat(row.sodex_total_volume) || 0
+                        const futVol = parseFloat(row.cumulative_volume) || 0
+                        weeklyMap[row.week_number] = {
+                            spot: Math.max(sodexVol - futVol, 0),
+                            futures: futVol
+                        }
+                    }
+                }
+                setUserWeeklyData(weeklyMap)
                 setFuturesDataByWeek(futRes.data && typeof futRes.data === 'object' ? futRes.data : {})
                 setChartDataLoaded(true)
             } catch (err) {
@@ -123,20 +129,23 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
             const w = i + 1
             const isLive = w === currentWeek
 
-            const weekFutures = futuresDataByWeek[isLive ? 0 : w]
-            const userFuturesVol = walletLow && weekFutures ? (weekFutures[walletLow] || 0) : 0
-
+            // User spot volume from DB weekly data
             let userSpotVol = 0
+            let userFuturesVol = 0
+
             if (w === BROKEN_SPOT_WEEK) {
                 userSpotVol = 0
-            } else if (walletLow) {
-                const spotSrc = isLive ? spotAllTime : spotSnapshots[w]
-                const prevSnapWeek = w === BROKEN_SPOT_WEEK + 1 ? BROKEN_SPOT_WEEK - 1 : w - 1
-                const prevSnap = w > 1 ? spotSnapshots[prevSnapWeek] : null
-                if (spotSrc) {
-                    const cur = spotSrc[walletLow]?.vol || spotSrc[ownWallet]?.vol || 0
-                    const prev = prevSnap ? (prevSnap[walletLow]?.vol || prevSnap[ownWallet]?.vol || 0) : 0
-                    userSpotVol = Math.max(0, cur - prev)
+            } else if (walletLow && userWeeklyData[w]) {
+                userSpotVol = userWeeklyData[w].spot || 0
+            }
+
+            // For futures: use the per-week futures map for historical, or DB weekly data for live
+            if (walletLow) {
+                if (isLive && userWeeklyData[w]) {
+                    userFuturesVol = userWeeklyData[w].futures || 0
+                } else {
+                    const weekFutures = futuresDataByWeek[w]
+                    userFuturesVol = weekFutures ? (weekFutures[walletLow] || 0) : 0
                 }
             }
 
@@ -166,7 +175,7 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
                 brokenSpot: w === BROKEN_SPOT_WEEK
             }
         })
-    }, [lbMeta, platformVolume, chartFilter, futuresDataByWeek, spotAllTime, spotSnapshots, ownWallet, spotWeight])
+    }, [lbMeta, platformVolume, chartFilter, futuresDataByWeek, userWeeklyData, ownWallet, spotWeight])
 
     const visibleChartData = useMemo(() => {
         if (!volumeChartData.length) return volumeChartData
