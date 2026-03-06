@@ -141,8 +141,12 @@ export default function MainnetPage() {
   }
 
   // Display value helpers based on viewMode
-  const getDisplayPnl = (user) => viewMode === 'total' ? (user.sodexPnl || 0) : viewMode === 'spot' ? (user.spotPnl || 0) : user.pnl
-  const getDisplayVolume = (user) => viewMode === 'total' ? (user.sodexVolume || 0) : viewMode === 'spot' ? (user.spotVolume || 0) : user.volume
+  // All-time: sodex_pnl/spot_pnl available. Weekly: only futures pnl, fall back.
+  const getDisplayPnl = (user) => {
+    if (isWeeklyView) return user.pnl // weekly: only futures PnL reliable
+    return viewMode === 'total' ? (user.sodexPnl || user.pnl || 0) : viewMode === 'spot' ? (user.spotPnl || 0) : user.pnl
+  }
+  const getDisplayVolume = (user) => viewMode === 'total' ? (user.sodexVolume || user.volume || 0) : viewMode === 'spot' ? (user.spotVolume || 0) : user.volume
 
   // Reload when filters change
   useEffect(() => {
@@ -212,9 +216,7 @@ export default function MainnetPage() {
         pnlRank: row.pnl_rank || null,
         volumeRank: row.volume_rank || null,
         sodexVolume: parseFloat(row.weekly_sodex_volume) || 0,
-        sodexPnl: parseFloat(row.weekly_sodex_pnl) || 0,
-        spotVolume: parseFloat(row.weekly_spot_volume) || 0,
-        spotPnl: parseFloat(row.weekly_spot_pnl) || 0
+        spotVolume: parseFloat(row.weekly_spot_volume) || 0
       }))
 
       globalCache.setWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex, formattedData)
@@ -461,7 +463,7 @@ export default function MainnetPage() {
       } else if (viewMode === 'total') {
         orderColumn = leaderboardType === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
         ascending = false
-      } else {
+      } else { // spot
         orderColumn = leaderboardType === 'volume' ? 'spot_volume' : 'spot_pnl'
         ascending = false
       }
@@ -564,7 +566,7 @@ export default function MainnetPage() {
       <div className="leaderboard-toggle" style={{ marginBottom: '20px', display: 'inline-flex' }}>
         <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
         <button className={viewMode === 'futures' ? 'active' : ''} onClick={() => setViewMode('futures')}>Futures</button>
-        <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => setViewMode('spot')}>Spot</button>
+        <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => { setViewMode('spot'); if (leaderboardType === 'pnl') setLeaderboardType('volume') }}>Spot</button>
       </div>
 
       <>
@@ -738,12 +740,14 @@ export default function MainnetPage() {
                 >
                   Volume
                 </button>
-                <button
-                  className={leaderboardType === 'pnl' ? 'active' : ''}
-                  onClick={() => setLeaderboardType('pnl')}
-                >
-                  PnL
-                </button>
+                {viewMode !== 'spot' && (
+                  <button
+                    className={leaderboardType === 'pnl' ? 'active' : ''}
+                    onClick={() => setLeaderboardType('pnl')}
+                  >
+                    PnL
+                  </button>
+                )}
               </div>
               <div className="leaderboard-options-row">
                 {!isWeeklyView && (
@@ -806,7 +810,9 @@ export default function MainnetPage() {
                 <tr>
                   <th>Rank</th>
                   <th>Wallet</th>
-                  <th className="text-right">{isWeeklyView ? `Weekly ${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}PnL` : `${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}PnL`}</th>
+                  {!(isWeeklyView && viewMode === 'spot') && (
+                    <th className="text-right">{isWeeklyView ? `Weekly ${viewMode === 'total' ? 'Total ' : ''}PnL` : `${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}PnL`}</th>
+                  )}
                   <th className="text-right">{isWeeklyView ? `Weekly ${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}Volume` : `${viewMode === 'spot' ? 'Spot ' : viewMode === 'total' ? 'Total ' : ''}Volume`}</th>
                   {!isWeeklyView && showSyncStatus && <th className="text-right">Sync</th>}
                 </tr>
@@ -816,9 +822,11 @@ export default function MainnetPage() {
                   <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl}>
                     <td className="rank-cell" aria-label={`Rank ${user.displayRank}`}>#{user.displayRank}</td>
                     <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
-                    <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(user))}`} aria-label={`PnL: ${getDisplayPnl(user)}`}>
-                      ${formatPnL(getDisplayPnl(user))}
-                    </td>
+                    {!(isWeeklyView && viewMode === 'spot') && (
+                      <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(user))}`} aria-label={`PnL: ${getDisplayPnl(user)}`}>
+                        ${formatPnL(getDisplayPnl(user))}
+                      </td>
+                    )}
                     <td className="volume-cell text-right" aria-label={`Volume: ${getDisplayVolume(user)}`}>${formatFullNumber(getDisplayVolume(user))}</td>
                     {!isWeeklyView && showSyncStatus && (
                       <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
