@@ -78,7 +78,7 @@ export default function MainnetPage() {
   const [excludeSodexOwned, setExcludeSodexOwned] = useState(true)
 
   // View mode: 'futures' | 'spot' | 'total'
-  const [viewMode, setViewMode] = useState('futures')
+  const [viewMode, setViewMode] = useState('total')
 
   // Week selector: 'all' | 'current' | 1 | 2 | 3...
   const [timeRange, setTimeRange] = useState('all')
@@ -152,16 +152,25 @@ export default function MainnetPage() {
       loadTop10(showZeroData, excludeSodexOwned, viewMode)
     } else {
       const weekNum = timeRange === 'current' ? 0 : timeRange
-      loadWeeklyPage(1, weekNum, leaderboardType, excludeSodexOwned)
+      loadWeeklyPage(1, weekNum, leaderboardType, excludeSodexOwned, viewMode)
     }
   }, [excludeSodexOwned, showZeroData, leaderboardType, timeRange, viewMode])
 
+  // Map leaderboardType + viewMode to RPC sort
+  const getRpcSort = (type, mode) => {
+    if (type === 'pnl') return 'pnl'
+    if (mode === 'spot') return 'spot_volume'
+    if (mode === 'futures') return 'futures_volume'
+    return 'volume' // total
+  }
+
   // ── Weekly leaderboard loading (RPC) ──
-  const loadWeeklyPage = async (page, weekNum, type, excludeSodex) => {
-    const cached = globalCache.getWeeklyLeaderboardPage(weekNum, page, type, excludeSodex)
+  const loadWeeklyPage = async (page, weekNum, type, excludeSodex, mode = 'futures') => {
+    const rpcSort = getRpcSort(type, mode)
+    const cached = globalCache.getWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex)
     if (cached) {
       setLeaderboardData(cached)
-      const cachedCount = globalCache.getWeeklyTotalCount(weekNum, type, excludeSodex)
+      const cachedCount = globalCache.getWeeklyTotalCount(weekNum, rpcSort, excludeSodex)
       if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
       setLeaderboardLoading(false)
       return
@@ -180,14 +189,14 @@ export default function MainnetPage() {
         })
         if (cntErr) throw cntErr
         totalCount = cnt || 0
-        globalCache.setWeeklyTotalCount(weekNum, type, excludeSodex, totalCount)
+        globalCache.setWeeklyTotalCount(weekNum, rpcSort, excludeSodex, totalCount)
       }
       setTotalLeaderboardCount(totalCount)
 
       // Get page data
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
         p_week: weekNum,
-        p_sort: type,
+        p_sort: rpcSort,
         p_limit: pageSize,
         p_offset: (page - 1) * pageSize,
         p_exclude_sodex: excludeSodex
@@ -208,7 +217,7 @@ export default function MainnetPage() {
         spotPnl: parseFloat(row.weekly_spot_pnl) || 0
       }))
 
-      globalCache.setWeeklyLeaderboardPage(weekNum, page, type, excludeSodex, formattedData)
+      globalCache.setWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex, formattedData)
       setLeaderboardData(formattedData)
     } catch (err) {
       console.error('Failed to load weekly leaderboard:', err)
@@ -424,9 +433,7 @@ export default function MainnetPage() {
 
   const sortedLeaderboard = leaderboardData.map((user, idx) => ({
     ...user,
-    displayRank: isWeeklyView && viewMode === 'futures'
-      ? (leaderboardType === 'volume' ? user.volumeRank : user.pnlRank) || ((leaderboardPage - 1) * 20 + idx + 1)
-      : (leaderboardPage - 1) * 20 + idx + 1
+    displayRank: (leaderboardPage - 1) * 20 + idx + 1
   }))
 
   const leaderboardPageSize = 20
@@ -440,7 +447,7 @@ export default function MainnetPage() {
       loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData, viewMode)
     } else {
       const weekNum = timeRange === 'current' ? 0 : timeRange
-      loadWeeklyPage(newPage, weekNum, leaderboardType, excludeSodexOwned)
+      loadWeeklyPage(newPage, weekNum, leaderboardType, excludeSodexOwned, viewMode)
     }
   }
 
@@ -555,9 +562,9 @@ export default function MainnetPage() {
 
       {/* Futures / Spot / Total Toggle */}
       <div className="leaderboard-toggle" style={{ marginBottom: '20px', display: 'inline-flex' }}>
+        <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
         <button className={viewMode === 'futures' ? 'active' : ''} onClick={() => setViewMode('futures')}>Futures</button>
         <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => setViewMode('spot')}>Spot</button>
-        <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
       </div>
 
       <>

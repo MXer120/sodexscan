@@ -721,7 +721,7 @@ const SoPointsPage = () => {
                                 <tr key={`week-${weekNum}`}>
                                     <td>
                                         <div className="week-cell">
-                                            <span className="week-name">Week {weekNum}</span>
+                                            <span className="week-name">{weekNum === 1 ? 'CA + Week 1' : `Week ${weekNum}`}</span>
                                             <span className="week-dates">{getWeekDateRange(weekNum)}</span>
                                         </div>
                                     </td>
@@ -842,7 +842,7 @@ const SoPointsPage = () => {
                                             style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', color: 'var(--color-text-main)', cursor: 'pointer' }}
                                         >
                                             {Array.from({ length: currentWeekNum }, (_, i) => currentWeekNum - i).map(w => (
-                                                <option key={w} value={w}>Week {w}{w === currentWeekNum ? ' (Live)' : ''}</option>
+                                                <option key={w} value={w}>{w === 1 ? 'CA + Week 1' : `Week ${w}`}{w === currentWeekNum ? ' (Live)' : ''}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -857,6 +857,7 @@ const SoPointsPage = () => {
                                         <tr>
                                             <th>Rank</th>
                                             <th>Wallet</th>
+                                            <th style={{ textAlign: 'right' }}>Total Vol</th>
                                             <th style={{ textAlign: 'right' }}>Spot Vol</th>
                                             <th style={{ textAlign: 'right' }}>Futures Vol</th>
                                             <th style={{ textAlign: 'right' }}>Est. Points</th>
@@ -877,6 +878,7 @@ const SoPointsPage = () => {
                                                                 </span>
                                                             ) : truncAddr(entry.walletAddress)}
                                                         </td>
+                                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>${formatVol(entry.weeklySpotVol + entry.weeklyFuturesVol)}</td>
                                                         <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklySpotVol)}</td>
                                                         <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklyFuturesVol)}</td>
                                                         <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)' }}>

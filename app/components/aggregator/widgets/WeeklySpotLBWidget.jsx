@@ -25,7 +25,7 @@ export default function WeeklySpotLBWidget({ config }) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
         p_week: targetWeek,
-        p_sort: 'volume',
+        p_sort: 'spot_volume',
         p_limit: 500,
         p_offset: 0,
         p_exclude_sodex: true
@@ -45,7 +45,10 @@ export default function WeeklySpotLBWidget({ config }) {
 
   const totalPages = Math.ceil(rows.length / PAGE_SIZE)
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const weekLabel = weekOffset === 0 ? `Week ${weekNum} (Live)` : `Week ${weekNum - weekOffset}`
+  const displayWeek = weekOffset === 0 ? weekNum : weekNum - weekOffset
+  const weekLabel = weekOffset === 0
+    ? `Week ${weekNum} (Live)`
+    : displayWeek === 1 ? 'CA + Week 1' : `Week ${displayWeek}`
 
   if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
 

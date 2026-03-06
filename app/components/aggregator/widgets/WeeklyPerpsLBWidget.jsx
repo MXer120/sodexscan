@@ -21,13 +21,14 @@ export default function WeeklyPerpsLBWidget({ config }) {
 
   const weekNum = meta?.current_week_number || 0
   const p_week = weekOffset === 0 ? 0 : weekNum - weekOffset
+  const rpcSort = sortBy === 'pnl' ? 'pnl' : 'futures_volume'
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['weekly-perps-lb', weekNum, weekOffset, sortBy, page],
+    queryKey: ['weekly-perps-lb', weekNum, weekOffset, rpcSort, page],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
         p_week,
-        p_sort: sortBy,
+        p_sort: rpcSort,
         p_limit: PAGE_SIZE,
         p_offset: (page - 1) * PAGE_SIZE,
         p_exclude_sodex: true
@@ -40,7 +41,10 @@ export default function WeeklyPerpsLBWidget({ config }) {
     gcTime: 30 * 60 * 1000,
   })
 
-  const weekLabel = weekOffset === 0 ? `Week ${weekNum} (Live)` : `Week ${weekNum - weekOffset}`
+  const displayWeek = weekOffset === 0 ? weekNum : weekNum - weekOffset
+  const weekLabel = weekOffset === 0
+    ? `Week ${weekNum} (Live)`
+    : displayWeek === 1 ? 'CA + Week 1' : `Week ${displayWeek}`
 
   return (
     <div>
