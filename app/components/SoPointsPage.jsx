@@ -625,6 +625,8 @@ const SoPointsPage = () => {
                                     }}
                                 />
                                 <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--color-text-secondary)' }} />
+                                <Line yAxisId="vol" type="monotone" dataKey="platformVol" name="Platform Volume"
+                                    stroke="var(--color-text-muted)" strokeWidth={1.5} dot={{ r: 3, fill: 'var(--color-text-muted)' }} connectNulls strokeDasharray="4 4" />
                                 {ownWallet && (
                                     <Line yAxisId="vol" type="monotone" dataKey="userVol" name="Your Volume"
                                         stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4, fill: 'var(--color-primary)' }} connectNulls activeDot={{ r: 6 }} />
