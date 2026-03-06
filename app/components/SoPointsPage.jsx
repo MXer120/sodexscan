@@ -396,11 +396,17 @@ const SoPointsPage = () => {
 
             let userFuturesVol = 0
             let userSpotVol = 0
-            if (walletLow && rows) {
-                const userRow = rows.find(r => r.wallet_address?.toLowerCase() === walletLow)
-                if (userRow) {
-                    userFuturesVol = parseFloat(userRow.weekly_volume) || 0
-                    userSpotVol = parseFloat(userRow.weekly_spot_volume) || 0
+            let totalPlatformVol = 0
+            if (rows) {
+                for (const r of rows) {
+                    const fv = parseFloat(r.weekly_volume) || 0
+                    const sv = parseFloat(r.weekly_spot_volume) || 0
+                    const rv = chartFilter === 'spot' ? sv : chartFilter === 'futures' ? fv : sv + fv
+                    totalPlatformVol += rv
+                    if (walletLow && r.wallet_address?.toLowerCase() === walletLow) {
+                        userFuturesVol = fv
+                        userSpotVol = sv
+                    }
                 }
             }
 
@@ -409,8 +415,10 @@ const SoPointsPage = () => {
                 : userSpotVol + userFuturesVol
 
             const userWeightedVol = userSpotVol * spotWeight + userFuturesVol
+            const competitiveness = totalPlatformVol > 0 ? (userVol / totalPlatformVol) * 100 : 0
+            const weekLabel = w === 1 ? `CA + W1 (${getWeekDateRange(w)})` : getWeekDateRange(w)
 
-            return { week: `W${w}`, weekLabel: getWeekDateRange(w), userVol, userWeightedVol }
+            return { week: w === 1 ? 'CA+W1' : `W${w}`, weekLabel, userVol, userWeightedVol, competitiveness }
         })
     }, [lbMeta, chartFilter, weeklyLbData, ownWallet, spotWeight])
 
@@ -604,6 +612,7 @@ const SoPointsPage = () => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" opacity={0.5} />
                                 <XAxis dataKey="week" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
                                 <YAxis yAxisId="vol" tickFormatter={v => '$' + formatVol(v)} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={60} />
+                                <YAxis yAxisId="pct" orientation="right" tickFormatter={v => v.toFixed(2) + '%'} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={55} />
                                 <Tooltip
                                     content={({ active, payload, label }) => {
                                         if (!active || !payload?.length) return null
@@ -613,7 +622,7 @@ const SoPointsPage = () => {
                                                 <div style={{ fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-main)' }}>{d?.weekLabel || label}</div>
                                                 {payload.map((p, i) => (
                                                     <div key={i} style={{ color: p.color, marginBottom: '2px' }}>
-                                                        {p.name}: <strong>${formatVol(p.value)}</strong>
+                                                        {p.name}: <strong>{p.dataKey === 'competitiveness' ? p.value.toFixed(4) + '%' : '$' + formatVol(p.value)}</strong>
                                                     </div>
                                                 ))}
                                             </div>
@@ -627,6 +636,8 @@ const SoPointsPage = () => {
                                     <Line yAxisId="vol" type="monotone" dataKey="userWeightedVol" name={`Weighted Volume (${spotWeight}x spot)`}
                                         stroke="#10b981" strokeWidth={2} dot={{ r: 4, fill: '#10b981' }} connectNulls activeDot={{ r: 6 }} />
                                 )}
+                                <Line yAxisId="pct" type="monotone" dataKey="competitiveness" name="Vol. Share %"
+                                    stroke="#f59e0b" strokeWidth={1.5} dot={{ r: 3, fill: '#f59e0b' }} connectNulls activeDot={{ r: 5 }} strokeDasharray="4 2" />
                             </LineChart>
                         </ResponsiveContainer>
                         </div>

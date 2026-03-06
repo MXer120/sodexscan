@@ -56,7 +56,8 @@
       "Bash(kill %1:*)",
       "mcp__claude_ai_Vercel__list_teams",
       "mcp__claude_ai_Vercel__list_projects",
-      "mcp__claude_ai_Vercel__get_runtime_logs"
+      "mcp__claude_ai_Vercel__get_runtime_logs",
+      "WebFetch(domain:api.github.com)"
     ]
   },
   "enableAllProjectMcpServers": true,
