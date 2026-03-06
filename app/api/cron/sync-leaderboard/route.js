@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { supabaseAdmin as supabase } from '../../../lib/supabaseServer'
 
 const MAINNET_API = 'https://mainnet-data.sodex.dev/api/v1'
 
@@ -25,7 +20,7 @@ export async function GET(request) {
 
     // Fetch PnL and volume for each account
     const leaderboardData = []
-    const batchSize = 50
+    const batchSize = 10
 
     for (let i = 0; i < accounts.length; i += batchSize) {
       const batch = accounts.slice(i, i + batchSize)

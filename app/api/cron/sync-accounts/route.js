@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { supabaseAdmin as supabase } from '../../../lib/supabaseServer'
 
 const MAINNET_API = 'https://mainnet-data.sodex.dev/api/v1'
 
@@ -25,7 +20,7 @@ export async function GET(request) {
     let lastAccountId = parseInt(syncState?.last_account_id || '0')
     let hasMore = true
     let newMappings = 0
-    const batchSize = 100
+    const batchSize = 20
 
     while (hasMore) {
       const startId = lastAccountId + 1

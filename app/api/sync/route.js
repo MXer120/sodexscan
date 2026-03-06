@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
 
 const MAINNET_API = 'https://mainnet-data.sodex.dev/api/v1'
 
@@ -29,14 +24,14 @@ export async function POST(request) {
         syncPnl
       ]
 
-      await Promise.all(syncFuncs.map(async (fn) => {
+      // Run sequentially — parallel was exhausting Supabase connection pool
+      for (const fn of syncFuncs) {
         try {
-          const result = await fn()
-          results[fn.name] = result
+          results[fn.name] = await fn()
         } catch (err) {
           results[fn.name] = { success: false, error: err.message }
         }
-      }))
+      }
     } else {
       // Sync specific type
       const syncMap = {
@@ -118,8 +113,8 @@ async function syncLeaderboard() {
 
   const leaderboardData = []
 
-  for (let i = 0; i < accounts.length; i += 10) {
-    const batch = accounts.slice(i, i + 10)
+  for (let i = 0; i < accounts.length; i += 5) {
+    const batch = accounts.slice(i, i + 5)
 
     await Promise.all(batch.map(async (account) => {
       try {
@@ -164,8 +159,8 @@ async function syncPositions() {
 
   await supabase.from('open_positions').delete().neq('account_id', -1)
 
-  for (let i = 0; i < accounts.length; i += 10) {
-    const batch = accounts.slice(i, i + 10)
+  for (let i = 0; i < accounts.length; i += 5) {
+    const batch = accounts.slice(i, i + 5)
 
     await Promise.all(batch.map(async (account) => {
       try {
@@ -207,8 +202,8 @@ async function syncHistory() {
 
   let totalInserted = 0
 
-  for (let i = 0; i < accounts.length; i += 10) {
-    const batch = accounts.slice(i, i + 10)
+  for (let i = 0; i < accounts.length; i += 5) {
+    const batch = accounts.slice(i, i + 5)
 
     await Promise.all(batch.map(async (account) => {
       try {
@@ -263,8 +258,8 @@ async function syncWithdrawals() {
 
   let totalInserted = 0
 
-  for (let i = 0; i < accounts.length; i += 10) {
-    const batch = accounts.slice(i, i + 10)
+  for (let i = 0; i < accounts.length; i += 5) {
+    const batch = accounts.slice(i, i + 5)
 
     await Promise.all(batch.map(async (account) => {
       try {
@@ -309,8 +304,8 @@ async function syncBalances() {
 
   await supabase.from('spot_balances').delete().neq('account_id', -1)
 
-  for (let i = 0; i < accounts.length; i += 10) {
-    const batch = accounts.slice(i, i + 10)
+  for (let i = 0; i < accounts.length; i += 5) {
+    const batch = accounts.slice(i, i + 5)
 
     await Promise.all(batch.map(async (account) => {
       try {
@@ -349,8 +344,8 @@ async function syncPnl() {
 
   let totalUpdated = 0
 
-  for (let i = 0; i < accounts.length; i += 10) {
-    const batch = accounts.slice(i, i + 10)
+  for (let i = 0; i < accounts.length; i += 5) {
+    const batch = accounts.slice(i, i + 5)
 
     await Promise.all(batch.map(async (account) => {
       try {

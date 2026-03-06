@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import { supabaseAdmin as supabase } from '../../../lib/supabaseServer'
 
 const MAINNET_API = 'https://mainnet-data.sodex.dev/api/v1'
 
@@ -26,8 +21,8 @@ export async function GET(request) {
     let totalUpdated = 0
 
     // Process in batches
-    for (let i = 0; i < accounts.length; i += 10) {
-      const batch = accounts.slice(i, i + 10)
+    for (let i = 0; i < accounts.length; i += 5) {
+      const batch = accounts.slice(i, i + 5)
 
       await Promise.all(batch.map(async (account) => {
         try {

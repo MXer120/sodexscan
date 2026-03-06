@@ -1,15 +1,11 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
 import MainnetTracker from '../../components/MainnetTracker'
 
 export const revalidate = 60 // Revalidate metadata every minute
 
 export async function generateMetadata({ params }) {
     const { address } = params
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
     // Fetch basic stats for meta tags
     const { data } = await supabase

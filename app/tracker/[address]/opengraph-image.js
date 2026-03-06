@@ -1,6 +1,6 @@
 
 import { ImageResponse } from 'next/og'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
 
 export const runtime = 'edge'
 export const alt = 'Wallet Performance Card'
@@ -9,10 +9,6 @@ export const contentType = 'image/png'
 
 export default async function Image({ params }) {
     const { address } = params
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
     const { data } = await supabase
         .from('leaderboard_smart')

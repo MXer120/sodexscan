@@ -1,12 +1,8 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin as supabase } from '../../../../lib/supabaseServer'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Module-level bracket cache (static data, changes very rarely)
 let bracketCache = { data: null, timestamp: 0 }

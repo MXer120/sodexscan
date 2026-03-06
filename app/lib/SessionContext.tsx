@@ -68,22 +68,29 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   }
 
   useEffect(() => {
+    let roleFetchId = 0 // dedup concurrent fetches
+
     const fetchRole = async (userId: string) => {
+      const id = ++roleFetchId
       try {
         const query = supabaseClient.from('profiles').select('role').eq('id', userId).single()
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('timeout')), 5000)
         )
         const { data } = await Promise.race([query, timeoutPromise])
+        if (id !== roleFetchId) return // stale, skip
         const fetched = data?.role ?? 'user'
         setRole(fetched)
         setCachedRole(userId, fetched)
       } catch {
-        setRole(prev => prev ?? 'user')
+        if (id === roleFetchId) setRole(prev => prev ?? 'user')
       }
     }
 
+    let initialSessionHandled = false
+
     supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
+      initialSessionHandled = true
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -100,12 +107,16 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
         setLoading(false)
       }
     }).catch(() => {
+      initialSessionHandled = true
       setLoading(false)
     })
 
     const {
       data: { subscription },
     } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      // Skip the INITIAL_SESSION event — already handled by getSession above
+      if (_event === 'INITIAL_SESSION' && initialSessionHandled) return
+
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {

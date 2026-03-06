@@ -49,7 +49,14 @@
       "Bash(cat \"C:/Users/lutzs/OneDrive - Fam. Steinfartz/Lutz Schriftgut/.work/sodexscan/.claude-flow/hooks/\"*.json)",
       "Bash(npm run:*)",
       "Bash(done)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(sed:*)",
+      "WebFetch(domain:sodex.com)",
+      "Bash(/dev/null:*)",
+      "Bash(kill %1:*)",
+      "mcp__claude_ai_Vercel__list_teams",
+      "mcp__claude_ai_Vercel__list_projects",
+      "mcp__claude_ai_Vercel__get_runtime_logs"
     ]
   },
   "enableAllProjectMcpServers": true,

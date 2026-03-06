@@ -1,12 +1,8 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin as supabase } from './lib/supabaseServer'
 
 export default async function sitemap() {
     const baseUrl = 'https://www.communityscan-sodex.com'
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
     // Fetch top 100 wallets to include in sitemap for AI indexing
     const { data: topWallets } = await supabase
