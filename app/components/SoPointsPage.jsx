@@ -10,6 +10,9 @@ import { useUserProfile } from '../hooks/useProfile'
 import { useSoPointsConfig } from '../hooks/useSoPointsConfig'
 import { globalCache } from '../lib/globalCache'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const SoPointsEstimator = dynamic(() => import('./SoPointsEstimator'), { ssr: false })
 
 // Spot volume multiplier (spot is harder to get, worth more)
 const SPOT_MULTIPLIER = 2
@@ -47,6 +50,7 @@ const SoPointsPage = () => {
     const [zoomRange, setZoomRange] = useState({ start: 0, end: null })
     const mouseRatioRef = useRef(0.5)
     const [legacyExpanded, setLegacyExpanded] = useState(false)
+    const [activeTab, setActiveTab] = useState('overview')
 
     // Points leaderboard state
     const [selectedPointsWeek, setSelectedPointsWeek] = useState(null) // null = current week (set after meta loads)
@@ -107,37 +111,38 @@ const SoPointsPage = () => {
     useEffect(() => {
         loadMeta()
         loadStats()
-        loadPlatformVolume()
     }, [])
 
-    // Set default selected week + load data once meta + legacy section available
+    const legacyVisible = activeTab === 'legacy'
+
+    // Set default selected week + load data once meta + legacy tab active
     useEffect(() => {
-        if (lbMeta && legacyExpanded) {
+        if (lbMeta && legacyVisible) {
             const week = selectedPointsWeek || lbMeta.current_week_number
             if (!selectedPointsWeek) setSelectedPointsWeek(week)
             loadPointsWeekData(week)
         }
-    }, [lbMeta, legacyExpanded])
+    }, [lbMeta, legacyVisible])
 
-    // When selected week changes, load its data (only if legacy expanded)
+    // When selected week changes, load its data (only if legacy tab active)
     useEffect(() => {
-        if (selectedPointsWeek && lbMeta && legacyExpanded) {
+        if (selectedPointsWeek && lbMeta && legacyVisible) {
             setPointsLbPage(1)
             loadPointsWeekData(selectedPointsWeek)
         }
     }, [selectedPointsWeek])
 
-    // Load reward estimate when wallet available and legacy section expanded
+    // Load reward estimate when wallet available and legacy tab active
     useEffect(() => {
-        if (ownWallet && legacyExpanded) loadRewardEstimate(ownWallet)
-    }, [ownWallet, legacyExpanded])
+        if (ownWallet && legacyVisible) loadRewardEstimate(ownWallet)
+    }, [ownWallet, legacyVisible])
 
     // Load all weeks data for chart when wallet + meta available
     useEffect(() => {
-        if (ownWallet && lbMeta && !chartDataLoaded) {
+        if (ownWallet && lbMeta && !chartDataLoaded && activeTab === 'overview') {
             loadAllChartData(lbMeta.current_week_number)
         }
-    }, [ownWallet, lbMeta, chartDataLoaded])
+    }, [ownWallet, lbMeta, chartDataLoaded, activeTab])
 
     // ── Load weekly leaderboard data from RPC (spot + futures combined) ──
     const loadWeeklyLb = async (weekNum) => {
@@ -381,42 +386,14 @@ const SoPointsPage = () => {
     const volumeChartData = useMemo(() => {
         if (!lbMeta) return []
         const currentWeek = lbMeta.current_week_number
-        const platformRaw = chartFilter === 'spot' ? platformVolume.spot
-            : chartFilter === 'futures' ? platformVolume.futures
-            : platformVolume.all
-
-        // API response: { code, data: { data: [...] } }
-        const extractArr = (d) => {
-            if (!d) return []
-            if (Array.isArray(d)) return d
-            if (d.data?.data && Array.isArray(d.data.data)) return d.data.data
-            if (d.data && Array.isArray(d.data)) return d.data
-            return []
-        }
-
-        // Each entry has `timestamp` (ms) and `cumulative` (string)
-        const getCumVolAtDate = (arr, targetDate) => {
-            const targetMs = targetDate.getTime()
-            let best = null
-            let bestMs = -Infinity
-            for (const p of arr) {
-                const ms = p.timestamp ?? new Date(p.day_date || p.date || p.time).getTime()
-                if (!ms || isNaN(ms)) continue
-                if (ms <= targetMs && ms > bestMs) { best = p; bestMs = ms }
-            }
-            return best ? parseFloat(best.cumulative ?? best.cumulative_volume ?? best.total ?? 0) : 0
-        }
-
-        const platformArr = extractArr(platformRaw)
+        const walletLow = ownWallet?.toLowerCase()
 
         return Array.from({ length: currentWeek }, (_, i) => {
             const w = i + 1
             const isLive = w === currentWeek
-            const walletLow = ownWallet?.toLowerCase()
-
-            // Get user volumes from weekly LB RPC data
             const weekKey = isLive ? 0 : w
             const rows = weeklyLbData[weekKey]
+
             let userFuturesVol = 0
             let userSpotVol = 0
             if (walletLow && rows) {
@@ -431,20 +408,11 @@ const SoPointsPage = () => {
                 : chartFilter === 'futures' ? userFuturesVol
                 : userSpotVol + userFuturesVol
 
-            // Platform weekly vol from external API
-            const weekEnd = new Date(WEEK1_START.getTime() + w * WEEK_DURATION)
-            const platformStart = new Date(WEEK1_START.getTime() + (w - 1) * WEEK_DURATION)
-            const platformVol = Math.max(0, getCumVolAtDate(platformArr, weekEnd) - getCumVolAtDate(platformArr, platformStart))
-
-            // Weighted vol (spot * spotWeight + futures)
             const userWeightedVol = userSpotVol * spotWeight + userFuturesVol
 
-            // Actual Competitiveness: user vol as % of platform vol
-            const actualCompetitiveness = platformVol > 0 ? (userVol / platformVol) * 100 : 0
-
-            return { week: `W${w}`, weekLabel: getWeekDateRange(w), userVol, userWeightedVol, platformVol, actualCompetitiveness }
+            return { week: `W${w}`, weekLabel: getWeekDateRange(w), userVol, userWeightedVol }
         })
-    }, [lbMeta, platformVolume, chartFilter, weeklyLbData, ownWallet, spotWeight])
+    }, [lbMeta, chartFilter, weeklyLbData, ownWallet, spotWeight])
 
     const visibleChartData = useMemo(() => {
         if (!volumeChartData.length) return volumeChartData
@@ -531,6 +499,31 @@ const SoPointsPage = () => {
 
     return (
         <div className="sopoints-container">
+            {/* ─── Tab Switcher ─── */}
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '20px' }}>
+                {[
+                    { key: 'overview', label: 'Overview' },
+                    { key: 'estimator', label: 'SoPoint Leaderboard (Est)' },
+                    { key: 'legacy', label: 'Legacy' },
+                ].map(tab => (
+                    <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                        padding: '8px 18px', borderRadius: '8px',
+                        border: '1px solid var(--color-border-subtle)',
+                        background: activeTab === tab.key ? 'var(--color-primary)' : 'transparent',
+                        color: activeTab === tab.key ? '#fff' : 'var(--color-text-secondary)',
+                        fontSize: '14px', cursor: 'pointer',
+                        fontWeight: activeTab === tab.key ? 600 : 400, transition: 'all 0.15s'
+                    }}>
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* ─── Estimator Tab ─── */}
+            {activeTab === 'estimator' && <SoPointsEstimator />}
+
+            {/* ─── Overview Tab ─── */}
+            {activeTab === 'overview' && <>
             {/* ─── Volume Chart ─── */}
             <div className="sopoints-table-container"
                 style={{ marginBottom: '24px', padding: '20px 24px' }}>
@@ -570,7 +563,11 @@ const SoPointsPage = () => {
                         </div>
                     </div>
                 </div>
-                {platformVolumeLoading ? (
+                {!ownWallet ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                        Connect your wallet in <a href="/profile" style={{ color: 'var(--color-primary)' }}>Profile</a> to see your weekly volume chart
+                    </div>
+                ) : !chartDataLoaded ? (
                     <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
                         Loading chart...
                     </div>
@@ -607,7 +604,6 @@ const SoPointsPage = () => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" opacity={0.5} />
                                 <XAxis dataKey="week" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
                                 <YAxis yAxisId="vol" tickFormatter={v => '$' + formatVol(v)} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={60} />
-                                <YAxis yAxisId="pct" orientation="right" tickFormatter={v => v.toFixed(2) + '%'} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} width={65} />
                                 <Tooltip
                                     content={({ active, payload, label }) => {
                                         if (!active || !payload?.length) return null
@@ -617,7 +613,7 @@ const SoPointsPage = () => {
                                                 <div style={{ fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-main)' }}>{d?.weekLabel || label}</div>
                                                 {payload.map((p, i) => (
                                                     <div key={i} style={{ color: p.color, marginBottom: '2px' }}>
-                                                        {p.name}: <strong>{p.dataKey === 'actualCompetitiveness' ? p.value.toFixed(4) + '%' : '$' + formatVol(p.value)}</strong>
+                                                        {p.name}: <strong>${formatVol(p.value)}</strong>
                                                     </div>
                                                 ))}
                                             </div>
@@ -625,28 +621,15 @@ const SoPointsPage = () => {
                                     }}
                                 />
                                 <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--color-text-secondary)' }} />
-                                <Line yAxisId="vol" type="monotone" dataKey="platformVol" name="Platform Volume"
-                                    stroke="var(--color-text-muted)" strokeWidth={1.5} dot={{ r: 3, fill: 'var(--color-text-muted)' }} connectNulls strokeDasharray="4 4" />
-                                {ownWallet && (
-                                    <Line yAxisId="vol" type="monotone" dataKey="userVol" name="Your Volume"
-                                        stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4, fill: 'var(--color-primary)' }} connectNulls activeDot={{ r: 6 }} />
-                                )}
-                                {ownWallet && chartFilter === 'all' && spotWeight > 1 && (
+                                <Line yAxisId="vol" type="monotone" dataKey="userVol" name="Your Volume"
+                                    stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4, fill: 'var(--color-primary)' }} connectNulls activeDot={{ r: 6 }} />
+                                {chartFilter === 'all' && spotWeight > 1 && (
                                     <Line yAxisId="vol" type="monotone" dataKey="userWeightedVol" name={`Weighted Volume (${spotWeight}x spot)`}
                                         stroke="#10b981" strokeWidth={2} dot={{ r: 4, fill: '#10b981' }} connectNulls activeDot={{ r: 6 }} />
-                                )}
-                                {ownWallet && (
-                                    <Line yAxisId="pct" type="monotone" dataKey="actualCompetitiveness" name="Actual Competitiveness"
-                                        stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4, fill: '#6366f1' }} connectNulls activeDot={{ r: 6 }} />
                                 )}
                             </LineChart>
                         </ResponsiveContainer>
                         </div>
-                        {!ownWallet && (
-                            <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                                Connect your wallet in <a href="/profile" style={{ color: 'var(--color-primary)' }}>Profile</a> to see your volume lines
-                            </div>
-                        )}
                     </>
                 )}
             </div>
@@ -774,20 +757,11 @@ const SoPointsPage = () => {
                 </table>
             </div>
 
-            {/* ─── Legacy (collapsed) ─── */}
-            <div className="sopoints-table-container" style={{ marginTop: '24px' }}>
-                <div
-                    onClick={() => setLegacyExpanded(v => !v)}
-                    style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
-                >
-                    <span style={{ fontWeight: 600, fontSize: '16px' }}>Legacy</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                        style={{ transform: legacyExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--color-text-muted)' }}>
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </div>
-                {legacyExpanded && (
-                    <div style={{ borderTop: '1px solid var(--color-border-subtle)', padding: '20px 24px' }}>
+            </>}
+
+            {/* ─── Legacy Tab ─── */}
+            {activeTab === 'legacy' && (
+                <div>
                         {/* Estimated Reward */}
                         {ownWallet ? (
                             <div className="sopoints-card cta-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '24px' }}>
@@ -919,9 +893,8 @@ const SoPointsPage = () => {
                                 <span className="spot-loading-dot">Loading points leaderboard...</span>
                             </div>
                         )}
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
 
             <style jsx>{`
         .diff-checkbox {
