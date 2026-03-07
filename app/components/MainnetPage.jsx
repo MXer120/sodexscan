@@ -67,6 +67,22 @@ const CopyableAddress = ({ address }) => {
   )
 }
 
+const SkeletonRow = ({ cols = 4 }) => (
+  <tr className="skeleton-row">
+    {Array.from({ length: cols }).map((_, i) => (
+      <td key={i}><div className="skeleton-bar" /></td>
+    ))}
+  </tr>
+)
+
+const SkeletonTable = ({ rows = 10, cols = 4 }) => (
+  <tbody>
+    {Array.from({ length: rows }).map((_, i) => (
+      <SkeletonRow key={i} cols={cols} />
+    ))}
+  </tbody>
+)
+
 export default function MainnetPage() {
   // Leaderboard data - paginated
   const [leaderboardData, setLeaderboardData] = useState([])
@@ -125,11 +141,12 @@ export default function MainnetPage() {
     loadLbMeta()
   }, [])
 
-  // Load "Your Row" when wallet/view changes
+  // Load "Your Row" when wallet/week changes
   useEffect(() => {
     if (!ownWallet) { setYourRow(null); return }
+    yourRowRankCache.current = {}
     loadYourRow()
-  }, [ownWallet, viewMode, timeRange, leaderboardType])
+  }, [ownWallet, timeRange])
 
   const loadYourRow = async () => {
     if (!ownWallet) return
@@ -138,7 +155,7 @@ export default function MainnetPage() {
         const { data, error } = await supabase
           .from('leaderboard_smart')
           .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl, spot_volume, spot_pnl, last_synced_at')
-          .eq('wallet_address', ownWallet)
+          .ilike('wallet_address', ownWallet)
           .maybeSingle()
         if (error || !data) { setYourRow(null); return }
         setYourRow({
@@ -153,19 +170,17 @@ export default function MainnetPage() {
           sodexPnl: parseFloat(data.sodex_pnl) || 0,
           spotVolume: parseFloat(data.spot_volume) || 0,
           spotPnl: parseFloat(data.spot_pnl) || 0,
-          displayRank: leaderboardType === 'volume' ? (parseInt(data.volume_rank, 10) || '-') : (parseInt(data.pnl_rank, 10) || '-'),
           isYou: true
         })
       } else {
         const weekNum = timeRange === 'current' ? 0 : timeRange
         const actualWeek = weekNum === 0 ? 0 : weekNum
         const prevWeek = weekNum === 0 ? (lbMeta?.current_week_number || 1) - 1 : weekNum - 1
-        // Query user's weekly row directly instead of scanning full RPC
         const { data: cw } = await supabase
           .from('leaderboard_weekly')
           .select('cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl')
           .eq('week_number', actualWeek)
-          .eq('wallet_address', ownWallet)
+          .ilike('wallet_address', ownWallet)
           .maybeSingle()
         if (!cw) { setYourRow(null); return }
         let pw = null
@@ -174,7 +189,7 @@ export default function MainnetPage() {
             .from('leaderboard_weekly')
             .select('cumulative_pnl, cumulative_volume, sodex_total_volume, sodex_pnl')
             .eq('week_number', prevWeek)
-            .eq('wallet_address', ownWallet)
+            .ilike('wallet_address', ownWallet)
             .maybeSingle()
           pw = pwData
         }
@@ -191,7 +206,6 @@ export default function MainnetPage() {
           volumeRank: cw.volume_rank || null,
           sodexVolume: weeklySodex,
           spotVolume: weeklySpot,
-          displayRank: leaderboardType === 'pnl' ? (cw.pnl_rank || '-') : (cw.volume_rank || '-'),
           isYou: true
         })
       }
@@ -228,8 +242,109 @@ export default function MainnetPage() {
   }
   const getDisplayVolume = (user) => viewMode === 'total' ? (user.sodexVolume || user.volume || 0) : viewMode === 'spot' ? (user.spotVolume || 0) : user.volume
 
+  // Cache top-100 lookups per view key to avoid re-fetching
+  const yourRowRankCache = useRef({})
+
+  const getYourRowRank = () => {
+    if (!yourRow) return '-'
+    // All-time futures: use DB ranks directly
+    if (!isWeeklyView && viewMode === 'futures') {
+      return leaderboardType === 'pnl' ? (yourRow.pnlRank || '-') : (yourRow.volumeRank || '-')
+    }
+    // Check current page first
+    const idx = paginatedLeaderboard.findIndex(u => u.walletAddress?.toLowerCase() === ownWallet)
+    if (idx !== -1) return paginatedLeaderboard[idx].displayRank
+    // Check cached rank from top-100 scan
+    const cacheKey = `${timeRange}_${viewMode}_${leaderboardType}_${excludeSodexOwned}`
+    if (yourRowRankCache.current[cacheKey] !== undefined) return yourRowRankCache.current[cacheKey]
+    return '100+'
+  }
+
+  // Scan top 100 for Your Row rank when not using DB ranks
+  useEffect(() => {
+    if (!ownWallet || !yourRow) return
+    if (!isWeeklyView && viewMode === 'futures') return // DB ranks used
+    const cacheKey = `${timeRange}_${viewMode}_${leaderboardType}_${excludeSodexOwned}`
+    if (yourRowRankCache.current[cacheKey] !== undefined) return
+
+    const scanTop100 = async () => {
+      try {
+        if (isWeeklyView) {
+          const weekNum = timeRange === 'current' ? 0 : timeRange
+          const rpcSort = getRpcSort(leaderboardType, viewMode)
+          const { data } = await supabase.rpc('get_weekly_leaderboard', {
+            p_week: weekNum, p_sort: rpcSort, p_limit: 100, p_offset: 0, p_exclude_sodex: excludeSodexOwned
+          })
+          const pos = (data || []).findIndex(r => r.wallet_address?.toLowerCase() === ownWallet)
+          yourRowRankCache.current[cacheKey] = pos !== -1 ? pos + 1 : '100+'
+        } else {
+          let orderColumn, ascending
+          if (viewMode === 'total') {
+            orderColumn = leaderboardType === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
+            ascending = false
+          } else {
+            orderColumn = leaderboardType === 'volume' ? 'spot_volume' : 'spot_pnl'
+            ascending = false
+          }
+          let q = supabase.from('leaderboard_smart')
+            .select('wallet_address')
+            .order(orderColumn, { ascending, nullsFirst: false })
+            .limit(100)
+          if (excludeSodexOwned) q = q.not('is_sodex_owned', 'is', true)
+          if (viewMode === 'total') q = q.or('sodex_total_volume.gt.0,sodex_pnl.neq.0')
+          else q = q.gt('spot_volume', 0)
+          const { data } = await q
+          const pos = (data || []).findIndex(r => r.wallet_address?.toLowerCase() === ownWallet)
+          yourRowRankCache.current[cacheKey] = pos !== -1 ? pos + 1 : '100+'
+        }
+        setYourRow(prev => prev ? { ...prev } : null) // trigger re-render
+      } catch (err) {
+        yourRowRankCache.current[cacheKey] = '100+'
+      }
+    }
+    scanTop100()
+  }, [ownWallet, yourRow, timeRange, viewMode, leaderboardType, excludeSodexOwned, isWeeklyView])
+
+  // Load weekly top 10 gainers/losers via RPC
+  const loadWeeklyTop10 = async (weekNum, excludeSodex, mode) => {
+    const top10Key = `weekly_${weekNum}_${excludeSodex}_${mode}`
+    const cached = globalCache.getTop10(top10Key)
+    if (cached) {
+      setTopGainersData(cached.gainers)
+      setTopLosersData(cached.losers)
+      setTop10Loading(false)
+      return
+    }
+
+    setTop10Loading(true)
+    try {
+      // Fetch large batch to capture both gainers and losers (RPC sorts DESC)
+      const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
+        p_week: weekNum,
+        p_sort: 'pnl',
+        p_limit: 5000,
+        p_offset: 0,
+        p_exclude_sodex: excludeSodex
+      })
+      if (error) throw error
+      const rows = (data || []).map(r => ({
+        walletAddress: r.wallet_address,
+        pnl: parseFloat(r.weekly_pnl) || 0
+      }))
+      const gainers = rows.filter(r => r.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 10)
+      const losers = rows.filter(r => r.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
+      globalCache.setTop10(gainers, losers, top10Key)
+      setTopGainersData(gainers)
+      setTopLosersData(losers)
+    } catch (err) {
+      console.error('Failed to load weekly top 10:', err)
+    }
+    setTop10Loading(false)
+  }
+
   // Reload when filters change
   useEffect(() => {
+    if (timeRange !== 'all' && viewMode === 'spot' && leaderboardType === 'pnl') setLeaderboardType('volume')
     setLeaderboardPage(1)
     if (timeRange === 'all') {
       loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData, viewMode)
@@ -237,6 +352,7 @@ export default function MainnetPage() {
     } else {
       const weekNum = timeRange === 'current' ? 0 : timeRange
       loadWeeklyPage(1, weekNum, leaderboardType, excludeSodexOwned, viewMode)
+      loadWeeklyTop10(weekNum, excludeSodexOwned, viewMode)
     }
   }, [excludeSodexOwned, showZeroData, leaderboardType, timeRange, viewMode])
 
@@ -309,16 +425,14 @@ export default function MainnetPage() {
 
   // ── All-time leaderboard loading (existing) ──
   const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false, mode = 'futures') => {
-    // Only use cache for futures view
-    if (mode === 'futures') {
-      const cachedData = globalCache.getLeaderboardPage(page, type, excludeSodex, showZero)
-      if (cachedData) {
-        setLeaderboardData(cachedData)
-        const cachedCount = globalCache.getTotalCount(type, excludeSodex, showZero)
-        if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
-        setLeaderboardLoading(false)
-        return
-      }
+    const cacheType = `${mode}_${type}`
+    const cachedData = globalCache.getLeaderboardPage(page, cacheType, excludeSodex, showZero)
+    if (cachedData) {
+      setLeaderboardData(cachedData)
+      const cachedCount = globalCache.getTotalCount(cacheType, excludeSodex, showZero)
+      if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
+      setLeaderboardLoading(false)
+      return
     }
 
     setLeaderboardLoading(true)
@@ -339,7 +453,7 @@ export default function MainnetPage() {
       }
 
       // Count query
-      let totalCount = mode === 'futures' ? globalCache.getTotalCount(type, excludeSodex, showZero) : null
+      let totalCount = globalCache.getTotalCount(cacheType, excludeSodex, showZero)
       if (totalCount === null) {
         let countQuery = supabase
           .from('leaderboard_smart')
@@ -352,7 +466,7 @@ export default function MainnetPage() {
         }
         const { count } = await countQuery
         totalCount = count || 0
-        if (mode === 'futures') globalCache.setTotalCount(type, excludeSodex, showZero, totalCount)
+        globalCache.setTotalCount(cacheType, excludeSodex, showZero, totalCount)
       }
       setTotalLeaderboardCount(totalCount)
 
@@ -385,7 +499,7 @@ export default function MainnetPage() {
         spotPnl: parseFloat(row.spot_pnl) || 0
       }))
 
-      if (mode === 'futures') globalCache.setLeaderboardPage(page, type, excludeSodex, showZero, formattedData)
+      globalCache.setLeaderboardPage(page, cacheType, excludeSodex, showZero, formattedData)
       setLeaderboardData(formattedData)
     } catch (err) {
       console.error('Failed to load leaderboard page:', err)
@@ -395,14 +509,13 @@ export default function MainnetPage() {
 
   // Load top 10 gainers/losers (PnL only)
   const loadTop10 = async (showZero = false, excludeSodex = true, mode = 'futures') => {
-    if (mode === 'futures') {
-      const cached = globalCache.getTop10(showZero, excludeSodex)
-      if (cached) {
-        setTopGainersData(cached.gainers)
-        setTopLosersData(cached.losers)
-        setTop10Loading(false)
-        return
-      }
+    const top10Key = `${showZero}_${excludeSodex}_${mode}`
+    const cached = globalCache.getTop10(top10Key)
+    if (cached) {
+      setTopGainersData(cached.gainers)
+      setTopLosersData(cached.losers)
+      setTop10Loading(false)
+      return
     }
 
     const pnlColumn = mode === 'total' ? 'sodex_pnl' : mode === 'spot' ? 'spot_pnl' : 'cumulative_pnl'
@@ -445,7 +558,7 @@ export default function MainnetPage() {
 
       const formattedGainers = (gainers || []).map(formatUser)
       const formattedLosers = (losers || []).map(formatUser)
-      if (mode === 'futures') globalCache.setTop10(formattedGainers, formattedLosers, showZero, excludeSodex)
+      globalCache.setTop10(formattedGainers, formattedLosers, top10Key)
       setTopGainersData(formattedGainers)
       setTopLosersData(formattedLosers)
     } catch (err) {
@@ -596,7 +709,7 @@ export default function MainnetPage() {
     if (lbMeta) {
       options.push({ value: 'current', label: `Week ${lbMeta.current_week_number} (Live)` })
       for (let i = lbMeta.current_week_number - 1; i >= 1; i--) {
-        options.push({ value: i, label: `Week ${i}` })
+        options.push({ value: i, label: i === 1 ? 'CA + Week 1' : `Week ${i}` })
       }
     }
     return options
@@ -646,7 +759,7 @@ export default function MainnetPage() {
       <div className="leaderboard-toggle" style={{ marginBottom: '20px', display: 'inline-flex' }}>
         <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
         <button className={viewMode === 'futures' ? 'active' : ''} onClick={() => setViewMode('futures')}>Futures</button>
-        <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => { setViewMode('spot'); if (leaderboardType === 'pnl') setLeaderboardType('volume') }}>Spot</button>
+        <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => setViewMode('spot')}>Spot</button>
       </div>
 
       <>
@@ -666,8 +779,8 @@ export default function MainnetPage() {
         </div>
       </div>
 
-      {/* Top 10 Gainers & Losers - only for All Time view */}
-      {timeRange === 'all' && !top10Loading && (topGainersData.length > 0 || topLosersData.length > 0) && (
+      {/* Top 10 Gainers & Losers */}
+      {(top10Loading || topGainersData.length > 0 || topLosersData.length > 0) && (
         <div className="top-10-grid">
           {/* Top 10 Gainers */}
           <div className="top-10-card gainers">
@@ -687,15 +800,17 @@ export default function MainnetPage() {
                     <th className="text-right">PnL</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {topGainersData.map((user, idx) => (
-                    <tr key={user.walletAddress}>
-                      <td className="rank">{idx + 1}</td>
-                      <td><CopyableAddress address={user.walletAddress} /></td>
-                      <td className="text-right pnl">+${formatFullNumber(user.pnl)}</td>
-                    </tr>
-                  ))}
-                </tbody>
+                {top10Loading ? <SkeletonTable rows={5} cols={3} /> : (
+                  <tbody>
+                    {topGainersData.map((user, idx) => (
+                      <tr key={user.walletAddress}>
+                        <td className="rank">{idx + 1}</td>
+                        <td><CopyableAddress address={user.walletAddress} /></td>
+                        <td className="text-right pnl">+${formatFullNumber(user.pnl)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                )}
               </table>
             </div>
           </div>
@@ -718,15 +833,17 @@ export default function MainnetPage() {
                     <th className="text-right">PnL</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {topLosersData.map((user, idx) => (
-                    <tr key={user.walletAddress}>
-                      <td className="rank">{idx + 1}</td>
-                      <td><CopyableAddress address={user.walletAddress} /></td>
-                      <td className="text-right pnl">-${formatFullNumber(Math.abs(user.pnl))}</td>
-                    </tr>
-                  ))}
-                </tbody>
+                {top10Loading ? <SkeletonTable rows={5} cols={3} /> : (
+                  <tbody>
+                    {topLosersData.map((user, idx) => (
+                      <tr key={user.walletAddress}>
+                        <td className="rank">{idx + 1}</td>
+                        <td><CopyableAddress address={user.walletAddress} /></td>
+                        <td className="text-right pnl">-${formatFullNumber(Math.abs(user.pnl))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                )}
               </table>
             </div>
           </div>
@@ -735,7 +852,7 @@ export default function MainnetPage() {
 
       {/* Leaderboard */}
       {(leaderboardData.length > 0 || leaderboardLoading) && (
-        <div className="mainnet-leaderboard" style={{ position: 'relative', opacity: leaderboardLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+        <div className="mainnet-leaderboard" style={{ position: 'relative' }}>
           <div className="leaderboard-header">
             <h2>Leaderboard</h2>
             <div className="leaderboard-controls">
@@ -820,7 +937,7 @@ export default function MainnetPage() {
                 >
                   Volume
                 </button>
-                {viewMode !== 'spot' && (
+                {!(isWeeklyView && viewMode === 'spot') && (
                   <button
                     className={leaderboardType === 'pnl' ? 'active' : ''}
                     onClick={() => setLeaderboardType('pnl')}
@@ -829,6 +946,11 @@ export default function MainnetPage() {
                   </button>
                 )}
               </div>
+              {!isWeeklyView && viewMode === 'spot' && leaderboardType === 'pnl' && (
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: 4, opacity: 0.7 }}>
+                  Spot PnL may be inaccurate due to sync issues
+                </div>
+              )}
               <div className="leaderboard-options-row">
                 {!isWeeklyView && (
                   <label className="leaderboard-checkbox">
@@ -897,45 +1019,49 @@ export default function MainnetPage() {
                   {!isWeeklyView && showSyncStatus && <th className="text-right">Sync</th>}
                 </tr>
               </thead>
-              <tbody>
-                {yourRow && (
-                  <tr className="your-row" style={{ background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.08)', borderBottom: '2px solid rgba(var(--color-primary-rgb, 60, 200, 240), 0.3)' }}>
-                    <td className="rank-cell" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{yourRow.displayRank}</td>
-                    <td className="address-cell" style={{ color: 'var(--color-primary)' }}>
-                      <span style={{ fontSize: '10px', opacity: 0.7, marginRight: 4 }}>YOU</span>
-                      <CopyableAddress address={yourRow.walletAddress} />
-                    </td>
-                    {!(isWeeklyView && viewMode === 'spot') && (
-                      <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(yourRow))}`}>
-                        ${formatPnL(getDisplayPnl(yourRow))}
+              {leaderboardLoading ? (
+                <SkeletonTable rows={20} cols={isWeeklyView && viewMode === 'spot' ? 3 : showSyncStatus && !isWeeklyView ? 5 : 4} />
+              ) : (
+                <tbody>
+                  {yourRow && (
+                    <tr className="your-row" style={{ background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.08)', borderBottom: '2px solid rgba(var(--color-primary-rgb, 60, 200, 240), 0.3)' }}>
+                      <td className="rank-cell" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{getYourRowRank()}</td>
+                      <td className="address-cell" style={{ color: 'var(--color-primary)' }}>
+                        <span style={{ fontSize: '10px', opacity: 0.7, marginRight: 4 }}>YOU</span>
+                        <CopyableAddress address={yourRow.walletAddress} />
                       </td>
-                    )}
-                    <td className="volume-cell text-right">${formatFullNumber(getDisplayVolume(yourRow))}</td>
-                    {!isWeeklyView && showSyncStatus && (
-                      <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                        {formatSyncTime(yourRow.lastSyncedAt)}
-                      </td>
-                    )}
-                  </tr>
-                )}
-                {paginatedLeaderboard.map((user) => (
-                  <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl} style={user.walletAddress?.toLowerCase() === ownWallet ? { background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.04)' } : undefined}>
-                    <td className="rank-cell" aria-label={`Rank ${user.displayRank}`}>#{user.displayRank}</td>
-                    <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
-                    {!(isWeeklyView && viewMode === 'spot') && (
-                      <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(user))}`} aria-label={`PnL: ${getDisplayPnl(user)}`}>
-                        ${formatPnL(getDisplayPnl(user))}
-                      </td>
-                    )}
-                    <td className="volume-cell text-right" aria-label={`Volume: ${getDisplayVolume(user)}`}>${formatFullNumber(getDisplayVolume(user))}</td>
-                    {!isWeeklyView && showSyncStatus && (
-                      <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
-                        {formatSyncTime(user.lastSyncedAt)}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
+                      {!(isWeeklyView && viewMode === 'spot') && (
+                        <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(yourRow))}`}>
+                          ${formatPnL(getDisplayPnl(yourRow))}
+                        </td>
+                      )}
+                      <td className="volume-cell text-right">${formatFullNumber(getDisplayVolume(yourRow))}</td>
+                      {!isWeeklyView && showSyncStatus && (
+                        <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                          {formatSyncTime(yourRow.lastSyncedAt)}
+                        </td>
+                      )}
+                    </tr>
+                  )}
+                  {paginatedLeaderboard.map((user) => (
+                    <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl} style={user.walletAddress?.toLowerCase() === ownWallet ? { background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.04)' } : undefined}>
+                      <td className="rank-cell" aria-label={`Rank ${user.displayRank}`}>#{user.displayRank}</td>
+                      <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
+                      {!(isWeeklyView && viewMode === 'spot') && (
+                        <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(user))}`} aria-label={`PnL: ${getDisplayPnl(user)}`}>
+                          ${formatPnL(getDisplayPnl(user))}
+                        </td>
+                      )}
+                      <td className="volume-cell text-right" aria-label={`Volume: ${getDisplayVolume(user)}`}>${formatFullNumber(getDisplayVolume(user))}</td>
+                      {!isWeeklyView && showSyncStatus && (
+                        <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
+                          {formatSyncTime(user.lastSyncedAt)}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              )}
             </table>
           </div>
 
@@ -961,9 +1087,6 @@ export default function MainnetPage() {
         </div>
       )}
 
-      {leaderboardLoading && leaderboardData.length === 0 && (
-        <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>Loading leaderboard...</div>
-      )}
       </>
     </div>
   )

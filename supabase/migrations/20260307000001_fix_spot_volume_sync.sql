@@ -7,16 +7,12 @@
 -- ============================================================
 -- 1. Add missing vault secrets
 -- ============================================================
+-- APP_URL already exists, skip
+-- Only add CRON_SECRET
 SELECT vault.create_secret(
-  'https://www.communityscan-sodex.com',
-  'APP_URL'
+  'fgges<ssdgrsg32rgsg3w4t31^46t43zhsdfyhgg5ea4',
+  'CRON_SECRET'
 );
-
--- IMPORTANT: You must also add CRON_SECRET via Supabase Dashboard:
---   Project Settings → Vault → New Secret
---   Name: CRON_SECRET
---   Value: (same as CRON_SECRET env var in Vercel)
--- Without it, the sync endpoint returns 401.
 
 -- ============================================================
 -- 2. Reschedule Sodex sync: hourly → every 15 min

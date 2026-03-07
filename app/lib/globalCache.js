@@ -41,13 +41,13 @@ class GlobalCache {
     }
 
     this.TTL = {
-      mainnetPage: 15 * 60 * 1000,  // 15 minutes (leaderboard data)
+      mainnetPage: 30 * 60 * 1000,  // 30 minutes (leaderboard data)
       tracker: 2 * 60 * 1000,       // 2 minutes
       platform: 5 * 60 * 1000,      // 5 minutes for tickers & new traders
       logos: 24 * 60 * 60 * 1000,   // 24 hours for logos
       social: 10 * 60 * 1000,       // 10 minutes for social leaderboards
       meta: 30 * 60 * 1000,         // 30 minutes for leaderboard meta
-      weeklyLb: 10 * 60 * 1000      // 10 minutes for weekly leaderboard
+      weeklyLb: 30 * 60 * 1000      // 30 minutes for weekly leaderboard
     }
 
     // Load persistent caches from localStorage
@@ -193,8 +193,7 @@ class GlobalCache {
   }
 
   // Top 10 cache
-  getTop10(showZero, excludeSodex) {
-    const key = `top10_${showZero}_${excludeSodex}`
+  getTop10(key) {
     const cached = this.caches.top10[key]
     if (!cached || !cached.timestamp) return null
 
@@ -206,8 +205,7 @@ class GlobalCache {
     return { gainers: cached.gainers, losers: cached.losers }
   }
 
-  setTop10(gainers, losers, showZero, excludeSodex) {
-    const key = `top10_${showZero}_${excludeSodex}`
+  setTop10(gainers, losers, key) {
     this.caches.top10[key] = {
       gainers,
       losers,
@@ -488,6 +486,7 @@ class GlobalCache {
     this.caches.spotLocalData = { data: null, timestamp: 0 }
     if (typeof window !== 'undefined') {
       try { localStorage.removeItem('socialLeaderboardCache') } catch (e) { }
+      try { localStorage.removeItem('leaderboardCache') } catch (e) { }
     }
   }
 }
