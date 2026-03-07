@@ -85,6 +85,9 @@ export default function MainnetPage() {
   const [lbMeta, setLbMeta] = useState(null)
   const [weekDropdownOpen, setWeekDropdownOpen] = useState(false)
 
+  // "Your Row" - connected wallet's leaderboard entry
+  const [yourRow, setYourRow] = useState(null)
+
   const weekDropdownRef = useRef(null)
 
   // Close dropdown on click outside or Escape
@@ -112,6 +115,7 @@ export default function MainnetPage() {
   const [top10Loading, setTop10Loading] = useState(false)
 
   const { data: profileData } = useUserProfile()
+  const ownWallet = profileData?.profile?.own_wallet?.toLowerCase()
   const showZeroData = false
 
   const isWeeklyView = timeRange !== 'all'
@@ -120,6 +124,82 @@ export default function MainnetPage() {
   useEffect(() => {
     loadLbMeta()
   }, [])
+
+  // Load "Your Row" when wallet/view changes
+  useEffect(() => {
+    if (!ownWallet) { setYourRow(null); return }
+    loadYourRow()
+  }, [ownWallet, viewMode, timeRange, leaderboardType])
+
+  const loadYourRow = async () => {
+    if (!ownWallet) return
+    try {
+      if (timeRange === 'all') {
+        const { data, error } = await supabase
+          .from('leaderboard_smart')
+          .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl, spot_volume, spot_pnl, last_synced_at')
+          .eq('wallet_address', ownWallet)
+          .maybeSingle()
+        if (error || !data) { setYourRow(null); return }
+        setYourRow({
+          walletAddress: data.wallet_address,
+          pnl: parseFloat(data.cumulative_pnl) || 0,
+          volume: parseFloat(data.cumulative_volume) || 0,
+          unrealizedPnl: parseFloat(data.unrealized_pnl) || 0,
+          pnlRank: parseInt(data.pnl_rank, 10) || null,
+          volumeRank: parseInt(data.volume_rank, 10) || null,
+          lastSyncedAt: data.last_synced_at,
+          sodexVolume: parseFloat(data.sodex_total_volume) || 0,
+          sodexPnl: parseFloat(data.sodex_pnl) || 0,
+          spotVolume: parseFloat(data.spot_volume) || 0,
+          spotPnl: parseFloat(data.spot_pnl) || 0,
+          displayRank: leaderboardType === 'volume' ? (parseInt(data.volume_rank, 10) || '-') : (parseInt(data.pnl_rank, 10) || '-'),
+          isYou: true
+        })
+      } else {
+        const weekNum = timeRange === 'current' ? 0 : timeRange
+        const actualWeek = weekNum === 0 ? 0 : weekNum
+        const prevWeek = weekNum === 0 ? (lbMeta?.current_week_number || 1) - 1 : weekNum - 1
+        // Query user's weekly row directly instead of scanning full RPC
+        const { data: cw } = await supabase
+          .from('leaderboard_weekly')
+          .select('cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl')
+          .eq('week_number', actualWeek)
+          .eq('wallet_address', ownWallet)
+          .maybeSingle()
+        if (!cw) { setYourRow(null); return }
+        let pw = null
+        if (prevWeek >= 1) {
+          const { data: pwData } = await supabase
+            .from('leaderboard_weekly')
+            .select('cumulative_pnl, cumulative_volume, sodex_total_volume, sodex_pnl')
+            .eq('week_number', prevWeek)
+            .eq('wallet_address', ownWallet)
+            .maybeSingle()
+          pw = pwData
+        }
+        const weeklyPnl = (parseFloat(cw.cumulative_pnl) || 0) - (parseFloat(pw?.cumulative_pnl) || 0)
+        const weeklyVol = (parseFloat(cw.cumulative_volume) || 0) - (parseFloat(pw?.cumulative_volume) || 0)
+        const weeklySodex = (parseFloat(cw.sodex_total_volume) || 0) - (parseFloat(pw?.sodex_total_volume) || 0)
+        const weeklySpot = Math.max(weeklySodex - weeklyVol, 0)
+        setYourRow({
+          walletAddress: ownWallet,
+          pnl: weeklyPnl,
+          volume: weeklyVol,
+          unrealizedPnl: parseFloat(cw.unrealized_pnl) || 0,
+          pnlRank: cw.pnl_rank || null,
+          volumeRank: cw.volume_rank || null,
+          sodexVolume: weeklySodex,
+          spotVolume: weeklySpot,
+          displayRank: leaderboardType === 'pnl' ? (cw.pnl_rank || '-') : (cw.volume_rank || '-'),
+          isYou: true
+        })
+      }
+    } catch (err) {
+      console.error('Failed to load your row:', err)
+      setYourRow(null)
+    }
+  }
 
   const loadLbMeta = async () => {
     const cached = globalCache.getLeaderboardMeta()
@@ -818,8 +898,28 @@ export default function MainnetPage() {
                 </tr>
               </thead>
               <tbody>
+                {yourRow && (
+                  <tr className="your-row" style={{ background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.08)', borderBottom: '2px solid rgba(var(--color-primary-rgb, 60, 200, 240), 0.3)' }}>
+                    <td className="rank-cell" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{yourRow.displayRank}</td>
+                    <td className="address-cell" style={{ color: 'var(--color-primary)' }}>
+                      <span style={{ fontSize: '10px', opacity: 0.7, marginRight: 4 }}>YOU</span>
+                      <CopyableAddress address={yourRow.walletAddress} />
+                    </td>
+                    {!(isWeeklyView && viewMode === 'spot') && (
+                      <td className={`pnl-cell text-right ${getPnLClassName(getDisplayPnl(yourRow))}`}>
+                        ${formatPnL(getDisplayPnl(yourRow))}
+                      </td>
+                    )}
+                    <td className="volume-cell text-right">${formatFullNumber(getDisplayVolume(yourRow))}</td>
+                    {!isWeeklyView && showSyncStatus && (
+                      <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                        {formatSyncTime(yourRow.lastSyncedAt)}
+                      </td>
+                    )}
+                  </tr>
+                )}
                 {paginatedLeaderboard.map((user) => (
-                  <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl}>
+                  <tr key={user.walletAddress} data-testid={`leaderboard-row-${user.walletAddress}`} data-rank={user.displayRank} data-pnl={user.pnl} style={user.walletAddress?.toLowerCase() === ownWallet ? { background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.04)' } : undefined}>
                     <td className="rank-cell" aria-label={`Rank ${user.displayRank}`}>#{user.displayRank}</td>
                     <td className="address-cell"><CopyableAddress address={user.walletAddress} /></td>
                     {!(isWeeklyView && viewMode === 'spot') && (
