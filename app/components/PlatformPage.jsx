@@ -3,11 +3,10 @@ import TopPairs from './TopPairs'
 import TotalUsersChart from './TotalUsersChart'
 import '../styles/MainnetPage.css'
 import { supabase } from '../lib/supabaseClient'
-import { useUserGrowthData } from '../hooks/useUserGrowthData'
 
 export default function PlatformPage() {
-  const { data: growthData } = useUserGrowthData()
   const [platformStats, setPlatformStats] = useState({
+    totalUsers: 0,
     totalTraders: 0,
   })
   const [platformLoading, setPlatformLoading] = useState(true)
@@ -43,8 +42,15 @@ export default function PlatformPage() {
     setPlatformLoading(true)
 
     try {
+      // Fetch total users from leaderboard (excluding sodex-owned) — matches LB/SoPoints page
+      const { count: totalUsersCount, error: usersErr } = await supabase
+        .from('leaderboard')
+        .select('account_id', { count: 'exact', head: true })
+        .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+
+      if (usersErr) console.error('users query error:', usersErr)
+
       // Fetch total "Traders" (non-zero activity, excluding sodex-owned)
-      // Combine conditions into single .or() with nested logic to avoid duplicate or= params
       const activityFilter = excludeSodexOwned
         ? 'and(cumulative_volume.gt.0,or(is_sodex_owned.is.null,is_sodex_owned.eq.false)),and(cumulative_pnl.neq.0,or(is_sodex_owned.is.null,is_sodex_owned.eq.false))'
         : 'cumulative_pnl.neq.0,cumulative_volume.gt.0'
@@ -56,7 +62,7 @@ export default function PlatformPage() {
 
       if (tradersErr) console.error('traders query error:', tradersErr)
 
-      setPlatformStats({ totalTraders: tradersCount || 0 })
+      setPlatformStats({ totalUsers: totalUsersCount || 0, totalTraders: tradersCount || 0 })
 
       setPlatformLoading(false)
     } catch (err) {
@@ -175,7 +181,7 @@ export default function PlatformPage() {
       <div className="stats-row">
         <div className="stat-item">
           <span className="stat-label">Total Users</span>
-          <span className="stat-value">{growthData ? formatNumber(growthData.totalUsers) : '...'}</span>
+          <span className="stat-value">{platformLoading ? '...' : formatNumber(platformStats.totalUsers)}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Active Traders</span>
@@ -183,7 +189,7 @@ export default function PlatformPage() {
         </div>
         <div className="stat-item">
           <span className="stat-label">Activity Rate</span>
-          <span className="stat-value">{platformLoading || !growthData ? '...' : formatPercent((platformStats.totalTraders / growthData.totalUsers) * 100)}</span>
+          <span className="stat-value">{platformLoading ? '...' : formatPercent((platformStats.totalTraders / platformStats.totalUsers) * 100)}</span>
         </div>
 
         <button
@@ -201,7 +207,7 @@ export default function PlatformPage() {
         </button>
       </div>
 
-      <TotalUsersChart />
+      <TotalUsersChart overrideTotalUsers={platformStats.totalUsers} />
 
       {isModalOpen && (
         <div className="platform-modal-overlay" onClick={() => setIsModalOpen(false)}>

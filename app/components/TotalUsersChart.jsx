@@ -72,14 +72,26 @@ const calculateYAxisDomain = (data) => {
   return { domain: [0, ticks[ticks.length - 1] || maxTick], ticks }
 }
 
-export default function TotalUsersChart() {
+export default function TotalUsersChart({ overrideTotalUsers }) {
   const { theme } = useTheme()
   const { data: growthData, isLoading: loading, isError } = useUserGrowthData()
   const [projectionDays, setProjectionDays] = useState(7)
   const [timeframeDays, setTimeframeDays] = useState(30)
 
-  const data = growthData?.data || []
-  const totalUsers = growthData?.totalUsers || 0
+  const rawData = growthData?.data || []
+  const apiTotal = growthData?.totalUsers || 0
+  const totalUsers = overrideTotalUsers || apiTotal
+
+  // Scale chart data so final value matches LB total when overrideTotalUsers is provided
+  const data = useMemo(() => {
+    if (!overrideTotalUsers || !apiTotal || apiTotal === 0 || rawData.length === 0) return rawData
+    const scale = overrideTotalUsers / apiTotal
+    return rawData.map(d => ({
+      ...d,
+      totalUsers: Math.round(d.totalUsers * scale),
+      newUsers: Math.round(d.newUsers * scale)
+    }))
+  }, [rawData, overrideTotalUsers, apiTotal])
 
   const predictions = useMemo(() => {
     if (data.length < 7) return { chartData: data, milestones: [], filteredData: data, avgDailyGrowth: 0, yAxisConfig: { domain: [0, 1000], ticks: [0, 500, 1000] } }
