@@ -389,8 +389,8 @@ export default function MainnetPage() {
     setSodex24hLoading(false)
   }
 
-  // Check if we're using sodex 24h data (Total tab + current week)
-  const useSodex24h = timeRange === 'current' && viewMode === 'total'
+  // Sodex 24h fallback disabled — snapshot fix applied, RPC data is accurate
+  const useSodex24h = false
 
   // Reload when filters change
   useEffect(() => {
