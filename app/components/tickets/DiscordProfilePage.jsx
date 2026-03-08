@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useDiscordUser, useDiscordUserStats } from '../../hooks/useDiscordUser'
 import { useTickets } from '../../hooks/useTickets'
+import { SkeletonCard } from '../Skeleton'
 import '../../styles/TicketDetail.css'
 
 function formatDate(dateStr) {
@@ -31,7 +32,7 @@ export default function DiscordProfilePage({ discordId }) {
   if (isLoading) {
     return (
       <div className="discord-profile-container">
-        <div className="ticket-loading">Loading...</div>
+        <div className="ticket-loading"><SkeletonCard count={2} /></div>
       </div>
     )
   }

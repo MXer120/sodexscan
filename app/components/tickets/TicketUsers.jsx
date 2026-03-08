@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSessionContext } from '../../lib/SessionContext'
 import { useAllMods, useModResponders, useSearchTicketOpeners, useUserTickets, useDiscordUser, useDiscordUserStats } from '../../hooks/useDiscordUser'
+import { SkeletonList } from '../Skeleton'
 import '../../styles/TicketDetail.css'
 
 function formatDate(dateStr) {
@@ -92,7 +93,7 @@ function UserProfileView({ discordId, onBack }) {
     return result
   }, [tickets, filterProgress, filterProject, sortBy])
 
-  if (userLoading) return <div className="ticket-loading">Loading...</div>
+  if (userLoading) return <SkeletonList items={8} style={{ padding: 16 }} />
 
   const name = discordUser?.display_name || discordUser?.username || discordId
 
@@ -228,7 +229,7 @@ export default function TicketUsers() {
         <div className="ticket-users-column">
           <h3 className="ticket-users-section-title">Responses</h3>
           {respondersLoading ? (
-            <div className="ticket-users-list"><div className="ticket-loading">Loading...</div></div>
+            <div className="ticket-users-list"><SkeletonList items={5} style={{ padding: 12 }} /></div>
           ) : !responders?.length ? (
             <div className="ticket-users-list"><div className="ticket-empty">No mod data</div></div>
           ) : (
@@ -253,7 +254,7 @@ export default function TicketUsers() {
           <div className="ticket-users-column">
             <h3 className="ticket-users-section-title">Tickets Assigned</h3>
             {respondersLoading ? (
-              <div className="ticket-users-list"><div className="ticket-loading">Loading...</div></div>
+              <div className="ticket-users-list"><SkeletonList items={5} style={{ padding: 12 }} /></div>
             ) : !responders?.length ? (
               <div className="ticket-users-list"><div className="ticket-empty">No mod data</div></div>
             ) : (

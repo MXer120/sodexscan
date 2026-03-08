@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
+import { SkeletonWeekTable } from '../../Skeleton'
 
 const TOTAL_POOL = 1_000_000
 
@@ -54,7 +55,7 @@ export default function WeekTableWidget() {
     })()
   }, [meta, currentWeek])
 
-  if (loading || !currentStats) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (loading || !currentStats) return <SkeletonWeekTable rows={5} />
 
   const weeks = Object.keys(weeklyStats).map(Number).sort((a, b) => b - a)
   const poolSize = meta?.pool_size ? parseFloat(meta.pool_size) : TOTAL_POOL

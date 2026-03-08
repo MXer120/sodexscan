@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useWalletData } from '../../../hooks/useWalletData'
+import { SkeletonWidget } from '../../Skeleton'
 
 export default function FuturesPerformanceWidget({ config, onUpdateConfig }) {
   const { data, isLoading } = useWalletData(config.walletAddress || null)
@@ -36,7 +37,7 @@ export default function FuturesPerformanceWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   return (
     <div className="agg-widget-stats">

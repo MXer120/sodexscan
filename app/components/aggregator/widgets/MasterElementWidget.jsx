@@ -5,13 +5,10 @@ import { createPortal } from 'react-dom'
 import { WIDGET_REGISTRY, WIDGET_CATEGORIES } from '../WidgetRegistry'
 import AggSelect from '../AggSelect'
 import WidgetSettingsPanel from '../WidgetSettingsPanel'
+import { SkeletonWidget } from '../../Skeleton'
 
 function SubWidgetSkeleton() {
-  return (
-    <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: 12 }}>
-      Loading...
-    </div>
-  )
+  return <SkeletonWidget />
 }
 
 // ── Column Resizer (horizontal, between columns) ─────────────────

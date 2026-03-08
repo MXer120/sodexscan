@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { SkeletonCard } from '../Skeleton'
 
 export default function AdminCms() {
   const [rows, setRows] = useState([])
@@ -111,7 +112,7 @@ export default function AdminCms() {
       {error && <p className="admin-status-err">{error}</p>}
 
       {loading ? (
-        <p className="admin-loading">Loading...</p>
+        <SkeletonCard count={3} />
       ) : !rows.length ? (
         <p className="admin-empty">No CMS entries.</p>
       ) : (

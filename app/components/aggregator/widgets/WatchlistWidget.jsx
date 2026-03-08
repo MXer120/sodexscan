@@ -1,11 +1,12 @@
 'use client'
 import { useWatchlist } from '../../../hooks/useWatchlist'
 import CopyableAddress from '../../ui/CopyableAddress'
+import { SkeletonWidget } from '../../Skeleton'
 
 export default function WatchlistWidget() {
   const { watchlist, isLoading, error } = useWatchlist()
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
   if (error) return <div style={{ padding: 12, color: 'var(--color-error)' }}>Error loading watchlist</div>
   if (!watchlist || watchlist.length === 0) {
     return <div style={{ padding: 12, color: 'var(--color-text-muted)', textAlign: 'center' }}>No wallets tracked yet</div>

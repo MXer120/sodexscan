@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useWalletSlowData as useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo from '../../ui/CoinLogo'
+import { SkeletonWidget } from '../../Skeleton'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '-'
@@ -64,7 +65,7 @@ export default function TransfersWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   const showCoinLogos = config.showCoinLogos !== false
   const showType = config.showType !== false

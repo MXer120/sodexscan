@@ -4,13 +4,10 @@ import React, { Suspense, useState, useRef, useEffect, useMemo, useCallback, mem
 import { createPortal } from 'react-dom'
 import { WIDGET_REGISTRY } from './WidgetRegistry'
 import WidgetSettingsPanel from './WidgetSettingsPanel'
+import { SkeletonWidget } from '../Skeleton'
 
 function WidgetSkeleton() {
-  return (
-    <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-text-muted)' }}>
-      Loading...
-    </div>
-  )
+  return <SkeletonWidget />
 }
 
 function WidgetWrapper({ instanceId, config, onRemove, onUpdateConfig, recentColors, onAddRecentColor, resolvedWalletAddress = '', editMode = true, layoutItem, onResizeWidget, rowHeight = 80, devicePreview = null, onHideOnBP = null, effectiveBP = 'lg' }) {

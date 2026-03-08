@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { globalCache } from '../lib/globalCache'
 import '../styles/SocialPage.css'
+import { SkeletonSocialLB } from './Skeleton'
 import '../styles/MainnetPage.css'
 
 // Set document title
@@ -290,8 +291,8 @@ export default function SocialPage() {
         )}
 
         {/* Table */}
-        {data.length > 0 && (
-          <div className="table-wrapper" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+        {(data.length > 0 || (loading && !data.length)) && (
+          <div className="table-wrapper" style={{ opacity: loading && data.length > 0 ? 0.5 : 1, transition: 'opacity 0.2s' }}>
             <table className="leaderboard-table">
               <thead>
                 <tr>
@@ -300,29 +301,28 @@ export default function SocialPage() {
                   <th className="text-right">{viewConfig.headers[2]}</th>
                 </tr>
               </thead>
-              <tbody>
-                {data.map((row) => (
-                  <tr key={row.userId}>
-                    <td className="rank-cell">#{row.rank}</td>
-                    <td className="user-cell">{row.displayName}</td>
-                    <td className={`value-cell text-right ${row.isSentiment ? getSentimentClass(row.value) : ''}`}>
-                      {row.isPercent
-                        ? formatPercent(row.value)
-                        : row.isSentiment
-                          ? formatSentiment(row.value)
-                          : formatNumber(row.value)
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+              {loading && !data.length ? (
+                <SkeletonSocialLB rows={20} />
+              ) : (
+                <tbody>
+                  {data.map((row) => (
+                    <tr key={row.userId}>
+                      <td className="rank-cell">#{row.rank}</td>
+                      <td className="user-cell">{row.displayName}</td>
+                      <td className={`value-cell text-right ${row.isSentiment ? getSentimentClass(row.value) : ''}`}>
+                        {row.isPercent
+                          ? formatPercent(row.value)
+                          : row.isSentiment
+                            ? formatSentiment(row.value)
+                            : formatNumber(row.value)
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
             </table>
           </div>
-        )}
-
-        {/* Loading */}
-        {loading && !data.length && (
-          <div className="social-loading">Loading leaderboard...</div>
         )}
 
         {/* Pagination */}

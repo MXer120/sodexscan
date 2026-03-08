@@ -1,6 +1,7 @@
 'use client'
 
 import { useWalletLiveData as useWalletData } from '../../../hooks/useWalletData'
+import { SkeletonWidget } from '../../Skeleton'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '-'
@@ -25,7 +26,7 @@ export default function AccountValueWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
   if (error) return <div style={{ padding: 12, color: 'var(--color-error)' }}>Error loading data</div>
 
   // account_details.data.balances[0].walletBalance = futures USDC balance

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabaseClient'
 import CopyableAddress from '../../ui/CopyableAddress'
+import { SkeletonLeaderboard } from '../../Skeleton'
 
 const PAGE_SIZE = 20
 
@@ -37,7 +38,7 @@ export default function SpotLeaderboardWidget() {
   const totalPages = Math.ceil(rows.length / PAGE_SIZE)
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <table style={{width:'100%'}}><SkeletonLeaderboard rows={10} cols={3} /></table>
 
   return (
     <div>

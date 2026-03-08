@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUserProfile, useUpdateOwnWallet, useUpdateShowZeroData } from '../hooks/useProfile'
+import { useUserProfile, useUpdateOwnWallet, useUpdateShowZeroData, useWeeklyWalletStats } from '../hooks/useProfile'
 import {
   useWalletTags, useRenameTag, useDeleteTag,
   useWalletGroups, useCreateGroup, useDeleteGroup, useRenameGroup,
@@ -13,6 +13,7 @@ import { useTheme } from '../lib/ThemeContext'
 import { supabase } from '../lib/supabaseClient'
 import { COLOR_SCHEMES, ColorScheme, ThemeMode, BULLISH_PRESETS, BEARISH_PRESETS, ACCENT_PRESETS, TERMINAL_SCHEMES, THEME_AUTO_COLORS, isValidHex } from '../lib/themes'
 import WalletDisplay from './WalletDisplay'
+import { SkeletonBar } from './Skeleton'
 import '../styles/Profile.css'
 
 type ProfileSection = 'account' | 'settings' | 'customization' | 'aliases'
@@ -36,6 +37,8 @@ export default function Profile() {
   const updateOwnWallet = useUpdateOwnWallet()
   const updateShowZeroData = useUpdateShowZeroData()
   const { theme, setTheme, autoSyncColors, setAutoSyncColors, isLoading: themeLoading } = useTheme()
+  const ownWalletForWeekly = profileData?.profile?.own_wallet?.toLowerCase() ?? null
+  const { data: weeklyStats, isLoading: weeklyLoading } = useWeeklyWalletStats(ownWalletForWeekly)
 
   const [ownWalletInput, setOwnWalletInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -52,6 +55,7 @@ export default function Profile() {
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const [copiedWallet, setCopiedWallet] = useState<string | null>(null)
+  const [statsView, setStatsView] = useState<'total' | 'weekly'>('total')
   const router = useRouter()
 
   // Custom color inputs
@@ -330,15 +334,7 @@ export default function Profile() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="profile-container">
-        <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-          Loading profile...
-        </div>
-      </div>
-    )
-  }
+  if (isLoading) return null
 
   if (error) {
     return (
@@ -520,45 +516,120 @@ export default function Profile() {
               {/* Leaderboard Stats */}
               {leaderboardStats && (
                 <div className="profile-section">
-                  <h2 className="section-title">Your Wallet Stats</h2>
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <span className="stat-label">Cumulative PnL</span>
-                      <span className="stat-value">
-                        {leaderboardStats.cumulative_pnl
-                          ? parseFloat(leaderboardStats.cumulative_pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '0.00'}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Cumulative Volume</span>
-                      <span className="stat-value">
-                        {leaderboardStats.cumulative_volume
-                          ? parseFloat(leaderboardStats.cumulative_volume).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '0.00'}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Unrealized PnL</span>
-                      <span className="stat-value">
-                        {leaderboardStats.unrealized_pnl
-                          ? parseFloat(leaderboardStats.unrealized_pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '0.00'}
-                      </span>
-                    </div>
-                    {leaderboardStats.pnl_rank && (
-                      <div className="stat-item">
-                        <span className="stat-label">PnL Rank</span>
-                        <span className="stat-value">#{leaderboardStats.pnl_rank}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+                    <h2 className="section-title" style={{ margin: 0 }}>Your Wallet Stats</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="leaderboard-toggle" style={{ fontSize: 13 }}>
+                        <button
+                          className={statsView === 'total' ? 'active' : ''}
+                          onClick={() => setStatsView('total')}
+                        >
+                          All-Time
+                        </button>
+                        <button
+                          className={statsView === 'weekly' ? 'active' : ''}
+                          onClick={() => setStatsView('weekly')}
+                        >
+                          This Week
+                        </button>
                       </div>
-                    )}
-                    {leaderboardStats.volume_rank && (
-                      <div className="stat-item">
-                        <span className="stat-label">Volume Rank</span>
-                        <span className="stat-value">#{leaderboardStats.volume_rank}</span>
+                      <div className="leaderboard-toggle" style={{ fontSize: 13 }}>
+                        <button
+                          onClick={() => router.push('/mainnet')}
+                          title="View full leaderboard"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          Full Info
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
+
+                  {statsView === 'total' ? (
+                    <div className="stats-grid">
+                      <div className="stat-item">
+                        <span className="stat-label">Total PnL</span>
+                        <span className="stat-value">
+                          {leaderboardStats.total_pnl?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
+                        </span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Total Volume</span>
+                        <span className="stat-value">
+                          {leaderboardStats.total_volume?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
+                        </span>
+                      </div>
+                      {leaderboardStats.unrealized_pnl !== 0 && (
+                        <div className="stat-item">
+                          <span className="stat-label">Unrealized PnL</span>
+                          <span className="stat-value">
+                            {leaderboardStats.unrealized_pnl?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
+                          </span>
+                        </div>
+                      )}
+                      {leaderboardStats.pnl_rank && (
+                        <div className="stat-item">
+                          <span className="stat-label">PnL Rank</span>
+                          <span className="stat-value">#{leaderboardStats.pnl_rank}</span>
+                        </div>
+                      )}
+                      {leaderboardStats.volume_rank && (
+                        <div className="stat-item">
+                          <span className="stat-label">Volume Rank</span>
+                          <span className="stat-value">#{leaderboardStats.volume_rank}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : weeklyLoading ? (
+                    <div className="stats-grid">
+                      {[0, 1, 2, 3, 4].map(i => (
+                        <div key={i} className="stat-item">
+                          <span className="stat-label" style={{ visibility: 'hidden' }}>-</span>
+                          <span className="stat-value"><SkeletonBar width="80px" height={16} style={{}} /></span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : weeklyStats ? (
+                    <div className="stats-grid">
+                      <div className="stat-item">
+                        <span className="stat-label">Week {weeklyStats.week_number} PnL</span>
+                        <span className="stat-value">
+                          {weeklyStats.weekly_pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Week {weeklyStats.week_number} Volume</span>
+                        <span className="stat-value">
+                          {weeklyStats.weekly_volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Unrealized PnL</span>
+                        <span className="stat-value">
+                          {weeklyStats.unrealized_pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {weeklyStats.pnl_rank && (
+                        <div className="stat-item">
+                          <span className="stat-label">PnL Rank</span>
+                          <span className="stat-value">#{weeklyStats.pnl_rank}</span>
+                        </div>
+                      )}
+                      {weeklyStats.volume_rank && (
+                        <div className="stat-item">
+                          <span className="stat-label">Volume Rank</span>
+                          <span className="stat-value">#{weeklyStats.volume_rank}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '16px 0', color: 'var(--color-text-muted)', fontSize: 13 }}>
+                      No weekly data available
+                    </div>
+                  )}
                 </div>
               )}
             </>

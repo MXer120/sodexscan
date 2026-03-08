@@ -5,6 +5,7 @@ import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceArea
 } from 'recharts'
+import { SkeletonChart } from '../../Skeleton'
 
 const formatDate = (ts) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 const formatNum = (num) => {
@@ -57,7 +58,7 @@ export default function UserGrowthChartWidget({ config }) {
   }, [growthData, timeframeDays, projectionDays])
 
   if (isLoading || !chartResult) {
-    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-text-muted)' }}>Loading...</div>
+    return <SkeletonChart />
   }
 
   const { filteredData, currentDayDate } = chartResult

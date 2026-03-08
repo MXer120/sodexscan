@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import CoinLogo, { getBaseCoin } from '../../ui/CoinLogo'
+import { SkeletonIncomingListings } from '../../Skeleton'
 
 export default function UpcomingListingsWidget({ config }) {
   const filter = config?.filter || 'All'
@@ -29,7 +30,7 @@ export default function UpcomingListingsWidget({ config }) {
       ? futures.map(f => ({ symbol: f, type: 'futures' }))
       : [...spot.map(s => ({ symbol: s, type: 'spot' })), ...futures.map(f => ({ symbol: f, type: 'futures' }))]
 
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Loading...</div>
+  if (isLoading) return <SkeletonIncomingListings rows={6} />
 
   return (
     <div>

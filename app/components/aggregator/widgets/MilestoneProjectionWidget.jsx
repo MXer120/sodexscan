@@ -1,6 +1,7 @@
 'use client'
 import { useMemo } from 'react'
 import { useUserGrowthData } from '../../../hooks/useUserGrowthData'
+import { SkeletonWidget } from '../../Skeleton'
 
 const COOL_MILESTONES = [
   10000, 20000, 50000, 100000, 200000, 250000, 300000, 400000, 500000,
@@ -50,7 +51,7 @@ export default function MilestoneProjectionWidget() {
     })
   }, [growthData])
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   const avgDaily = growthData?.data?.length >= 7
     ? Math.round(growthData.data.slice(-7).reduce((s, d) => s + d.newUsers, 0) / 7)
@@ -76,7 +77,7 @@ export default function MilestoneProjectionWidget() {
           </div>
         ))}
         {milestones.length === 0 && (
-          <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>Loading...</div>
+          <div style={{ color: '#666', fontSize: 11, textAlign: 'center', padding: '16px 0' }}>No milestone data</div>
         )}
       </div>
     </div>

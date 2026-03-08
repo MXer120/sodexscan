@@ -2,6 +2,7 @@
 
 import { useWalletLiveData as useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo from '../../ui/CoinLogo'
+import { SkeletonWidget } from '../../Skeleton'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '-'
@@ -26,7 +27,7 @@ export default function PositionsWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   // open positions sorted by notional (size * entry) desc for stable order
   const positions = [...(data?.data?.account_details?.data?.positions || [])].sort((a, b) =>

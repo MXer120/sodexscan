@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo from '../../ui/CoinLogo'
+import { SkeletonWidget } from '../../Skeleton'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '-'
@@ -67,7 +68,7 @@ export default function PerformanceWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   const view = config.view || 'trade'
   const showCoinLogos = config.showCoinLogos !== false

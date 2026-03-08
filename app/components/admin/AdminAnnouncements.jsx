@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { SkeletonCard } from '../Skeleton'
 
 const TYPES = ['info', 'warning', 'success']
 
@@ -113,7 +114,7 @@ export default function AdminAnnouncements() {
       {error && <p className="admin-status-err">{error}</p>}
 
       {loading ? (
-        <p className="admin-loading">Loading...</p>
+        <SkeletonCard count={3} />
       ) : !rows.length ? (
         <p className="admin-empty">No announcements.</p>
       ) : (

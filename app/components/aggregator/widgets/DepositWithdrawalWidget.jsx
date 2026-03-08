@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useWalletData } from '../../../hooks/useWalletData'
+import { SkeletonWidget } from '../../Skeleton'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '-'
@@ -42,7 +43,7 @@ export default function DepositWithdrawalWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   return (
     <div className="agg-widget-stats">

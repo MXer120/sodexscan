@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { TimeSelector } from './ui/TimeSelector'
+import { SkeletonTopPairsTable, SkeletonNewTradersTable } from './Skeleton'
 import { globalCache } from '../lib/globalCache'
 
 const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/object/public/coin-logos/'
@@ -276,9 +277,7 @@ export default function TopPairs() {
         </tbody>
       </table>
       {isLoadingMore && (
-        <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '12px' }}>
-          Loading...
-        </div>
+        <SkeletonTopPairsTable rows={5} />
       )}
       {hasMore && !isLoadingMore && tickers.length > 0 && (
         <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '12px' }}>
@@ -290,6 +289,9 @@ export default function TopPairs() {
 
   const renderNewTradersTable = () => (
     <div className="top-pairs-table-wrapper">
+      {newestTradersLoading ? (
+        <SkeletonNewTradersTable rows={10} />
+      ) : (
       <table className="top-pairs-table">
         <thead>
           <tr>
@@ -298,13 +300,7 @@ export default function TopPairs() {
           </tr>
         </thead>
         <tbody>
-          {newestTradersLoading ? (
-            <tr>
-              <td colSpan="2" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                Loading...
-              </td>
-            </tr>
-          ) : newestTradersError ? (
+          {newestTradersError ? (
             <tr>
               <td colSpan="2" style={{ textAlign: 'center', padding: '20px', color: '#f44336' }}>
                 {newestTradersError}
@@ -331,6 +327,7 @@ export default function TopPairs() {
           )}
         </tbody>
       </table>
+      )}
     </div>
   )
 
@@ -349,9 +346,7 @@ export default function TopPairs() {
         </div>
 
         {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-            Loading pairs...
-          </div>
+          <SkeletonTopPairsTable rows={10} />
         ) : error ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#f44336' }}>
             Error loading market data

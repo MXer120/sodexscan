@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabaseClient'
 import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
 import CopyableAddress from '../../ui/CopyableAddress'
+import { SkeletonLeaderboard } from '../../Skeleton'
 
 const PAGE_SIZE = 20
 
@@ -50,7 +51,7 @@ export default function WeeklySpotLBWidget({ config }) {
     ? `Week ${weekNum} (Live)`
     : displayWeek === 1 ? 'CA + Week 1' : `Week ${displayWeek}`
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <table style={{width:'100%'}}><SkeletonLeaderboard rows={10} cols={3} /></table>
 
   return (
     <div>

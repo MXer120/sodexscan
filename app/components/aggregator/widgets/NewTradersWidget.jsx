@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { globalCache } from '../../../lib/globalCache'
+import { SkeletonNewTradersTable } from '../../Skeleton'
 
 const timeAgo = (ms) => {
   if (!ms) return 'Unknown'
@@ -51,7 +52,7 @@ export default function NewTradersWidget() {
     load()
   }, [])
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Loading...</div>
+  if (loading) return <SkeletonNewTradersTable rows={10} />
 
   return (
     <table>

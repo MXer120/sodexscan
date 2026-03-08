@@ -7,6 +7,7 @@ import {
   ComposedChart, Area, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, Cell
 } from 'recharts'
+import { SkeletonChart } from '../../Skeleton'
 
 const TIMEFRAMES = ['1W', '1M', '3M', '1Y', 'ALL']
 const TIMEFRAME_DAYS = { '1W': 7, '1M': 30, '3M': 90, '1Y': 365, ALL: null }
@@ -67,7 +68,7 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonChart />
 
   if (chartData.length === 0) {
     return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>No PnL data available</div>

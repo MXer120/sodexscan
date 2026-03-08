@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { TimeSelector } from './ui/TimeSelector'
 import { globalCache } from '../lib/globalCache'
+import { SkeletonIncomingListings } from './Skeleton'
 import { THEME_COLORS } from '../lib/themeColors'
 
 // Set document title
@@ -125,8 +126,8 @@ export default function IncomingListings() {
         </div>
 
         {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.textDark }}>
-            Loading listings...
+          <div className="incoming-table-wrapper">
+            <SkeletonIncomingListings rows={10} />
           </div>
         ) : error ? (
           <div style={{ padding: '40px', textAlign: 'center', color: THEME_COLORS.error }}>

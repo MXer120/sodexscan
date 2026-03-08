@@ -1,3 +1,9 @@
+/* Skeleton shimmer — shared animation for all skeleton loading */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
 /* Stats Dashboard styles - updated for new theme */
 .dashboard,
 .landing-page {

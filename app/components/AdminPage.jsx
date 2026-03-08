@@ -9,6 +9,7 @@ import AdminAnnouncements from './admin/AdminAnnouncements'
 import AdminSoPoints from './admin/AdminSoPoints'
 import AdminCms from './admin/AdminCms'
 import AdminSettings from './admin/AdminSettings'
+import { SkeletonCard } from './Skeleton'
 import '../styles/Admin.css'
 
 const BASE_TABS = [
@@ -29,7 +30,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="admin-page">
-        <p className="admin-loading">Loading...</p>
+        <SkeletonCard count={4} />
       </div>
     )
   }

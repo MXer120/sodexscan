@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useReferrals, Referral } from '../hooks/useReferrals'
+import { SkeletonReferralGrid } from './Skeleton'
 import '../styles/ReferralPage.css'
 
 if (typeof document !== 'undefined') {
@@ -190,17 +191,6 @@ export default function ReferralPage() {
     return featuredRef ? [featuredRef, ...matchingOthers] : matchingOthers
   }, [referrals, debouncedSearch])
 
-  if (isLoading) {
-    return (
-      <div className="referral-container">
-        <div className="referral-content">
-          <h1 className="referral-title">Referrals</h1>
-          <div className="loading-state">Loading referrals...</div>
-        </div>
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="referral-container">
@@ -224,18 +214,22 @@ export default function ReferralPage() {
               This dataset reflects publicly observable associations between referral codes, wallet addresses, and online handles. It does not identify individuals, ownership, or control. Associations are non-verified and may be incorrect. Referrals may not work due to weekly limits or inaccuracy of codes. For removal of referral codes, associated socials, or other data, contact communityscan-sodex@outlook.com.
             </p>
           </div>
-          <div className="referral-search">
-            <input
-              type="text"
-              placeholder="Search codes or handles..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="referral-search-input"
-            />
-          </div>
+          {!isLoading && (
+            <div className="referral-search">
+              <input
+                type="text"
+                placeholder="Search codes or handles..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="referral-search-input"
+              />
+            </div>
+          )}
         </div>
 
-        {filteredReferrals.length === 0 ? (
+        {isLoading ? (
+          <SkeletonReferralGrid count={6} />
+        ) : filteredReferrals.length === 0 ? (
           <div className="empty-state">
             {debouncedSearch ? 'No matching referral codes found.' : 'No referral codes found.'}
           </div>

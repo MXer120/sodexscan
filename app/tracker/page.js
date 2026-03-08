@@ -2,10 +2,11 @@
 
 import { Suspense } from 'react'
 import TrackerPage from '../components/TrackerPage'
+import { SkeletonPage } from '../components/Skeleton'
 
 export default function Tracker() {
   return (
-    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Loading...</div>}>
+    <Suspense fallback={<SkeletonPage />}>
       <TrackerPage />
     </Suspense>
   )

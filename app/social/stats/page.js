@@ -15,19 +15,7 @@ export default function SocialStats() {
         }
     }, [user, loading, router])
 
-    if (loading) {
-        return (
-            <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100vh',
-                color: '#fff'
-            }}>
-                Loading...
-            </div>
-        )
-    }
+    if (loading) return null
 
     if (!user) {
         return null // Will redirect

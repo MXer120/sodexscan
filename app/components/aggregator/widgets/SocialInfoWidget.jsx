@@ -1,6 +1,7 @@
 'use client'
 
 import { useWalletData } from '../../../hooks/useWalletData'
+import { SkeletonWidget } from '../../Skeleton'
 
 export default function SocialInfoWidget({ config, onUpdateConfig }) {
   const { data, isLoading } = useWalletData(config.walletAddress || null)
@@ -17,7 +18,7 @@ export default function SocialInfoWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   // social info from overview.data or leaderboard_entry
   const ov = data?.data?.overview?.data || {}

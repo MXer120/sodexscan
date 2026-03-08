@@ -10,6 +10,7 @@ import TicketChat from './TicketChat'
 import TicketRightPanel from './TicketRightPanel'
 import TicketSidebar from './TicketSidebar'
 import '../../styles/TicketDetail.css'
+import { SkeletonCard } from '../Skeleton'
 import '../../styles/TicketsPage.css'
 
 export default function TicketDetailPage({ ticketId }) {
@@ -102,7 +103,7 @@ export default function TicketDetailPage({ ticketId }) {
   if (isLoading) {
     return (
       <div className="ticket-detail-container">
-        <div className="ticket-loading">Loading...</div>
+        <div className="ticket-loading"><SkeletonCard count={2} /></div>
       </div>
     )
   }

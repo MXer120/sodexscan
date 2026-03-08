@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useReferrals } from '../../../hooks/useReferrals'
 import { useSessionContext } from '../../../lib/SessionContext'
 import { supabase } from '../../../lib/supabaseClient'
+import { SkeletonWidget } from '../../Skeleton'
 
 const BASE_URL = 'https://sodex.com/join/'
 
@@ -40,7 +41,7 @@ export default function ReferralCodeWidget({ settings = {} }) {
       .slice(0, 20)
   }, [referrals, search])
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonWidget />
 
   return (
     <div>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useTheme } from '../lib/ThemeContext'
 import { useUserGrowthData } from '../hooks/useUserGrowthData'
+import { SkeletonChart, SkeletonBar } from './Skeleton'
 import {
   ComposedChart,
   Line,
@@ -247,7 +248,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
       <div className="chart-body-row">
         <div className="chart-area">
           {loading ? (
-            <div className="chart-loading">Loading...</div>
+            <div className="chart-loading"><SkeletonChart height={180} /></div>
           ) : isError ? (
             <div className="chart-error">Failed to load data</div>
           ) : (
@@ -356,7 +357,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
                 </div>
               ))
             ) : (
-              <div className="no-milestones">Loading...</div>
+              <div className="no-milestones"><SkeletonBar width="60%" height={14} /></div>
             )}
           </div>
           <div className="milestones-legend">

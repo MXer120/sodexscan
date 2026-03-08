@@ -67,21 +67,7 @@ const CopyableAddress = ({ address }) => {
   )
 }
 
-const SkeletonRow = ({ cols = 4 }) => (
-  <tr className="skeleton-row">
-    {Array.from({ length: cols }).map((_, i) => (
-      <td key={i}><div className="skeleton-bar" /></td>
-    ))}
-  </tr>
-)
-
-const SkeletonTable = ({ rows = 10, cols = 4 }) => (
-  <tbody>
-    {Array.from({ length: rows }).map((_, i) => (
-      <SkeletonRow key={i} cols={cols} />
-    ))}
-  </tbody>
-)
+import { SkeletonTop10, SkeletonLeaderboard } from './Skeleton'
 
 export default function MainnetPage() {
   // Leaderboard data - paginated
@@ -811,7 +797,7 @@ export default function MainnetPage() {
                     <th className="text-right">PnL</th>
                   </tr>
                 </thead>
-                {top10Loading ? <SkeletonTable rows={5} cols={3} /> : (
+                {top10Loading ? <SkeletonTop10 rows={10} /> : (
                   <tbody>
                     {topGainersData.map((user, idx) => (
                       <tr key={user.walletAddress}>
@@ -844,7 +830,7 @@ export default function MainnetPage() {
                     <th className="text-right">PnL</th>
                   </tr>
                 </thead>
-                {top10Loading ? <SkeletonTable rows={5} cols={3} /> : (
+                {top10Loading ? <SkeletonTop10 rows={10} /> : (
                   <tbody>
                     {topLosersData.map((user, idx) => (
                       <tr key={user.walletAddress}>
@@ -1031,7 +1017,7 @@ export default function MainnetPage() {
                 </tr>
               </thead>
               {leaderboardLoading ? (
-                <SkeletonTable rows={20} cols={isWeeklyView && viewMode === 'spot' ? 3 : showSyncStatus && !isWeeklyView ? 5 : 4} />
+                <SkeletonLeaderboard rows={20} cols={isWeeklyView && viewMode === 'spot' ? 3 : showSyncStatus && !isWeeklyView ? 5 : 4} />
               ) : (
                 <tbody>
                   {yourRow && (

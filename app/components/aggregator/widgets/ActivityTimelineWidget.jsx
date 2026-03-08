@@ -3,6 +3,7 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useWalletSlowData as useWalletData } from '../../../hooks/useWalletData'
 import CoinLogo, { getBaseCoin } from '../../ui/CoinLogo'
+import { SkeletonChart } from '../../Skeleton'
 
 const PAGE_SIZE = 25
 
@@ -200,7 +201,7 @@ export default function ActivityTimelineWidget({ config, onUpdateConfig, editMod
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonChart />
   if (displayedActivity.length === 0) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>No recent activity</div>
 
   const showCoinLogos = config.showCoinLogos !== false

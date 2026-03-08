@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import CoinLogo, { getBaseCoin } from '../../ui/CoinLogo'
+import { SkeletonTopPairsTable } from '../../Skeleton'
 
 const PAGE_SIZE = 50 // Fetch more at once for caching
 
@@ -49,7 +50,7 @@ export default function TopPairsWidget({ config }) {
     gcTime: 30 * 60 * 1000,   // 30 minutes
   })
 
-  if (isLoading && tickers.length === 0) return <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Loading...</div>
+  if (isLoading && tickers.length === 0) return <SkeletonTopPairsTable rows={10} />
 
   return (
     <div ref={scrollRef} style={{ maxHeight: '100%', overflowY: 'auto' }}>

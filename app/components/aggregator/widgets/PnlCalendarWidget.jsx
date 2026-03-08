@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useWalletData } from '../../../hooks/useWalletData'
 import { useTheme } from '../../../lib/ThemeContext'
 import { hexToRgb } from '../../../lib/themes'
+import { SkeletonChart } from '../../Skeleton'
 
 const NEUTRAL_COLOR = 'rgba(255,255,255,0.35)'
 
@@ -197,7 +198,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <div style={{ padding: 12, color: 'var(--color-text-muted)' }}>Loading...</div>
+  if (isLoading) return <SkeletonChart />
 
   // ── Weekly view ───────────────────────────────────────────────
   const renderWeeklyCalendar = () => {

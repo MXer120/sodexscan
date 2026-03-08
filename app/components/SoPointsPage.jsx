@@ -10,6 +10,7 @@ import { useUserProfile } from '../hooks/useProfile'
 import { useSoPointsConfig } from '../hooks/useSoPointsConfig'
 import { globalCache } from '../lib/globalCache'
 import Link from 'next/link'
+import { SkeletonList, SkeletonBar } from './Skeleton'
 import dynamic from 'next/dynamic'
 
 const SoPointsEstimator = dynamic(() => import('./SoPointsEstimator'), { ssr: false })
@@ -577,8 +578,13 @@ const SoPointsPage = () => {
                         Connect your wallet in <a href="/profile" style={{ color: 'var(--color-primary)' }}>Profile</a> to see your weekly volume chart
                     </div>
                 ) : !chartDataLoaded ? (
-                    <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                        Loading chart...
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+                        <div style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            border: '2.5px solid rgba(255,255,255,0.08)',
+                            borderTopColor: 'var(--color-primary)',
+                            animation: 'spin 0.7s linear infinite'
+                        }} />
                     </div>
                 ) : (
                     <>
@@ -807,7 +813,7 @@ const SoPointsPage = () => {
                                     </>
                                 ) : weeklyLbLoading ? (
                                     <div className="pool-amount" style={{ fontSize: '28px' }}>
-                                        <span className="spot-loading-dot">...</span>
+                                        <SkeletonBar width={60} height={12} style={{ display: 'inline-block' }} />
                                     </div>
                                 ) : (
                                     <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
@@ -905,7 +911,7 @@ const SoPointsPage = () => {
                         {!pointsLeaderboard && (
                             <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
                                 {weeklyLbLoading ? (
-                                    <span className="spot-loading-dot">Loading points leaderboard...</span>
+                                    <SkeletonList items={8} />
                                 ) : (
                                     <span>No leaderboard data for this week. Data may still be syncing.</span>
                                 )}
