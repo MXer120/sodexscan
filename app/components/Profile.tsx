@@ -809,7 +809,7 @@ export default function Profile() {
                       <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
                       <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                     </svg>
-                    Light
+                    Light <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>V0.1</span>
                   </button>
                 </div>
               </div>
