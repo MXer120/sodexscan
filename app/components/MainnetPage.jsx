@@ -347,17 +347,19 @@ export default function MainnetPage() {
   }
 
   // Fetch sodex 24h leaderboard for Total tab on current week
+  // Fetches top 500 sorted by volume (sodex API default sort)
   const loadSodex24h = async () => {
     if (sodex24hData) return
     setSodex24hLoading(true)
     try {
       const API = 'https://mainnet-data.sodex.dev/api/v1/leaderboard'
       const allItems = []
+      const maxPages = 10 // 10 pages × 50 = top 500 accounts
       const firstRes = await fetch(`${API}?window_type=24H&page=1&page_size=50`)
       const firstData = await firstRes.json()
       if (firstData.code !== 0) throw new Error('Sodex API error')
       allItems.push(...firstData.data.items)
-      const totalPages = Math.ceil(firstData.data.total / 50)
+      const totalPages = Math.min(Math.ceil(firstData.data.total / 50), maxPages)
       for (let i = 2; i <= totalPages; i += 10) {
         const batch = []
         for (let j = i; j < i + 10 && j <= totalPages; j++) {
@@ -389,8 +391,8 @@ export default function MainnetPage() {
     setSodex24hLoading(false)
   }
 
-  // Sodex 24h fallback disabled — snapshot fix applied, RPC data is accurate
-  const useSodex24h = false
+  // Total tab + current week: use sodex 24h LB directly
+  const useSodex24h = timeRange === 'current' && viewMode === 'total'
 
   // Reload when filters change
   useEffect(() => {
