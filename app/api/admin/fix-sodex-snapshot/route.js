@@ -5,11 +5,9 @@ const PAGE_SIZE = 50
 const CONCURRENCY = 10
 
 /**
- * One-time fix: set prev_week snapshot's sodex values so weekly deltas are correct.
- *
- * Logic: prev_week.sodex_total_volume = current_all_time - 24h_volume
- * This means: weekly_delta = current_all_time - (current_all_time - 24h) = 24h_value
- * As the week progresses, current_all_time grows, and deltas stay accurate.
+ * One-time snapshot fix: set prev_week.sodex = all_time - 24h
+ * so weekly delta = all_time - snapshot = 24h_value initially,
+ * then grows naturally as all_time grows via 15min sync.
  */
 export async function POST(request) {
   const authHeader = request.headers.get('authorization')
@@ -18,7 +16,7 @@ export async function POST(request) {
   }
 
   try {
-    // 1. Get current week number → prev week to fix
+    // 1. Get prev week number
     const { data: meta } = await supabase
       .from('leaderboard_meta')
       .select('current_week_number')
@@ -29,7 +27,7 @@ export async function POST(request) {
       return Response.json({ error: 'No previous week to fix' }, { status: 400 })
     }
 
-    // 2. Fetch 24h LB from sodex API
+    // 2. Fetch ALL pages of 24h LB from sodex API
     const allItems24h = []
     const firstRes = await fetch(`${SODEX_LB_API}?window_type=24H&page=1&page_size=${PAGE_SIZE}`)
     const firstData = await firstRes.json()
@@ -60,58 +58,48 @@ export async function POST(request) {
       }
     }
 
-    // 4. Get current ALL_TIME sodex values from leaderboard
-    const { data: allTimeRows, error: atErr } = await supabase
-      .from('leaderboard')
-      .select('account_id, sodex_total_volume, sodex_pnl')
-      .gt('sodex_total_volume', 0)
-    if (atErr) throw atErr
+    // 4. Get ALL current ALL_TIME sodex values (paginate past 1000 row limit)
+    const allTimeRows = []
+    let from = 0
+    const QUERY_BATCH = 1000
+    while (true) {
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('account_id, sodex_total_volume, sodex_pnl')
+        .gt('sodex_total_volume', 0)
+        .range(from, from + QUERY_BATCH - 1)
+      if (error) throw error
+      if (!data || data.length === 0) break
+      allTimeRows.push(...data)
+      if (data.length < QUERY_BATCH) break
+      from += QUERY_BATCH
+    }
 
-    // 5. Compute snapshot values: prev_week.sodex = all_time - 24h
+    // 5. Compute snapshot: prev_week.sodex = all_time - 24h
     let updated = 0
-    const BATCH = 500
-    const updates = []
-
-    for (const row of (allTimeRows || [])) {
+    for (const row of allTimeRows) {
       const h24 = lookup24h[row.account_id]
-      const snapshotVol = h24
-        ? Math.max(parseFloat(row.sodex_total_volume) - h24.volume, 0)
-        : parseFloat(row.sodex_total_volume) // no 24h data → assume 0 weekly activity
-      const snapshotPnl = h24
-        ? parseFloat(row.sodex_pnl) - h24.pnl
-        : parseFloat(row.sodex_pnl)
+      const allTimeVol = parseFloat(row.sodex_total_volume)
+      const allTimePnl = parseFloat(row.sodex_pnl)
+      const snapshotVol = h24 ? Math.max(allTimeVol - h24.volume, 0) : allTimeVol
+      const snapshotPnl = h24 ? allTimePnl - h24.pnl : allTimePnl
 
-      updates.push({
-        account_id: row.account_id,
-        sodex_total_volume: snapshotVol,
-        sodex_pnl: snapshotPnl
-      })
+      const { error } = await supabase
+        .from('leaderboard_weekly')
+        .update({ sodex_total_volume: snapshotVol, sodex_pnl: snapshotPnl })
+        .eq('week_number', prevWeek)
+        .eq('account_id', row.account_id)
+      if (!error) updated++
     }
 
-    // 6. Batch update prev week snapshot
-    for (let i = 0; i < updates.length; i += BATCH) {
-      const batch = updates.slice(i, i + BATCH)
-      for (const u of batch) {
-        const { error } = await supabase
-          .from('leaderboard_weekly')
-          .update({
-            sodex_total_volume: u.sodex_total_volume,
-            sodex_pnl: u.sodex_pnl
-          })
-          .eq('week_number', prevWeek)
-          .eq('account_id', u.account_id)
-        if (!error) updated++
-      }
-    }
-
-    // 7. Trigger sync_current_week to refresh week 0
+    // 6. Refresh week 0
     await supabase.rpc('sync_current_week')
 
     return Response.json({
       success: true,
       prevWeek,
       fetched24h: allItems24h.length,
-      allTimeAccounts: allTimeRows?.length || 0,
+      allTimeAccounts: allTimeRows.length,
       updatedSnapshots: updated
     })
   } catch (error) {
