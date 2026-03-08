@@ -6,8 +6,7 @@ const CONCURRENCY = 10
 
 /**
  * One-time snapshot fix: set prev_week.sodex = all_time - 24h
- * so weekly delta = all_time - snapshot = 24h_value initially,
- * then grows naturally as all_time grows via 15min sync.
+ * Uses batch RPC to avoid Vercel function timeout.
  */
 export async function POST(request) {
   const authHeader = request.headers.get('authorization')
@@ -27,7 +26,7 @@ export async function POST(request) {
       return Response.json({ error: 'No previous week to fix' }, { status: 400 })
     }
 
-    // 2. Fetch ALL pages of 24h LB from sodex API
+    // 2. Fetch ALL pages of 24h LB
     const allItems24h = []
     const firstRes = await fetch(`${SODEX_LB_API}?window_type=24H&page=1&page_size=${PAGE_SIZE}`)
     const firstData = await firstRes.json()
@@ -49,7 +48,7 @@ export async function POST(request) {
       for (const items of results) allItems24h.push(...items)
     }
 
-    // 3. Build lookup: account_id → { 24h_volume, 24h_pnl }
+    // 3. Build lookup: account_id → 24h values
     const lookup24h = {}
     for (const item of allItems24h) {
       lookup24h[item.account_id] = {
@@ -58,38 +57,44 @@ export async function POST(request) {
       }
     }
 
-    // 4. Get ALL current ALL_TIME sodex values (paginate past 1000 row limit)
+    // 4. Get ALL current ALL_TIME sodex values (paginate)
     const allTimeRows = []
     let from = 0
-    const QUERY_BATCH = 1000
     while (true) {
       const { data, error } = await supabase
         .from('leaderboard')
         .select('account_id, sodex_total_volume, sodex_pnl')
         .gt('sodex_total_volume', 0)
-        .range(from, from + QUERY_BATCH - 1)
+        .range(from, from + 999)
       if (error) throw error
       if (!data || data.length === 0) break
       allTimeRows.push(...data)
-      if (data.length < QUERY_BATCH) break
-      from += QUERY_BATCH
+      if (data.length < 1000) break
+      from += 1000
     }
 
-    // 5. Compute snapshot: prev_week.sodex = all_time - 24h
-    let updated = 0
-    for (const row of allTimeRows) {
+    // 5. Compute snapshots and batch-update via RPC
+    let totalUpdated = 0
+    const BATCH = 500
+    const updates = allTimeRows.map(row => {
       const h24 = lookup24h[row.account_id]
       const allTimeVol = parseFloat(row.sodex_total_volume)
       const allTimePnl = parseFloat(row.sodex_pnl)
-      const snapshotVol = h24 ? Math.max(allTimeVol - h24.volume, 0) : allTimeVol
-      const snapshotPnl = h24 ? allTimePnl - h24.pnl : allTimePnl
+      return {
+        account_id: row.account_id,
+        sodex_total_volume: h24 ? Math.max(allTimeVol - h24.volume, 0) : allTimeVol,
+        sodex_pnl: h24 ? allTimePnl - h24.pnl : allTimePnl
+      }
+    })
 
-      const { error } = await supabase
-        .from('leaderboard_weekly')
-        .update({ sodex_total_volume: snapshotVol, sodex_pnl: snapshotPnl })
-        .eq('week_number', prevWeek)
-        .eq('account_id', row.account_id)
-      if (!error) updated++
+    for (let i = 0; i < updates.length; i += BATCH) {
+      const batch = updates.slice(i, i + BATCH)
+      const { data, error } = await supabase.rpc('fix_weekly_sodex_snapshot', {
+        p_week: prevWeek,
+        rows: batch
+      })
+      if (error) console.error('Batch error:', error)
+      else totalUpdated += data || 0
     }
 
     // 6. Refresh week 0
@@ -100,7 +105,7 @@ export async function POST(request) {
       prevWeek,
       fetched24h: allItems24h.length,
       allTimeAccounts: allTimeRows.length,
-      updatedSnapshots: updated
+      updatedSnapshots: totalUpdated
     })
   } catch (error) {
     console.error('Fix sodex snapshot error:', error)
