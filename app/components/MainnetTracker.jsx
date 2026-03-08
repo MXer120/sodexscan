@@ -344,7 +344,7 @@ const SortArrows = memo(({ active, dir }) => (
   </div>
 ))
 
-export default function MainnetTracker({ walletAddress, accountId: propAccountId, searchBox, tagSection }) {
+export default function MainnetTracker({ walletAddress, accountId: propAccountId, searchBox, tagSection, onWalletChange }) {
   const [accountId, setAccountId] = useState(propAccountId || null)
   const [loading, setLoading] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(0)
@@ -381,9 +381,17 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
   const [filterType, setFilterType] = useState('all')
 
+  const handleInternalWalletSwitch = ({ wallet_address }) => {
+    if (onWalletChange) {
+      onWalletChange(wallet_address)
+    } else {
+      router.push(`/tracker/${wallet_address}`)
+    }
+  }
+
   const internalSearchBox = searchBox || (
     <SearchAndAddBox
-      onAction={({ wallet_address }) => router.push(`/tracker/${wallet_address}`)}
+      onAction={handleInternalWalletSwitch}
       onSearchChange={setSearchInput}
       searchValue={searchInput}
       placeholder="Search Wallet / ID..."

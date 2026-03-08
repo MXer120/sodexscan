@@ -1,6 +1,6 @@
 
 import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
-import MainnetTracker from '../../components/MainnetTracker'
+import WalletPageClient from '../../components/WalletPageClient'
 
 export const revalidate = 60 // Revalidate metadata every minute
 
@@ -36,16 +36,5 @@ export async function generateMetadata({ params }) {
 }
 
 export default function WalletPage({ params }) {
-    return (
-        <div className="dashboard scanner-dashboard" style={{
-            padding: '0',
-            paddingTop: '44px',
-            minHeight: '100vh',
-            maxWidth: '100%',
-            margin: '0',
-            boxSizing: 'border-box'
-        }}>
-            <MainnetTracker walletAddress={params.address} />
-        </div>
-    )
+    return <WalletPageClient initialAddress={params.address} />
 }

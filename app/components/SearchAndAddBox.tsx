@@ -10,6 +10,7 @@ export type FilterType = 'all' | 'address' | 'tag' | 'socials' | 'discord' | 'te
 interface SearchAndAddBoxProps {
     onAction: (data: { wallet_address: string }) => Promise<any> | void
     isActionLoading?: boolean
+    onScanStart?: () => void
     onSearchChange?: (value: string) => void
     searchValue?: string
     filterType?: FilterType
@@ -77,6 +78,7 @@ function FilterDropdown({ value, onChange }: { value: FilterType, onChange: (val
 export default function SearchAndAddBox({
     onAction,
     isActionLoading = false,
+    onScanStart,
     onSearchChange,
     searchValue,
     filterType,
@@ -102,6 +104,9 @@ export default function SearchAndAddBox({
         setError(null)
         const trimmed = internalValue.trim()
         if (!trimmed) return
+
+        // Notify parent INSTANTLY so skeleton shows before any async work
+        onScanStart?.()
 
         let addressToAdd = trimmed
         const currentFilter = filterType || 'all'
