@@ -3,6 +3,7 @@ import './styles/App.css'
 import Navbar from './components/Navbar'
 import AnnouncementBar from './components/AnnouncementBar'
 import PageController from './components/PageController'
+import PageTransition from './components/PageTransition'
 import CmsEditToggle from './components/CmsEditToggle'
 import StatusBar from './components/StatusBar'
 import CommandPalette from './components/CommandPalette'
@@ -63,11 +64,13 @@ export default function RootLayout({ children }) {
           })
         }} />
         <Providers>
-          <Navbar />
-          <AnnouncementBar />
-          <PageController />
-          <CmsEditToggle />
-          {children}
+          <PageTransition>
+            <Navbar />
+            <AnnouncementBar />
+            <PageController />
+            <CmsEditToggle />
+            {children}
+          </PageTransition>
           <StatusBar />
           <CommandPalette />
         </Providers>
