@@ -1,5 +1,7 @@
--- Revert get_weekly_leaderboard to original formula from 20260306000005.
--- Total (sodex) is the base. Spot = total - futures. No clamping on total.
+-- Fix weekly total volume: total = max(sodex_delta, futures_delta)
+-- Because total includes futures, total can never be less than futures.
+-- When sodex sync lags (sodex_total_volume = 0 for most accounts),
+-- the fallback ensures total >= futures so sort/ranking is correct.
 
 CREATE OR REPLACE FUNCTION get_weekly_leaderboard(
   p_week INT,
@@ -36,7 +38,7 @@ BEGIN
           cw.unrealized_pnl,
           cw.pnl_rank,
           cw.volume_rank,
-          cw.sodex_total_volume AS weekly_sodex_volume,
+          GREATEST(cw.sodex_total_volume, cw.cumulative_volume) AS weekly_sodex_volume,
           cw.sodex_pnl AS weekly_sodex_pnl,
           GREATEST(cw.sodex_total_volume - cw.cumulative_volume, 0) AS weekly_spot_volume,
           (cw.sodex_pnl - cw.cumulative_pnl) AS weekly_spot_pnl
@@ -72,7 +74,10 @@ BEGIN
           cw.unrealized_pnl,
           cw.pnl_rank,
           cw.volume_rank,
-          (cw.sodex_total_volume - COALESCE(pw.sodex_total_volume, 0)) AS weekly_sodex_volume,
+          GREATEST(
+            cw.sodex_total_volume - COALESCE(pw.sodex_total_volume, 0),
+            cw.cumulative_volume - COALESCE(pw.cumulative_volume, 0)
+          ) AS weekly_sodex_volume,
           (cw.sodex_pnl - COALESCE(pw.sodex_pnl, 0)) AS weekly_sodex_pnl,
           GREATEST(
             (cw.sodex_total_volume - COALESCE(pw.sodex_total_volume, 0))
