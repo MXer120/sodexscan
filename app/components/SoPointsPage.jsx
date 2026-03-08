@@ -138,12 +138,12 @@ const SoPointsPage = () => {
         if (ownWallet && legacyVisible) loadRewardEstimate(ownWallet)
     }, [ownWallet, legacyVisible])
 
-    // Load all weeks data for chart when wallet + meta available
+    // Load all weeks data for chart + points LB when meta available
     useEffect(() => {
-        if (ownWallet && lbMeta && !chartDataLoaded && activeTab === 'overview') {
+        if (lbMeta && !chartDataLoaded && (activeTab === 'overview' || activeTab === 'legacy')) {
             loadAllChartData(lbMeta.current_week_number)
         }
-    }, [ownWallet, lbMeta, chartDataLoaded, activeTab])
+    }, [lbMeta, chartDataLoaded, activeTab])
 
     // ── Load weekly leaderboard data from RPC (spot + futures combined) ──
     const loadWeeklyLb = async (weekNum) => {
@@ -902,9 +902,13 @@ const SoPointsPage = () => {
                                 </div>
                             </div>
                         )}
-                        {weeklyLbLoading && !pointsLeaderboard && (
+                        {!pointsLeaderboard && (
                             <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                                <span className="spot-loading-dot">Loading points leaderboard...</span>
+                                {weeklyLbLoading ? (
+                                    <span className="spot-loading-dot">Loading points leaderboard...</span>
+                                ) : (
+                                    <span>No leaderboard data for this week. Data may still be syncing.</span>
+                                )}
                             </div>
                         )}
                 </div>
