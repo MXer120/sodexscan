@@ -43,7 +43,8 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
         ;(async () => {
             setPlatformVolumeLoading(true)
             try {
-                const base = 'https://mainnet-data.sodex.dev/api/v1/dashboard/volume?start_date=2024-01-01&end_date=2026-03-04&market_type='
+                const endDate = new Date().toISOString().slice(0, 10)
+                const base = `https://mainnet-data.sodex.dev/api/v1/dashboard/volume?start_date=2024-01-01&end_date=${endDate}&market_type=`
                 const [allRes, spotRes, futRes] = await Promise.all([
                     fetch(base + 'all').then(r => r.json()),
                     fetch(base + 'spot').then(r => r.json()),
@@ -75,12 +76,14 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
                 ])
 
                 // Build user weekly data map: { weekNum: { spot, futures } }
+                // week_number=0 is live data → map it to currentWeek
                 const weeklyMap = {}
                 if (userWeeklyRes.data) {
                     for (const row of userWeeklyRes.data) {
                         const sodexVol = parseFloat(row.sodex_total_volume) || 0
                         const futVol = parseFloat(row.cumulative_volume) || 0
-                        weeklyMap[row.week_number] = {
+                        const key = row.week_number === 0 ? currentWeek : row.week_number
+                        weeklyMap[key] = {
                             spot: Math.max(sodexVol - futVol, 0),
                             futures: futVol
                         }

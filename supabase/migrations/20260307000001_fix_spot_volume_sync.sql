@@ -9,10 +9,16 @@
 -- ============================================================
 -- APP_URL already exists, skip
 -- Only add CRON_SECRET
-SELECT vault.create_secret(
-  'fgges<ssdgrsg32rgsg3w4t31^46t43zhsdfyhgg5ea4',
-  'CRON_SECRET'
-);
+DO $$
+BEGIN
+  PERFORM vault.create_secret(
+    'fgges<ssdgrsg32rgsg3w4t31^46t43zhsdfyhgg5ea4',
+    'CRON_SECRET'
+  );
+EXCEPTION WHEN unique_violation THEN
+  -- already exists, skip
+  NULL;
+END $$;
 
 -- ============================================================
 -- 2. Reschedule Sodex sync: hourly → every 15 min
