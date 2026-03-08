@@ -8,6 +8,11 @@ export const dynamic = 'force-dynamic'
 let bracketCache = { data: null, timestamp: 0 }
 const BRACKET_TTL = 60 * 60 * 1000 // 1 hour
 
+// Per-address response cache (avoid redundant API calls for same wallet)
+const walletCache = new Map()
+const WALLET_CACHE_TTL = 60 * 1000 // 60 seconds
+const MAX_WALLET_CACHE = 200 // prevent unbounded growth
+
 async function getSodexId(address) {
     const { data } = await supabase
         .from('leaderboard_smart')
@@ -34,6 +39,15 @@ async function getBracketList() {
 
 export async function GET(request, { params }) {
     const { address } = params
+    const addrLower = address.toLowerCase()
+
+    // Check response cache
+    const cached = walletCache.get(addrLower)
+    if (cached && Date.now() - cached.timestamp < WALLET_CACHE_TTL) {
+        return NextResponse.json(cached.body, {
+            headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+        })
+    }
 
     const accountId = await getSodexId(address)
 
@@ -96,7 +110,7 @@ export async function GET(request, { params }) {
         body: JSON.stringify({ account: address, start: 0, limit: 200 })
     })
 
-    return NextResponse.json({
+    const responseBody = {
         wallet_address: address,
         account_id: accountId,
         data: {
@@ -113,7 +127,16 @@ export async function GET(request, { params }) {
             timestamp: new Date().toISOString(),
             source: 'Sodex Public Mirror'
         }
-    }, {
+    }
+
+    // Store in cache (evict oldest if full)
+    if (walletCache.size >= MAX_WALLET_CACHE) {
+        const oldest = walletCache.keys().next().value
+        walletCache.delete(oldest)
+    }
+    walletCache.set(addrLower, { body: responseBody, timestamp: Date.now() })
+
+    return NextResponse.json(responseBody, {
         headers: {
             'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
         }

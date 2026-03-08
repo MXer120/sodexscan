@@ -5,6 +5,42 @@ const PAGE_SIZE = 50
 const CONCURRENCY = 10
 const UPSERT_BATCH = 500
 
+// Server-side cache: avoid re-fetching 90k items from Sodex API within 30min
+let sodexCache = { items: null, timestamp: 0 }
+const CACHE_TTL = 30 * 60 * 1000 // 30 min
+
+async function fetchAllSodexItems() {
+  // Return cached if fresh
+  if (sodexCache.items && Date.now() - sodexCache.timestamp < CACHE_TTL) {
+    return { items: sodexCache.items, fromCache: true }
+  }
+
+  const allItems = []
+  const firstRes = await fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=1&page_size=${PAGE_SIZE}`)
+  const firstData = await firstRes.json()
+  if (firstData.code !== 0) throw new Error('Sodex API error: ' + firstData.message)
+
+  allItems.push(...firstData.data.items)
+  const totalPages = Math.ceil(firstData.data.total / PAGE_SIZE)
+
+  for (let i = 2; i <= totalPages; i += CONCURRENCY) {
+    const batch = []
+    for (let j = i; j < i + CONCURRENCY && j <= totalPages; j++) {
+      batch.push(
+        fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=${j}&page_size=${PAGE_SIZE}`)
+          .then(r => r.json())
+          .then(d => (d.code === 0 && d.data?.items) ? d.data.items : [])
+          .catch(() => [])
+      )
+    }
+    const results = await Promise.all(batch)
+    for (const items of results) allItems.push(...items)
+  }
+
+  sodexCache = { items: allItems, timestamp: Date.now() }
+  return { items: allItems, fromCache: false }
+}
+
 export async function GET(request) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -12,30 +48,7 @@ export async function GET(request) {
   }
 
   try {
-    const allItems = []
-
-    // First page to get total count
-    const firstRes = await fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=1&page_size=${PAGE_SIZE}`)
-    const firstData = await firstRes.json()
-    if (firstData.code !== 0) throw new Error('Sodex API error: ' + firstData.message)
-
-    allItems.push(...firstData.data.items)
-    const totalPages = Math.ceil(firstData.data.total / PAGE_SIZE)
-
-    // Fetch remaining pages in concurrent batches
-    for (let i = 2; i <= totalPages; i += CONCURRENCY) {
-      const batch = []
-      for (let j = i; j < i + CONCURRENCY && j <= totalPages; j++) {
-        batch.push(
-          fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=${j}&page_size=${PAGE_SIZE}`)
-            .then(r => r.json())
-            .then(d => (d.code === 0 && d.data?.items) ? d.data.items : [])
-            .catch(() => [])
-        )
-      }
-      const results = await Promise.all(batch)
-      for (const items of results) allItems.push(...items)
-    }
+    const { items: allItems, fromCache } = await fetchAllSodexItems()
 
     // Batch upsert into leaderboard via RPC
     let totalUpserted = 0
@@ -59,7 +72,7 @@ export async function GET(request) {
     return Response.json({
       success: true,
       fetched: allItems.length,
-      totalPages,
+      fromCache,
       upserted: totalUpserted,
       weekSync: syncResult
     })
