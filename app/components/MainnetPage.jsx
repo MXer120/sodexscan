@@ -101,6 +101,10 @@ export default function MainnetPage() {
   const [lbMeta, setLbMeta] = useState(null)
   const [weekDropdownOpen, setWeekDropdownOpen] = useState(false)
 
+  // Sodex 24h LB for Total tab on current week
+  const [sodex24hData, setSodex24hData] = useState(null)
+  const [sodex24hLoading, setSodex24hLoading] = useState(false)
+
   // "Your Row" - connected wallet's leaderboard entry
   const [yourRow, setYourRow] = useState(null)
 
@@ -342,6 +346,52 @@ export default function MainnetPage() {
     setTop10Loading(false)
   }
 
+  // Fetch sodex 24h leaderboard for Total tab on current week
+  const loadSodex24h = async () => {
+    if (sodex24hData) return
+    setSodex24hLoading(true)
+    try {
+      const API = 'https://mainnet-data.sodex.dev/api/v1/leaderboard'
+      const allItems = []
+      const firstRes = await fetch(`${API}?window_type=24H&page=1&page_size=50`)
+      const firstData = await firstRes.json()
+      if (firstData.code !== 0) throw new Error('Sodex API error')
+      allItems.push(...firstData.data.items)
+      const totalPages = Math.ceil(firstData.data.total / 50)
+      for (let i = 2; i <= totalPages; i += 10) {
+        const batch = []
+        for (let j = i; j < i + 10 && j <= totalPages; j++) {
+          batch.push(
+            fetch(`${API}?window_type=24H&page=${j}&page_size=50`)
+              .then(r => r.json())
+              .then(d => d.code === 0 && d.data?.items ? d.data.items : [])
+              .catch(() => [])
+          )
+        }
+        const results = await Promise.all(batch)
+        for (const items of results) allItems.push(...items)
+      }
+      const formatted = allItems
+        .map(item => ({
+          accountId: item.account_id,
+          walletAddress: item.wallet_address?.toLowerCase() || '',
+          pnl: parseFloat(item.pnl_usd) || 0,
+          volume: parseFloat(item.volume_usd) || 0,
+          sodexVolume: parseFloat(item.volume_usd) || 0,
+          spotVolume: 0,
+          unrealizedPnl: 0
+        }))
+        .filter(r => r.volume > 0 || r.pnl !== 0)
+      setSodex24hData(formatted)
+    } catch (err) {
+      console.error('Failed to load sodex 24h:', err)
+    }
+    setSodex24hLoading(false)
+  }
+
+  // Check if we're using sodex 24h data (Total tab + current week)
+  const useSodex24h = timeRange === 'current' && viewMode === 'total'
+
   // Reload when filters change
   useEffect(() => {
     if (timeRange !== 'all' && viewMode === 'spot' && leaderboardType === 'pnl') setLeaderboardType('volume')
@@ -349,6 +399,11 @@ export default function MainnetPage() {
     if (timeRange === 'all') {
       loadLeaderboardPage(1, leaderboardType, excludeSodexOwned, showZeroData, viewMode)
       loadTop10(showZeroData, excludeSodexOwned, viewMode)
+    } else if (useSodex24h) {
+      // Total tab + current week: use sodex 24h LB directly
+      loadSodex24h()
+      const weekNum = timeRange === 'current' ? 0 : timeRange
+      loadWeeklyTop10(weekNum, excludeSodexOwned, viewMode)
     } else {
       const weekNum = timeRange === 'current' ? 0 : timeRange
       loadWeeklyPage(1, weekNum, leaderboardType, excludeSodexOwned, viewMode)
@@ -626,18 +681,33 @@ export default function MainnetPage() {
     }
   }
 
-  const sortedLeaderboard = leaderboardData.map((user, idx) => ({
+  // When using sodex 24h, sort + paginate client-side
+  const leaderboardPageSize = 20
+  const sodex24hSorted = React.useMemo(() => {
+    if (!useSodex24h || !sodex24hData) return []
+    const sorted = [...sodex24hData]
+    if (leaderboardType === 'pnl') sorted.sort((a, b) => b.pnl - a.pnl)
+    else sorted.sort((a, b) => b.volume - a.volume)
+    return sorted
+  }, [sodex24hData, leaderboardType, useSodex24h])
+
+  const effectiveData = useSodex24h
+    ? sodex24hSorted.slice((leaderboardPage - 1) * leaderboardPageSize, leaderboardPage * leaderboardPageSize)
+    : leaderboardData
+  const effectiveTotal = useSodex24h ? sodex24hSorted.length : totalLeaderboardCount
+
+  const sortedLeaderboard = effectiveData.map((user, idx) => ({
     ...user,
-    displayRank: (leaderboardPage - 1) * 20 + idx + 1
+    displayRank: (leaderboardPage - 1) * leaderboardPageSize + idx + 1
   }))
 
-  const leaderboardPageSize = 20
-  const totalLeaderboardPages = Math.ceil(totalLeaderboardCount / leaderboardPageSize)
+  const totalLeaderboardPages = Math.ceil(effectiveTotal / leaderboardPageSize)
   const paginatedLeaderboard = sortedLeaderboard
 
-  // Pagination handler (works for both all-time and weekly)
+  // Pagination handler (works for both all-time, weekly, and sodex 24h)
   const handlePageChange = (newPage) => {
     setLeaderboardPage(newPage)
+    if (useSodex24h) return // client-side pagination
     if (timeRange === 'all') {
       loadLeaderboardPage(newPage, leaderboardType, excludeSodexOwned, showZeroData, viewMode)
     } else {
@@ -756,11 +826,21 @@ export default function MainnetPage() {
       <h1 className="dashboard-title">Leaderboard</h1>
 
       {/* Futures / Spot / Total Toggle */}
-      <div className="leaderboard-toggle" style={{ marginBottom: '20px', display: 'inline-flex' }}>
+      <div className="leaderboard-toggle" style={{ marginBottom: isWeeklyView && viewMode !== 'total' ? '8px' : '20px', display: 'inline-flex' }}>
         <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
         <button className={viewMode === 'futures' ? 'active' : ''} onClick={() => setViewMode('futures')}>Futures</button>
         <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => setViewMode('spot')}>Spot</button>
       </div>
+      {isWeeklyView && viewMode !== 'total' && (
+        <div style={{ fontSize: '11px', color: '#f59e0b', marginBottom: '16px', opacity: 0.85 }}>
+          Week 6 {viewMode} data may be inaccurate due to sync issues. Use the Total tab for accurate rankings.
+        </div>
+      )}
+      {useSodex24h && (
+        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '16px', opacity: 0.85 }}>
+          Showing Sodex 24h leaderboard as current week total.
+        </div>
+      )}
 
       <>
       {/* User Overview Stats */}
@@ -1019,7 +1099,7 @@ export default function MainnetPage() {
                   {!isWeeklyView && showSyncStatus && <th className="text-right">Sync</th>}
                 </tr>
               </thead>
-              {leaderboardLoading ? (
+              {(useSodex24h ? sodex24hLoading : leaderboardLoading) ? (
                 <SkeletonTable rows={20} cols={isWeeklyView && viewMode === 'spot' ? 3 : showSyncStatus && !isWeeklyView ? 5 : 4} />
               ) : (
                 <tbody>
@@ -1074,7 +1154,7 @@ export default function MainnetPage() {
               &lt; Prev
             </button>
             <span className="page-info">
-              Page {leaderboardPage} of {totalLeaderboardPages} ({totalLeaderboardCount} traders)
+              Page {leaderboardPage} of {totalLeaderboardPages} ({effectiveTotal} traders)
             </span>
             <button
               onClick={() => handlePageChange(Math.min(totalLeaderboardPages, leaderboardPage + 1))}
