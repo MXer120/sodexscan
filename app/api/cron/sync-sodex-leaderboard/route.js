@@ -65,16 +65,13 @@ export async function GET(request) {
       else totalUpserted += data || 0
     }
 
-    // Sync leaderboard → leaderboard_weekly week 0 so weekly LB has fresh sodex data
-    const { data: syncResult, error: syncError } = await supabase.rpc('sync_current_week')
-    if (syncError) console.error('sync_current_week error:', syncError)
+    // sync_current_week handled by its own pg_cron job (*/15), no need to call here
 
     return Response.json({
       success: true,
       fetched: allItems.length,
       fromCache,
-      upserted: totalUpserted,
-      weekSync: syncResult
+      upserted: totalUpserted
     })
   } catch (error) {
     console.error('Sync sodex leaderboard error:', error)
