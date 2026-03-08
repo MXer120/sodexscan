@@ -264,7 +264,7 @@
     background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
     box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.4);
     border-radius: 2px;
-    transition: width 0.5s ease-out;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .loading-step-text {

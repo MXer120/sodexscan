@@ -346,7 +346,7 @@ const SortArrows = memo(({ active, dir }) => (
 
 export default function MainnetTracker({ walletAddress, accountId: propAccountId, searchBox, tagSection, onWalletChange }) {
   const [accountId, setAccountId] = useState(propAccountId || null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!!(walletAddress || propAccountId))
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingStep, setLoadingStep] = useState('Initializing scan...')
   const [activeTab, setActiveTab] = useState('Positions')
@@ -872,7 +872,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const fetchAllData = async () => {
     if (!accountId) return
 
-    // Always fetch meta even if cached (fast, global context)
+    // Shared metadata fetch (symbol maps, leaderboard, overview)
     const fetchMetadata = async () => {
       try {
         const [lbRes, bracketRes, symbolListRes, overviewRes] = await Promise.all([
@@ -892,7 +892,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           })
         }
 
-        // Fetch volume from overview API
         try {
           const overviewData = await overviewRes.json()
           if (overviewData.code === 0 && overviewData.data) {
@@ -912,7 +911,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           bracketData.data.forEach(item => {
             if (item.symbolId) {
               map[item.symbolId] = item.symbol
-              // Store bracket data with maintenance margin rates per symbol
               brackets[item.symbol] = item.brackets || []
             }
           })
@@ -920,7 +918,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           setLeverageBrackets(brackets)
         }
 
-        // Build coin registry from symbol list
         const symbolListData = await symbolListRes.json()
         if (symbolListData.code === 0 && symbolListData.data) {
           const registry = {}
@@ -936,6 +933,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       }
     }
 
+    // --- CACHED PATH ---
     const cached = globalCache.getAccountData(accountId)
     if (cached) {
       setLoadingProgress(60)
@@ -948,7 +946,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       setPositions(cached.positions)
       setTotalAssets(cached.totalAssets)
 
-      // Still fetch map for names
       await fetchMetadata()
 
       setLoadingProgress(100)
@@ -956,58 +953,34 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       return
     }
 
-    // Start metadata fetch in parallel (don't await yet)
+    // --- FRESH LOAD: 2-tier approach ---
+    setLoading(true)
+    setLoadingProgress(15)
+    setLoadingStep('Connecting to Sodex Gateway...')
+
     const metadataPromise = fetchMetadata()
 
-    setLoading(true)
-    setLoadingProgress(25)
-    setLoadingStep('Establishing link to Sodex Gateway...')
-
     try {
-      // Fetch ALL data in parallel - single Promise.all for max speed
-      // Paginated fetch for full account flow history
-      const fetchAllFlows = async () => {
-        const allFlows = []
-        let start = 0
-        const limit = 200
-        while (true) {
-          const res = await fetch('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account: walletAddress || '', start, limit })
-          })
-          const data = await res.json()
-          if (data.code !== '0' || !data.data?.accountFlows) break
-          allFlows.push(...data.data.accountFlows)
-          const total = data.data.total || 0
-          if (allFlows.length >= total || data.data.accountFlows.length < limit) break
-          start += limit
-        }
-        return allFlows
-      }
+      // ===== TIER 1: Sidebar, positions, chart, recent activity =====
+      // These are what the user sees first
+      setLoadingProgress(25)
 
-      const [detailsRes, balanceRes, allFlows, pnlRes, posHistoryRes, fundsRes] = await Promise.all([
+      const [detailsRes, pnlRes, markPriceRes] = await Promise.all([
         fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
-        fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
-        fetchAllFlows(),
         fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
-        fetch(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
-        fetch(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
+        fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/q/mark-price')
       ])
 
-      setLoadingProgress(65)
-      setLoadingStep('Analyzing performance metrics...')
+      setLoadingProgress(50)
+      setLoadingStep('Loading positions & chart...')
 
-      // Parse all responses in parallel (allFlows already parsed)
-      const [detailsData, balanceData, pnlData, posHistoryData, fundsData] = await Promise.all([
+      const [detailsData, pnlData, markPriceData] = await Promise.all([
         detailsRes.json(),
-        balanceRes.json(),
         pnlRes.json(),
-        posHistoryRes.json(),
-        fundsRes.json()
+        markPriceRes.json()
       ])
 
-      // Process account details
+      // Process account details + positions (sidebar + positions tab)
       let processedAccountDetails = null
       let processedPositions = []
       if (detailsData.code === 0 && detailsData.data) {
@@ -1017,157 +990,162 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         setPositions(processedPositions)
       }
 
-      // Process spot balances & calculate total assets
-      let processedBalances = []
-      let processedTotalAssets = 0
-      if (balanceData.code === '0' || balanceData.code === 0) {
-        const balances = balanceData.data?.spotBalance || []
-        processedBalances = balances
-        setSpotBalances(balances)
-
-        // Calculate total assets from balance * mark price
-        try {
-          const markPriceRes = await fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/q/mark-price')
-          const markPriceData = await markPriceRes.json()
-
-          let totalUSDC = 0
-          const priceMap = {}
-
-          // Build price map with symbol as key (e.g., "AVAX-USD" -> 11.981)
-          if (markPriceData.code === 0 && markPriceData.data) {
-            markPriceData.data.forEach(item => {
-              priceMap[item.s] = parseFloat(item.p) || 0
-            })
-            setMarkPrices(priceMap)
-          }
-
-          // Add futures account wallet balance first (USDC)
-          if (detailsData.code === 0 && detailsData.data?.balances?.[0]?.walletBalance) {
-            totalUSDC += parseFloat(detailsData.data.balances[0].walletBalance) || 0
-          }
-
-          // Calculate total by multiplying balance * price for each coin in spot
-          balances.forEach(bal => {
-            const balance = parseFloat(bal.balance) || 0
-            const coin = (bal.coin || '').trim()
-
-            if (!coin || balance === 0) return
-
-            // Clean up coin name to match mark price format
-            let cleanCoin = getBaseCoin(coin)
-
-            // USDC is 1:1 (handles both USDC and vUSDC)
-            if (cleanCoin.toUpperCase() === 'USDC') {
-              totalUSDC += balance
-              return
-            }
-
-            // Convert to mark price symbol format (COIN-USD)
-            // Special case: XAUt stays as XAUt (lowercase t)
-            let symbol
-            if (cleanCoin.toUpperCase() === 'XAUT') {
-              symbol = 'XAUt-USD'
-            } else {
-              symbol = `${cleanCoin.toUpperCase()}-USD`
-            }
-
-            const price = priceMap[symbol] || 0
-
-            if (price > 0) {
-              totalUSDC += balance * price
-            } else {
-              console.log(`No price found for ${coin} -> ${symbol}`)
-            }
-          })
-
-          processedTotalAssets = totalUSDC
-          setTotalAssets(totalUSDC)
-        } catch (err) {
-          console.error('Failed to calculate total assets:', err)
-          processedTotalAssets = 0
-          setTotalAssets(0)
-        }
-      }
-
-      // Process withdrawals (already paginated & parsed)
-      let processedWithdrawals = allFlows
-      setWithdrawals(processedWithdrawals)
-
-      // Process fund transfers
-      let processedFunds = []
-      if (fundsData.code === 0 && fundsData.data?.fundTransfers) {
-        processedFunds = fundsData.data.fundTransfers.map(f => {
-          const fallback = f.amount && f.amount.length > 12
-            ? { symbol: '?', decimals: 18 }
-            : { symbol: '??', decimals: 6 }
-
-          const assetInfo = assetRegistry[f.assetAddress] || {
-            symbol: f.coin || f.token || f.asset || f.symbol || fallback.symbol,
-            decimals: f.decimals || fallback.decimals
-          }
-          const isType2 = f.transferType === 2
-          return {
-            stmp: f.blockTimestamp,
-            amount: f.amount,
-            decimals: assetInfo.decimals,
-            coin: assetInfo.symbol,
-            type: isType2 ? 'Spot to Fund Transfer' : 'Chain Transfer',
-            status: 'Success',
-            txHash: f.txHash,
-            fromOverride: isType2 ? 'Spot' : 'N/A',
-            toOverride: isType2 ? 'Fund' : 'N/A',
-            network: 'Sodex Chain',
-            isFundTransfer: true
-          }
+      // Process mark prices (needed for position display)
+      const priceMap = {}
+      if (markPriceData.code === 0 && markPriceData.data) {
+        markPriceData.data.forEach(item => {
+          priceMap[item.s] = parseFloat(item.p) || 0
         })
-        setFundTransfers(processedFunds)
+        setMarkPrices(priceMap)
       }
 
-      // Process position history
-      let processedPosHistory = []
-      if (posHistoryData.code === 0 && posHistoryData.data) {
-        processedPosHistory = posHistoryData.data
-        setPositionHistory(processedPosHistory)
-      }
-
-      // Process PnL history - API returns cumulative PnL per day
+      // Process PnL chart data
       let processedPnlHistory = []
       if (pnlData.code === 0 && pnlData.data?.items) {
-        // Sort by timestamp ascending
         const sortedItems = [...pnlData.data.items].sort((a, b) => a.ts_ms - b.ts_ms)
-
-        const formattedPnl = sortedItems.map((item, idx) => {
+        processedPnlHistory = sortedItems.map((item, idx) => {
           const cumulative = parseFloat(item.pnl)
           const prevCumulative = idx > 0 ? parseFloat(sortedItems[idx - 1].pnl) : 0
           return {
             date: new Date(item.ts_ms).toISOString().split('T')[0],
-            cumulative: cumulative,
+            cumulative,
             daily: cumulative - prevCumulative
           }
         })
-
-        processedPnlHistory = formattedPnl
-        setPnlHistory(formattedPnl)
+        setPnlHistory(processedPnlHistory)
       }
 
-      // Ensure metadata is also done
+      // Wait for metadata (symbol names needed for display)
       await metadataPromise
 
-      // Store in global cache after all processing is complete
-      globalCache.setAccountData(accountId, {
-        accountDetails: processedAccountDetails,
-        spotBalances: processedBalances,
-        withdrawals: processedWithdrawals,
-        fundTransfers: processedFunds,
-        pnlHistory: processedPnlHistory,
-        positionHistory: processedPosHistory,
-        positions: processedPositions,
-        totalAssets: processedTotalAssets
-      })
+      setLoadingProgress(75)
+      setLoadingStep('Finalizing dashboard...')
 
-      setLoadingProgress(100)
-      setLoadingStep('Finalizing dashboard visualization...')
-      setTimeout(() => setLoading(false), 300)
+      // ===== REMOVE LOADING SCREEN — Tier 1 is ready =====
+      setTimeout(() => setLoading(false), 150)
+
+      // ===== TIER 2: Background load — balances, trades, transfers =====
+      // These populate tabs the user hasn't clicked yet
+      const fetchTier2 = async () => {
+        try {
+          const fetchAllFlows = async () => {
+            const allFlows = []
+            let start = 0
+            const limit = 200
+            while (true) {
+              const res = await fetch('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account: walletAddress || '', start, limit })
+              })
+              const data = await res.json()
+              if (data.code !== '0' || !data.data?.accountFlows) break
+              allFlows.push(...data.data.accountFlows)
+              const total = data.data.total || 0
+              if (allFlows.length >= total || data.data.accountFlows.length < limit) break
+              start += limit
+            }
+            return allFlows
+          }
+
+          const [balanceRes, allFlows, posHistoryRes, fundsRes] = await Promise.all([
+            fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
+            fetchAllFlows(),
+            fetch(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
+            fetch(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
+          ])
+
+          const [balanceData, posHistoryData, fundsData] = await Promise.all([
+            balanceRes.json(),
+            posHistoryRes.json(),
+            fundsRes.json()
+          ])
+
+          // Process spot balances & total assets
+          let processedBalances = []
+          let processedTotalAssets = 0
+          if (balanceData.code === '0' || balanceData.code === 0) {
+            const balances = balanceData.data?.spotBalance || []
+            processedBalances = balances
+            setSpotBalances(balances)
+
+            let totalUSDC = 0
+            if (detailsData.code === 0 && detailsData.data?.balances?.[0]?.walletBalance) {
+              totalUSDC += parseFloat(detailsData.data.balances[0].walletBalance) || 0
+            }
+            balances.forEach(bal => {
+              const balance = parseFloat(bal.balance) || 0
+              const coin = (bal.coin || '').trim()
+              if (!coin || balance === 0) return
+              let cleanCoin = getBaseCoin(coin)
+              if (cleanCoin.toUpperCase() === 'USDC') { totalUSDC += balance; return }
+              let symbol = cleanCoin.toUpperCase() === 'XAUT' ? 'XAUt-USD' : `${cleanCoin.toUpperCase()}-USD`
+              const price = priceMap[symbol] || 0
+              if (price > 0) totalUSDC += balance * price
+            })
+            processedTotalAssets = totalUSDC
+            setTotalAssets(totalUSDC)
+          }
+
+          // Process withdrawals
+          let processedWithdrawals = allFlows
+          setWithdrawals(processedWithdrawals)
+
+          // Process fund transfers
+          let processedFunds = []
+          if (fundsData.code === 0 && fundsData.data?.fundTransfers) {
+            processedFunds = fundsData.data.fundTransfers.map(f => {
+              const fallback = f.amount && f.amount.length > 12
+                ? { symbol: '?', decimals: 18 }
+                : { symbol: '??', decimals: 6 }
+              const assetInfo = assetRegistry[f.assetAddress] || {
+                symbol: f.coin || f.token || f.asset || f.symbol || fallback.symbol,
+                decimals: f.decimals || fallback.decimals
+              }
+              const isType2 = f.transferType === 2
+              return {
+                stmp: f.blockTimestamp,
+                amount: f.amount,
+                decimals: assetInfo.decimals,
+                coin: assetInfo.symbol,
+                type: isType2 ? 'Spot to Fund Transfer' : 'Chain Transfer',
+                status: 'Success',
+                txHash: f.txHash,
+                fromOverride: isType2 ? 'Spot' : 'N/A',
+                toOverride: isType2 ? 'Fund' : 'N/A',
+                network: 'Sodex Chain',
+                isFundTransfer: true
+              }
+            })
+            setFundTransfers(processedFunds)
+          }
+
+          // Process position history (trades)
+          let processedPosHistory = []
+          if (posHistoryData.code === 0 && posHistoryData.data) {
+            processedPosHistory = posHistoryData.data
+            setPositionHistory(processedPosHistory)
+          }
+
+          // Cache everything
+          globalCache.setAccountData(accountId, {
+            accountDetails: processedAccountDetails,
+            spotBalances: processedBalances,
+            withdrawals: processedWithdrawals,
+            fundTransfers: processedFunds,
+            pnlHistory: processedPnlHistory,
+            positionHistory: processedPosHistory,
+            positions: processedPositions,
+            totalAssets: processedTotalAssets
+          })
+        } catch (err) {
+          console.error('Tier 2 fetch failed:', err)
+        }
+      }
+
+      // Fire tier 2 in background — don't await
+      fetchTier2()
+
     } catch (error) {
       console.error('Failed to fetch mainnet data:', error)
       setLoading(false)
@@ -1399,108 +1377,82 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [activityLimit, activityTimeline.length])
 
-  if (!accountId && !propAccountId && !loading) {
-    return (
-      <div className="scanner-grid">
-        <div className="section-path">
-          <div className="path-breadcrumbs">
-            <Link href="/">Home</Link>
-            <span>/</span>
-            <a href="/tracker">Scanner</a>
-            <span>/</span>
-            <b>Dashboard</b>
-          </div>
-          <div className="path-search-wrapper">
-            {internalSearchBox}
-          </div>
-        </div>
+  // Determine pre-loaded state: empty, notFound, or loading
+  const isEmptyState = !walletAddress && !propAccountId && !loading
+  const isNotFound = !accountId && !propAccountId && !loading && !!walletAddress
+  const isPreLoaded = isEmptyState || isNotFound || loading
 
-        <aside className="section-sidebar" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
-          {tagSection}
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
-            <h3 style={{ color: 'var(--color-text-main)', fontSize: '14px', marginBottom: '8px' }}>Profile Search</h3>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
-              Enter an Account ID or search for another wallet.
-            </p>
-          </div>
-        </aside>
-
-        <div className="section-top-center" style={{
-          background: 'rgba(var(--color-primary-rgb), 0.05)',
-          borderRadius: '8px',
-          border: '1px dashed rgba(var(--color-primary-rgb), 0.3)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '40px 20px',
-          height: '475px',
-          boxSizing: 'border-box'
-        }}>
-          <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Wallet Not Found</h3>
-          <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
-            This wallet address is not currently indexed. Search by SoDex Account ID or another address above.
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
-            <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Or scan numerical ID:</span>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <input
-                type="text"
-                value={manualIdInput}
-                onChange={(e) => setManualIdInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualIdSearch()}
-                placeholder="e.g. 1234"
-                style={{
-                  background: 'var(--color-bg-card)',
-                  border: '1px solid var(--color-border-subtle)',
-                  borderRadius: '8px',
-                  padding: '10px 16px',
-                  color: 'var(--color-text-main)',
-                  fontSize: '14px',
-                  width: '160px'
-                }}
-              />
-              <button
-                onClick={handleManualIdSearch}
-                style={{
-                  background: 'rgba(var(--color-primary-rgb), 0.15)',
-                  border: '1px solid rgba(var(--color-primary-rgb), 0.3)',
-                  color: 'var(--color-primary)',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
-              >
-                Scan ID
-              </button>
-            </div>
+  if (isPreLoaded) {
+    // Single stable DOM — no unmount/remount between states
+    const centerContent = isEmptyState ? (
+      <>
+        <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Community-Built SoDex Mainnet Scan</h3>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
+          Enter a wallet address, referral code, or social handle above to begin a deep-dive analysis of mainnet trading performance, current positions, and historical activity.
+        </p>
+      </>
+    ) : isNotFound ? (
+      <>
+        <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Wallet Not Found</h3>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
+          This wallet address is not currently indexed. Search by SoDex Account ID or another address above.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Or scan numerical ID:</span>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <input
+              type="text"
+              value={manualIdInput}
+              onChange={(e) => setManualIdInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleManualIdSearch()}
+              placeholder="e.g. 1234"
+              style={{
+                background: 'var(--color-bg-card)',
+                border: '1px solid var(--color-border-subtle)',
+                borderRadius: '8px',
+                padding: '10px 16px',
+                color: 'var(--color-text-main)',
+                fontSize: '14px',
+                width: '160px'
+              }}
+            />
+            <button
+              onClick={handleManualIdSearch}
+              style={{
+                background: 'rgba(var(--color-primary-rgb), 0.15)',
+                border: '1px solid rgba(var(--color-primary-rgb), 0.3)',
+                color: 'var(--color-primary)',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              Scan ID
+            </button>
           </div>
         </div>
-
-        <aside className="section-activity" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}></aside>
-
-        <div className="section-bottom-center" style={{
-          background: 'var(--color-bg-card)',
-          borderRadius: '8px',
-          border: '1px solid var(--color-border-subtle)'
-        }}>
+      </>
+    ) : (
+      <>
+        <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
+        <div className="loading-progress-container" style={{ maxWidth: 'calc(100% - 40px)' }}>
+          <div className="loading-progress-bar" style={{ width: `${loadingProgress}%` }}></div>
         </div>
-      </div>
+        <p className="loading-step-text" style={{ height: '20px' }}>{loadingStep}</p>
+      </>
     )
-  }
 
-  if (loading) {
+    const showSkeleton = loading
+
     return (
       <div className="scanner-grid">
         <div className="section-path">
           <div className="path-breadcrumbs">
             <Link href="/">Home</Link>
             <span>/</span>
-            <a href="/tracker">Scanner</a>
+            <span role="link" tabIndex={0} style={{ cursor: 'pointer', color: 'inherit' }} onClick={() => onWalletChange ? onWalletChange(null) : undefined}>Scanner</span>
             <span>/</span>
             <b>Dashboard</b>
           </div>
@@ -1509,100 +1461,58 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
         </div>
 
-        {/* Highly Accurate Sidebar Skeleton */}
         <aside className="section-sidebar" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
-          {tagSection}
-          <div style={{ padding: '20px' }}>
-            {/* Section 1: Alias & Address info (Accurate positions) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <div style={{ flex: 1 }}>
-                  <div className="skeleton" style={{ width: '100px', height: '18px', marginBottom: '6px' }}></div>
-                  <div className="skeleton" style={{ width: '140px', height: '14px', opacity: 0.6 }}></div>
-                </div>
-                <div className="skeleton" style={{ width: '70px', height: '22px', borderRadius: '4px' }}></div>
-              </div>
-
-              {/* Accurate Actions row */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                <div className="skeleton" style={{ flex: 1, height: '28px', borderRadius: '6px' }}></div>
-                <div className="skeleton" style={{ flex: 1, height: '28px', borderRadius: '6px' }}></div>
-              </div>
-
-              {/* Account Value block */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div className="skeleton" style={{ width: '90px', height: '10px', opacity: 0.5 }}></div>
-                <div className="skeleton" style={{ width: '120px', height: '28px' }}></div>
-              </div>
-            </div>
-
-            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
-
-            {/* Section 2: Account Equity */}
-            <div style={{ marginBottom: '0' }}>
-              <div className="skeleton" style={{ width: '100px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div className="skeleton" style={{ width: '45px', height: '11px', opacity: 0.5 }}></div>
-                    <div className="skeleton" style={{ width: '65px', height: '11px' }}></div>
+          {showSkeleton ? (
+            <>
+              {tagSection}
+              <div style={{ padding: '20px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="skeleton" style={{ width: '100px', height: '18px', marginBottom: '6px' }}></div>
+                      <div className="skeleton" style={{ width: '140px', height: '14px', opacity: 0.6 }}></div>
+                    </div>
+                    <div className="skeleton" style={{ width: '70px', height: '22px', borderRadius: '4px' }}></div>
                   </div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                    <div className="skeleton" style={{ flex: 1, height: '28px', borderRadius: '6px' }}></div>
+                    <div className="skeleton" style={{ flex: 1, height: '28px', borderRadius: '6px' }}></div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div className="skeleton" style={{ width: '90px', height: '10px', opacity: 0.5 }}></div>
+                    <div className="skeleton" style={{ width: '120px', height: '28px' }}></div>
+                  </div>
+                </div>
+                <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
+                {[{w: 100, rows: 3}, {w: 70, rows: 4}, {w: 120, rows: 2}, {w: 70, rows: 2}].map((sec, si) => (
+                  <React.Fragment key={si}>
+                    <div>
+                      <div className="skeleton" style={{ width: `${sec.w}px`, height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {Array.from({length: sec.rows}).map((_, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <div className="skeleton" style={{ width: '65px', height: '11px', opacity: 0.5 }}></div>
+                            <div className="skeleton" style={{ width: '55px', height: '11px' }}></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {si < 3 && <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />}
+                  </React.Fragment>
                 ))}
               </div>
-            </div>
-
-            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
-
-            {/* Section 3: Futures */}
-            <div style={{ marginBottom: '0' }}>
-              <div className="skeleton" style={{ width: '70px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div className="skeleton" style={{ width: '85px', height: '11px', opacity: 0.5 }}></div>
-                    <div className="skeleton" style={{ width: '55px', height: '11px' }}></div>
-                  </div>
-                ))}
+            </>
+          ) : isNotFound ? (
+            <>
+              {tagSection}
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <h3 style={{ color: 'var(--color-text-main)', fontSize: '14px', marginBottom: '8px' }}>Profile Search</h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>Enter an Account ID or search for another wallet.</p>
               </div>
-            </div>
-
-            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
-
-            {/* Section 4: Performance */}
-            <div style={{ marginBottom: '0' }}>
-              <div className="skeleton" style={{ width: '120px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div className="skeleton" style={{ width: '60px', height: '11px', opacity: 0.5 }}></div>
-                  <div className="skeleton" style={{ width: '50px', height: '11px' }}></div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div className="skeleton" style={{ width: '75px', height: '11px', opacity: 0.5 }}></div>
-                  <div className="skeleton" style={{ width: '40px', height: '11px' }}></div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ height: '1px', background: 'var(--color-border-subtle)', margin: '14px 0' }} />
-
-            {/* Section 5: Rankings */}
-            <div style={{ marginBottom: '0' }}>
-              <div className="skeleton" style={{ width: '70px', height: '12px', marginBottom: '12px', opacity: 0.8 }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div className="skeleton" style={{ width: '40px', height: '11px', opacity: 0.5 }}></div>
-                  <div className="skeleton" style={{ width: '30px', height: '11px' }}></div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div className="skeleton" style={{ width: '50px', height: '11px', opacity: 0.5 }}></div>
-                  <div className="skeleton" style={{ width: '35px', height: '11px' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
+            </>
+          ) : null}
         </aside>
 
-        {/* Central Area: Chart Loading View */}
         <div className="section-top-center" style={{
           background: 'rgba(var(--color-primary-rgb), 0.05)',
           borderRadius: '8px',
@@ -1616,81 +1526,71 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           height: '475px',
           boxSizing: 'border-box'
         }}>
-          <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
-          <div className="loading-progress-container" style={{ maxWidth: 'calc(100% - 40px)' }}>
-            <div className="loading-progress-bar" style={{ width: `${loadingProgress}%` }}></div>
-          </div>
-          <p className="loading-step-text" style={{ height: '20px' }}>{loadingStep}</p>
+          {centerContent}
         </div>
 
-        {/* Improved Accurate Activity Skeleton */}
-        <aside className="section-activity" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', padding: '20px' }}>
-          <div className="skeleton" style={{ width: '130px', height: '18px', marginBottom: '24px' }}></div>
-          <div className="timeline" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '12px', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
-                    <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+        <aside className="section-activity" style={{ background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', padding: showSkeleton ? '20px' : undefined }}>
+          {showSkeleton && (
+            <>
+              <div className="skeleton" style={{ width: '130px', height: '18px', marginBottom: '24px' }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '12px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
+                        <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+                      </div>
+                      <div className="skeleton" style={{ width: '40px', height: '10px', opacity: 0.3 }}></div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '28px' }}>
+                      <div className="skeleton" style={{ width: '60px', height: '10px', opacity: 0.4 }}></div>
+                      <div className="skeleton" style={{ width: '45px', height: '10px', opacity: 0.5 }}></div>
+                    </div>
                   </div>
-                  <div className="skeleton" style={{ width: '40px', height: '10px', opacity: 0.3 }}></div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '28px' }}>
-                  <div className="skeleton" style={{ width: '60px', height: '10px', opacity: 0.4 }}></div>
-                  <div className="skeleton" style={{ width: '45px', height: '10px', opacity: 0.5 }}></div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </aside>
 
-        {/* Improved Accurate Bottom Table Skeleton */}
         <div className="section-bottom-center" style={{
           background: 'var(--color-bg-card)',
           borderRadius: '8px',
           border: '1px solid var(--color-border-subtle)',
-          padding: '0'
+          padding: showSkeleton ? '0' : undefined
         }}>
-          {/* Tab Nav Skeleton */}
-          <div style={{ padding: '16px 16px 0 16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '0' }}>
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="skeleton" style={{ height: '32px', width: '70px', borderRadius: '4px 4px 0 0' }}></div>
-              ))}
-            </div>
-          </div>
-
-          {/* Table Header Skeleton */}
-          <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div className="skeleton" style={{ width: '120px', height: '14px' }}></div>
-              <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
-              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
-              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
-              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
-              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
-              <div className="skeleton" style={{ width: '80px', height: '14px' }}></div>
-            </div>
-          </div>
-
-          {/* Table Body Skeleton */}
-          <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--color-border-subtle)', opacity: 0.6 }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
-                  <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+          {showSkeleton && (
+            <>
+              <div style={{ padding: '16px 16px 0 16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <div style={{ display: 'flex', gap: '24px' }}>
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="skeleton" style={{ height: '32px', width: '70px', borderRadius: '4px 4px 0 0' }}></div>
+                  ))}
                 </div>
-                <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
-                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
-                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
-                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
-                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
-                <div className="skeleton" style={{ width: '70px', height: '14px' }}></div>
               </div>
-            ))}
-          </div>
+              <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  {[120, 60, 80, 80, 80, 80, 80].map((w, i) => (
+                    <div key={i} className="skeleton" style={{ width: `${w}px`, height: '14px' }}></div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--color-border-subtle)', opacity: 0.6 }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
+                      <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+                    </div>
+                    {[60, 70, 70, 70, 70, 70].map((w, j) => (
+                      <div key={j} className="skeleton" style={{ width: `${w}px`, height: '14px' }}></div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     )
