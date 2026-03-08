@@ -94,6 +94,7 @@ const SoPointsPage = () => {
                 setTimeLeft('DISTRIBUTING...')
                 globalCache.caches.leaderboardMeta = { data: null, timestamp: 0 }
                 setWeeklyLbData({})
+                setChartDataLoaded(false)
                 setSelectedPointsWeek(null)
                 loadMeta()
                 return

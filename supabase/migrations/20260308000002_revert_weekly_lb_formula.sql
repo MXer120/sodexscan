@@ -1,7 +1,5 @@
--- Fix: weekly_sodex_volume (total) can appear less than weekly_volume (futures)
--- when sodex sync lags behind exchange sync. Total must always >= futures.
--- Clamp: weekly_sodex_volume = GREATEST(sodex_delta, futures_delta)
--- Sort by total uses spot + futures (= weekly_spot_volume + weekly_volume)
+-- Revert get_weekly_leaderboard to original formula from 20260306000005.
+-- Total (sodex) is the base. Spot = total - futures. No clamping on total.
 
 CREATE OR REPLACE FUNCTION get_weekly_leaderboard(
   p_week INT,
@@ -38,8 +36,7 @@ BEGIN
           cw.unrealized_pnl,
           cw.pnl_rank,
           cw.volume_rank,
-          -- Total = max(sodex_total, futures) so total never < futures
-          GREATEST(cw.sodex_total_volume, cw.cumulative_volume) AS weekly_sodex_volume,
+          cw.sodex_total_volume AS weekly_sodex_volume,
           cw.sodex_pnl AS weekly_sodex_pnl,
           GREATEST(cw.sodex_total_volume - cw.cumulative_volume, 0) AS weekly_spot_volume,
           (cw.sodex_pnl - cw.cumulative_pnl) AS weekly_spot_pnl
@@ -60,7 +57,7 @@ BEGIN
           WHEN 'futures_volume' THEN sub.weekly_volume
           WHEN 'spot_volume' THEN sub.weekly_spot_volume
           WHEN 'pnl' THEN sub.weekly_pnl
-          ELSE sub.weekly_spot_volume + sub.weekly_volume  -- total = spot + futures
+          ELSE sub.weekly_sodex_volume
         END DESC
       LIMIT p_limit OFFSET p_offset
     ) t;
@@ -75,11 +72,7 @@ BEGIN
           cw.unrealized_pnl,
           cw.pnl_rank,
           cw.volume_rank,
-          -- Total = max(sodex_delta, futures_delta) so total never < futures
-          GREATEST(
-            (cw.sodex_total_volume - COALESCE(pw.sodex_total_volume, 0)),
-            (cw.cumulative_volume - COALESCE(pw.cumulative_volume, 0))
-          ) AS weekly_sodex_volume,
+          (cw.sodex_total_volume - COALESCE(pw.sodex_total_volume, 0)) AS weekly_sodex_volume,
           (cw.sodex_pnl - COALESCE(pw.sodex_pnl, 0)) AS weekly_sodex_pnl,
           GREATEST(
             (cw.sodex_total_volume - COALESCE(pw.sodex_total_volume, 0))
@@ -108,7 +101,7 @@ BEGIN
           WHEN 'futures_volume' THEN sub.weekly_volume
           WHEN 'spot_volume' THEN sub.weekly_spot_volume
           WHEN 'pnl' THEN sub.weekly_pnl
-          ELSE sub.weekly_spot_volume + sub.weekly_volume  -- total = spot + futures
+          ELSE sub.weekly_sodex_volume
         END DESC
       LIMIT p_limit OFFSET p_offset
     ) t;
