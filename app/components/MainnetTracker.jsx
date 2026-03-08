@@ -1445,8 +1445,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 onKeyDown={(e) => e.key === 'Enter' && handleManualIdSearch()}
                 placeholder="e.g. 1234"
                 style={{
-                  background: 'rgba(30, 30, 30, 0.6)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border-subtle)',
                   borderRadius: '8px',
                   padding: '10px 16px',
                   color: 'var(--color-text-main)',
@@ -1608,7 +1608,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           height: '475px',
           boxSizing: 'border-box'
         }}>
-          <h3 style={{ color: '#fff', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
+          <h3 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Scanning Mainnet Wallet...</h3>
           <div className="loading-progress-container" style={{ maxWidth: 'calc(100% - 40px)' }}>
             <div className="loading-progress-bar" style={{ width: `${loadingProgress}%` }}></div>
           </div>
@@ -1620,7 +1620,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           <div className="skeleton" style={{ width: '130px', height: '18px', marginBottom: '24px' }}></div>
           <div className="timeline" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '12px', borderBottom: '1px solid var(--color-border-subtle)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <div className="skeleton skeleton-circle" style={{ width: '18px', height: '18px' }}></div>
@@ -1741,7 +1741,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           alignItems: 'center',
           gap: '10px',
           background: 'rgba(25, 25, 25, 0.98)',
-          border: '1px solid rgba(255,255,255,0.12)',
+          border: '1px solid var(--color-border-subtle)',
           borderRadius: '8px',
           padding: '10px 14px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
@@ -1751,7 +1751,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span style={{ fontSize: '12px', fontWeight: '600', color: '#fff' }}>{toastMessage}</span>
+          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-main)' }}>{toastMessage}</span>
           <button
             onClick={dismissToast}
             style={{
@@ -1764,7 +1764,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               marginLeft: '4px'
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -1821,10 +1821,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     }}
                     onBlur={() => setIsEditingAlias(false)}
                     style={{
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: 'var(--color-overlay-subtle)',
+                      border: '1px solid var(--color-border-subtle)',
                       borderRadius: '4px',
-                      color: '#fff',
+                      color: 'var(--color-text-main)',
                       fontSize: '14px',
                       padding: '4px 8px',
                       width: '100%',
@@ -1833,7 +1833,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   />
                 </div>
               ) : (
-                <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: '700', margin: 0 }}>
+                <h3 style={{ color: 'var(--color-text-main)', fontSize: '16px', fontWeight: '700', margin: 0 }}>
                   {activeTag ? activeTag.tag_name : 'No Alias'}
                 </h3>
               )}
@@ -1887,9 +1887,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               onClick={() => setShowEditMenu(!showEditMenu)}
               style={{
                 flex: 1,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: 'var(--color-overlay-subtle)',
+                border: '1px solid var(--color-border-subtle)',
+                color: 'var(--color-text-main)',
                 padding: '6px 12px',
                 borderRadius: '6px',
                 fontSize: '11px',
@@ -1913,9 +1913,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               disabled={isAdding || isRemoving}
               style={{
                 flex: 1,
-                background: isInWatchlist ? 'rgba(255,255,255,0.05)' : THEME_COLORS.primary,
-                border: isInWatchlist ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                color: '#fff',
+                background: isInWatchlist ? 'var(--color-overlay-subtle)' : THEME_COLORS.primary,
+                border: isInWatchlist ? '1px solid var(--color-border-subtle)' : 'none',
+                color: 'var(--color-text-main)',
                 padding: '6px 12px',
                 borderRadius: '6px',
                 fontSize: '11px',
@@ -1944,8 +1944,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     top: '36px',
                     left: 0,
                     width: '160px',
-                    background: '#1a1a1a',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--color-bg-secondary)',
+                    border: '1px solid var(--color-border-subtle)',
                     borderRadius: '8px',
                     zIndex: 100,
                     padding: '4px',
@@ -1958,7 +1958,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       setIsEditingAlias(true)
                       setShowEditMenu(false)
                     }}
-                    style={{ background: 'transparent', border: 'none', color: '#fff', padding: '8px 12px', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '11px', borderRadius: '4px' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-text-main)', padding: '8px 12px', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '11px', borderRadius: '4px' }}
                     className="menu-item-hover"
                   >
                     Rename Wallet
@@ -1971,7 +1971,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       }
                       setShowEditMenu(false)
                     }}
-                    style={{ background: 'transparent', border: 'none', color: '#fff', padding: '8px 12px', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '11px', borderRadius: '4px' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-text-main)', padding: '8px 12px', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: '11px', borderRadius: '4px' }}
                     className="menu-item-hover"
                   >
                     Move to Group
@@ -1994,75 +1994,75 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account value</span>
-            <h2 style={{ color: '#fff', fontSize: '24px', fontWeight: '400', margin: 0 }}>
+            <span style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account value</span>
+            <h2 style={{ color: 'var(--color-text-main)', fontSize: '24px', fontWeight: '400', margin: 0 }}>
               ${totalAssets.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h2>
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+        <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
 
         {/* Section 2: Account Equity */}
         <div style={{ marginBottom: '0' }}>
-          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Equity</h4>
+          <h4 style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Equity</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: '#fff', fontWeight: '600' }}>Futures</span>
-              <span style={{ color: '#fff', fontWeight: '600' }} data-testid="stat-futures-value" aria-label={`Futures Value: ${statsSummary.futuresValue}`}>${formatNumber(statsSummary.futuresValue)}</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>Futures</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }} data-testid="stat-futures-value" aria-label={`Futures Value: ${statsSummary.futuresValue}`}>${formatNumber(statsSummary.futuresValue)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Spot</span>
-              <span style={{ color: '#fff', fontWeight: '600' }} data-testid="stat-spot-value" aria-label={`Spot Value: ${statsSummary.spotValue}`}>${formatNumber(statsSummary.spotValue)}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Spot</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }} data-testid="stat-spot-value" aria-label={`Spot Value: ${statsSummary.spotValue}`}>${formatNumber(statsSummary.spotValue)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Vault</span>
-              <span style={{ color: '#fff', fontWeight: '600' }} data-testid="stat-vault-value" aria-label={`Vault Value: ${statsSummary.vaultValue}`}>${formatNumber(statsSummary.vaultValue)}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Vault</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }} data-testid="stat-vault-value" aria-label={`Vault Value: ${statsSummary.vaultValue}`}>${formatNumber(statsSummary.vaultValue)}</span>
             </div>
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+        <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
 
         {/* Section 3: Futures */}
         <div style={{ marginBottom: '0' }}>
-          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Futures</h4>
+          <h4 style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Futures</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Unrealized pnl</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Unrealized pnl</span>
               <span style={{ color: statsSummary.unrealized >= 0 ? BULLISH_COLOR : BEARISH_COLOR, fontWeight: '700' }}>
                 {statsSummary.unrealized >= 0 ? '+' : ''}${formatNumber(statsSummary.unrealized)}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Average Leverage</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>{statsSummary.avgLev.toFixed(1)}x</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Average Leverage</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>{statsSummary.avgLev.toFixed(1)}x</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>All time PnL</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>All time PnL</span>
               <span style={{ color: statsSummary.allTimePnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR, fontWeight: '600' }}>
                 {statsSummary.allTimePnl >= 0 ? '+' : ''}${formatNumber(statsSummary.allTimePnl)}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>All time Volume</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(statsSummary.allTimeVol)}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>All time Volume</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>${formatNumber(statsSummary.allTimeVol)}</span>
             </div>
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+        <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
 
         {/* Section 4: Futures Performance */}
         <div style={{ marginBottom: '0' }}>
-          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Futures Performance</h4>
+          <h4 style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Futures Performance</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Win rate</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>{statsSummary.winRate.toFixed(1)}%</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Win rate</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>{statsSummary.winRate.toFixed(1)}%</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Sharpe Ratio</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Sharpe Ratio</span>
               <span style={{ color: INTERNAL_COLOR, fontWeight: '600' }}>
                 {statsSummary.sharpe.toFixed(2)}
               </span>
@@ -2070,22 +2070,22 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+        <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
 
         {/* Section: Deposit/Withdrawal Delta */}
         <div style={{ marginBottom: '0' }}>
-          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deposit / Withdrawal</h4>
+          <h4 style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deposit / Withdrawal</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Deposited</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(depositWithdrawalDelta.totalDeposits)}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Deposited</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>${formatNumber(depositWithdrawalDelta.totalDeposits)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Withdrawn</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>${formatNumber(depositWithdrawalDelta.totalWithdrawals)}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Withdrawn</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>${formatNumber(depositWithdrawalDelta.totalWithdrawals)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Delta</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Delta</span>
               <span style={{ color: depositWithdrawalDelta.delta > 0 ? '#4ade80' : depositWithdrawalDelta.delta < 0 ? '#f87171' : '#fff', fontWeight: '600' }}>
                 {depositWithdrawalDelta.delta >= 0 ? '+' : ''}${formatNumber(depositWithdrawalDelta.delta)}
               </span>
@@ -2093,32 +2093,32 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+        <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
 
         {/* Section 5: Rankings */}
         <div style={{ marginBottom: '0' }}>
-          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rankings</h4>
+          <h4 style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rankings</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>PnL</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>PnL</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>
                 {leaderboardStats.rank ? `#${leaderboardStats.rank}` : '-'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>Volume</span>
-              <span style={{ color: '#fff', fontWeight: '600' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Volume</span>
+              <span style={{ color: 'var(--color-text-main)', fontWeight: '600' }}>
                 {leaderboardStats.volumeRank ? `#${leaderboardStats.volumeRank}` : '-'}
               </span>
             </div>
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0' }} />
+        <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
 
         {/* Section 6: Social */}
         <div style={{ marginBottom: '0' }}>
-          <h4 style={{ color: '#fff', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</h4>
+          <h4 style={{ color: 'var(--color-text-main)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Referral Code */}
             <div
@@ -2126,9 +2126,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               onMouseEnter={() => setSocialTooltip('refcode')}
               onMouseLeave={() => setSocialTooltip(null)}
             >
-              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 Ref Code
-                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+                <span style={{ cursor: 'help', color: 'var(--color-text-muted)', fontSize: '10px' }}>ⓘ</span>
               </span>
               {socialData.ref_code ? (
                 <a
@@ -2140,7 +2140,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   {socialData.ref_code}
                 </a>
               ) : (
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>Unknown</span>
+                <span style={{ color: 'var(--color-text-muted)', fontWeight: '600' }}>Unknown</span>
               )}
               {socialTooltip === 'refcode' && (
                 <div className="social-tooltip">
@@ -2156,14 +2156,14 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               onMouseEnter={() => setSocialTooltip('discord')}
               onMouseLeave={() => setSocialTooltip(null)}
             >
-              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '12px', height: '12px' }}>
                   <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
                 </svg>
                 Discord
-                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+                <span style={{ cursor: 'help', color: 'var(--color-text-muted)', fontSize: '10px' }}>ⓘ</span>
               </span>
-              <span style={{ color: socialData.dc_username ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+              <span style={{ color: socialData.dc_username ? 'var(--color-text-main)' : 'var(--color-text-disabled)', fontWeight: '600' }}>
                 {socialData.dc_username || 'Unknown'}
               </span>
               {socialTooltip === 'discord' && (
@@ -2180,14 +2180,14 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               onMouseEnter={() => setSocialTooltip('telegram')}
               onMouseLeave={() => setSocialTooltip(null)}
             >
-              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '12px', height: '12px' }}>
                   <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                 </svg>
                 Telegram
-                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+                <span style={{ cursor: 'help', color: 'var(--color-text-muted)', fontSize: '10px' }}>ⓘ</span>
               </span>
-              <span style={{ color: (socialData.tg_username || socialData.tg_displayname) ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+              <span style={{ color: (socialData.tg_username || socialData.tg_displayname) ? 'var(--color-text-main)' : 'var(--color-text-disabled)', fontWeight: '600' }}>
                 {socialData.tg_username || socialData.tg_displayname || 'Unknown'}
               </span>
               {socialTooltip === 'telegram' && (
@@ -2204,14 +2204,14 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               onMouseEnter={() => setSocialTooltip('x')}
               onMouseLeave={() => setSocialTooltip(null)}
             >
-              <span style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '12px', height: '12px' }}>
                   <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
                 </svg>
                 X
-                <span style={{ cursor: 'help', color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>ⓘ</span>
+                <span style={{ cursor: 'help', color: 'var(--color-text-muted)', fontSize: '10px' }}>ⓘ</span>
               </span>
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>
+              <span style={{ color: 'var(--color-text-muted)', fontWeight: '600' }}>
                 Unknown
               </span>
               {socialTooltip === 'x' && (
@@ -2246,7 +2246,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             background: 'rgba(0,0,0,0.4)',
             borderRadius: '4px',
             padding: '2px',
-            border: '1px solid rgba(255,255,255,0.1)'
+            border: '1px solid var(--color-border-subtle)'
           }}>
             <button
               onClick={() => setPnlViewMode('chart')}
@@ -2254,8 +2254,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 padding: '3px 8px',
                 fontSize: '10px',
                 fontWeight: '600',
-                background: pnlViewMode === 'chart' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: pnlViewMode === 'chart' ? '#fff' : 'rgba(255,255,255,0.4)',
+                background: pnlViewMode === 'chart' ? 'var(--color-overlay-light)' : 'transparent',
+                color: pnlViewMode === 'chart' ? 'var(--color-text-main)' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '3px',
                 cursor: 'pointer',
@@ -2270,8 +2270,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 padding: '3px 8px',
                 fontSize: '10px',
                 fontWeight: '600',
-                background: pnlViewMode === 'calendar' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                color: pnlViewMode === 'calendar' ? '#fff' : 'rgba(255,255,255,0.4)',
+                background: pnlViewMode === 'calendar' ? 'var(--color-overlay-light)' : 'transparent',
+                color: pnlViewMode === 'calendar' ? 'var(--color-text-main)' : 'var(--color-text-muted)',
                 border: 'none',
                 borderRadius: '3px',
                 cursor: 'pointer',
@@ -2318,7 +2318,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       </div>
 
       <aside className="section-activity" onScroll={handleActivityScroll} style={{ overflowY: 'auto' }}>
-        <h3 style={{ color: '#fff', fontSize: '15px', marginBottom: '16px', fontWeight: '700', paddingLeft: '0px', marginTop: '4px' }}>Recent Activity</h3>
+        <h3 style={{ color: 'var(--color-text-main)', fontSize: '15px', marginBottom: '16px', fontWeight: '700', paddingLeft: '0px', marginTop: '4px' }}>Recent Activity</h3>
         <div className="timeline" style={{ paddingLeft: '12px', paddingRight: '12px', marginTop: '4px' }}>
           {displayedActivity.length > 0 ? (
             displayedActivity.map((item, idx) => {
@@ -2326,11 +2326,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               const coin = getBaseCoin(item.rawSymbol)
               const color = item.status === 'pos' ? BULLISH_COLOR :
                 item.status === 'neg' ? BEARISH_COLOR :
-                  item.status === 'internal' ? 'rgba(255,255,255,0.7)' : '#fff'
+                  item.status === 'internal' ? 'var(--color-text-secondary)' : 'var(--color-text-main)'
 
               return (
                 <div key={item.id} className={`timeline-item ${item.status}`} style={{
-                  borderBottom: idx === displayedActivity.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: idx === displayedActivity.length - 1 ? 'none' : '1px solid var(--color-border-subtle)',
                   paddingTop: '6px',
                   paddingBottom: '8px',
                   marginBottom: '6px',
@@ -2417,7 +2417,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       )}
                     </div>
 
-                    <div className="timeline-date" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>
+                    <div className="timeline-date" style={{ fontSize: '10px', color: 'var(--color-text-disabled)', textAlign: 'right' }}>
                       {formatTimeShort(item.timestamp / 1000)}
                     </div>
                   </div>
@@ -2425,7 +2425,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   <div className="timeline-details" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '4px' }}>
                     {isTrade ? (
                       <>
-                        <div className="timeline-desc" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                        <div className="timeline-desc" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                           {item.size} {coin}
                         </div>
                         {item.type === 'Trade Closed' && (
@@ -2436,10 +2436,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       </>
                     ) : (
                       <>
-                        <div className="timeline-desc" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                        <div className="timeline-desc" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                           {item.amount || '-'}
                         </div>
-                        <div style={{ fontSize: '10px', fontWeight: '500', color: 'rgba(255,255,255,0.2)' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '500', color: 'var(--color-text-disabled)' }}>
                           Confirmed
                         </div>
                       </>
@@ -2457,7 +2457,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       {/* 4. Bottom Center - Tabs */}
       <div className="section-bottom-center">
         {/* Tab Navigation */}
-        <div style={{ position: 'relative', marginBottom: '0', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+        <div style={{ position: 'relative', marginBottom: '0', borderBottom: '1px solid var(--color-border-subtle)', flexShrink: 0 }}>
           <div className="tab-nav-row" style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -2477,7 +2477,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     border: 'none',
                     padding: '8px 0',
                     cursor: 'pointer',
-                    color: activeTab === tab ? '#fff' : 'rgba(255,255,255,0.4)',
+                    color: activeTab === tab ? 'var(--color-text-main)' : 'var(--color-text-muted)',
                     fontSize: '11px',
                     fontWeight: '600',
                     transition: 'color 0.2s ease',
@@ -2524,10 +2524,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             {activeTab === 'Balances' && (
               <div className="balance-view-switch" style={{
                 display: 'flex',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--color-overlay-subtle)',
                 padding: '2px',
                 borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--color-border-subtle)',
                 position: 'relative',
                 zIndex: 10
               }}>
@@ -2542,8 +2542,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       borderRadius: '4px',
                       border: 'none',
                       cursor: 'pointer',
-                      background: balanceView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'rgba(255,255,255,0.03)',
-                      color: balanceView === mode ? THEME_COLORS.primary : 'rgba(255,255,255,0.4)',
+                      background: balanceView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'var(--color-overlay-faint)',
+                      color: balanceView === mode ? THEME_COLORS.primary : 'var(--color-text-muted)',
                       transition: 'all 0.2s ease',
                       margin: '0 1px'
                     }}
@@ -2557,10 +2557,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             {activeTab === 'Performance' && (
               <div style={{
                 display: 'flex',
-                background: 'rgba(255,255,255,0.05)',
+                background: 'var(--color-overlay-subtle)',
                 padding: '2px',
                 borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--color-border-subtle)',
                 position: 'relative',
                 zIndex: 10
               }}>
@@ -2575,8 +2575,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       borderRadius: '4px',
                       border: 'none',
                       cursor: 'pointer',
-                      background: performanceView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'rgba(255,255,255,0.03)',
-                      color: performanceView === mode ? THEME_COLORS.primary : 'rgba(255,255,255,0.4)',
+                      background: performanceView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'var(--color-overlay-faint)',
+                      color: performanceView === mode ? THEME_COLORS.primary : 'var(--color-text-muted)',
                       transition: 'all 0.2s ease',
                       margin: '0 1px'
                     }}
@@ -2587,7 +2587,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               </div>
             )}
           </div>
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', width: '100%' }} />
+          <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', width: '100%' }} />
         </div>
 
         <div className="tab-scroll-area" onScroll={handleScroll}>
@@ -2596,7 +2596,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <div>
               {positions.length === 0 ? (
                 <div className="empty-state-container">
-                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No open positions</p>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No open positions</p>
                 </div>
               ) : isMobile ? (
                 <div className="mobile-card-list">
@@ -2617,7 +2617,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                             <span style={{ fontWeight: '600', fontSize: '12px', color: unrealizedPnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR }}>
                               {unrealizedPnl >= 0 ? '+' : ''}${formatNumber(unrealizedPnl)}
                             </span>
-                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </div>
                         </div>
                         {isExpanded && (
@@ -2761,7 +2761,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <span style={{ fontWeight: '600', fontSize: '12px' }}>{formatBalance(bal.walletBalance, bal.coin)}</span>
-                                  <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 </div>
                               </div>
                               {isExpanded && (
@@ -2844,7 +2844,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   )
                 ) : (
                   <div className="empty-state-container">
-                    <p style={{ color: 'rgba(255,255,255,0.5)' }}>No futures balances found</p>
+                    <p style={{ color: 'var(--color-text-muted)' }}>No futures balances found</p>
                   </div>
                 )
               )}
@@ -2883,7 +2883,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <span style={{ fontWeight: '600', fontSize: '12px' }}>{formatBalance(bal.balance, bal.coin)}</span>
-                                  <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 </div>
                               </div>
                               {isExpanded && (
@@ -2966,7 +2966,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                   )
                 ) : (
                   <div className="empty-state-container">
-                    <p style={{ color: 'rgba(255,255,255,0.5)' }}>No spot balances found</p>
+                    <p style={{ color: 'var(--color-text-muted)' }}>No spot balances found</p>
                   </div>
                 )
               )}
@@ -2975,7 +2975,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
           {activeTab === 'Orders' && (
             <div className="empty-state-container">
-              <p style={{ color: 'rgba(255,255,255,0.5)' }}>No active orders found.</p>
+              <p style={{ color: 'var(--color-text-muted)' }}>No active orders found.</p>
             </div>
           )}
 
@@ -2983,7 +2983,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <div>
               {positionHistory.length === 0 ? (
                 <div className="empty-state-container">
-                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No position history found</p>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No position history found</p>
                 </div>
               ) : isMobile ? (
                 <div className="mobile-card-list">
@@ -3007,7 +3007,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                             <span style={{ fontWeight: '600', fontSize: '12px', color: pnlColor }}>
                               {pnl >= 0 ? '+' : ''}${formatNumber(pnl)}
                             </span>
-                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </div>
                         </div>
                         {isExpanded && (
@@ -3016,7 +3016,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                             <div className="mobile-card-detail-cell"><span>Avg Entry</span><span>${formatNumber(parseFloat(pos.avg_entry_price) || 0)}</span></div>
                             <div className="mobile-card-detail-cell"><span>Avg Close</span><span>${formatNumber(parseFloat(pos.avg_close_price) || 0)}</span></div>
                             <div className="mobile-card-detail-cell"><span>Fees</span><span style={{ color: BEARISH_COLOR }}>${formatNumber(parseFloat(pos.cum_trading_fee) || 0)}</span></div>
-                            <div className="mobile-card-detail-cell"><span>Dates</span><span style={{ color: 'rgba(255,255,255,0.4)' }}>{new Date(pos.created_at).toLocaleDateString()} - {new Date(pos.updated_at).toLocaleDateString()}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Dates</span><span style={{ color: 'var(--color-text-muted)' }}>{new Date(pos.created_at).toLocaleDateString()} - {new Date(pos.updated_at).toLocaleDateString()}</span></div>
                           </div>
                         )}
                       </div>
@@ -3111,7 +3111,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                               <td style={{ textAlign: 'right', color: BEARISH_COLOR }}>
                                 ${formatNumber(parseFloat(pos.cum_trading_fee) || 0)}
                               </td>
-                              <td style={{ textAlign: 'right', color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>
+                              <td style={{ textAlign: 'right', color: 'var(--color-text-muted)', fontSize: '10px' }}>
                                 {new Date(pos.created_at).toLocaleDateString()} - {new Date(pos.updated_at).toLocaleDateString()}
                               </td>
                             </tr>
@@ -3128,7 +3128,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <div>
               {withdrawals.length === 0 && fundTransfers.length === 0 ? (
                 <div className="empty-state-container">
-                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No withdrawals or transfers found</p>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No withdrawals or transfers found</p>
                 </div>
               ) : isMobile ? (
                 <div className="mobile-card-list">
@@ -3159,12 +3159,12 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: '600', fontSize: '12px', color: flowColor }}>{sign}{amount}</span>
-                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </div>
                         </div>
                         {isExpanded && (
                           <div className="mobile-card-details">
-                            <div className="mobile-card-detail-cell"><span>Time</span><span style={{ color: 'rgba(255,255,255,0.6)' }}>{formatTimeShort(w.stmp)}</span></div>
+                            <div className="mobile-card-detail-cell"><span>Time</span><span style={{ color: 'var(--color-text-secondary)' }}>{formatTimeShort(w.stmp)}</span></div>
                             <div className="mobile-card-detail-cell"><span>From</span><span>{isSpecialLabel(fromAddr) ? fromAddr : (fromAddr.length > 10 ? fromAddr.slice(0,6) + '...' + fromAddr.slice(-4) : fromAddr)}</span></div>
                             <div className="mobile-card-detail-cell"><span>To</span><span>{isSpecialLabel(toAddr) ? toAddr : (toAddr.length > 10 ? toAddr.slice(0,6) + '...' + toAddr.slice(-4) : toAddr)}</span></div>
                             <div className="mobile-card-detail-cell"><span>Hash</span><span>{hash !== '-' && hash.length > 10 ? hash.slice(0,6) + '...' + hash.slice(-4) : hash}</span></div>
@@ -3231,7 +3231,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
                             return (
                               <tr key={i}>
-                                <td style={{ whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.6)' }}>
+                                <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>
                                   {formatTimeShort(w.stmp)}
                                 </td>
                                 <td>
@@ -3270,7 +3270,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <div>
               {positionHistory.length === 0 ? (
                 <div className="empty-state-container">
-                  <p style={{ color: 'rgba(255,255,255,0.5)' }}>No trade history available</p>
+                  <p style={{ color: 'var(--color-text-muted)' }}>No trade history available</p>
                 </div>
               ) : performanceView === 'Trade' ? (
                 isMobile ? (
@@ -3294,7 +3294,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                               <span style={{ fontWeight: '600', fontSize: '12px', color: pnlColor }}>
                                 {pnl >= 0 ? '+' : ''}${formatNumber(pnl)}
                               </span>
-                              <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </div>
                           </div>
                           {isExpanded && (
@@ -3384,7 +3384,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                               <span style={{ fontWeight: '600', fontSize: '12px', color: pnlColor }}>
                                 {row.totalPnl >= 0 ? '+' : ''}${formatNumber(row.totalPnl)}
                               </span>
-                              <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              <svg className={`mobile-card-arrow ${isExpanded ? 'expanded' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--color-text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </div>
                           </div>
                           {isExpanded && (
@@ -3435,7 +3435,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                                         <div style={{ width: `${lossPct}%`, background: BEARISH_COLOR, height: '100%' }} />
                                       )}
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '80px', fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '80px', fontSize: '9px', color: 'var(--color-text-muted)' }}>
                                       <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                                         <span style={{ width: '5px', height: '5px', borderRadius: '1px', background: BULLISH_COLOR, display: 'inline-block' }} />
                                         Win {row.wins}

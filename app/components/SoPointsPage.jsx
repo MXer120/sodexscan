@@ -1087,7 +1087,7 @@ function WarningModal({ onClose, theme }) {
             <div
                 onClick={e => e.stopPropagation()}
                 style={{
-                    background: '#111',
+                    background: 'var(--color-bg-secondary)',
                     border: `1px solid ${theme.accentColor}33`,
                     borderRadius: '24px',
                     width: '100%',
@@ -1132,7 +1132,7 @@ function WarningModal({ onClose, theme }) {
                     <h2 style={{
                         fontSize: '24px',
                         fontWeight: '800',
-                        color: '#fff',
+                        color: 'var(--color-text-main)',
                         marginBottom: '16px',
                         letterSpacing: '-0.02em'
                     }}>
@@ -1142,7 +1142,7 @@ function WarningModal({ onClose, theme }) {
                     <p style={{
                         fontSize: '15px',
                         lineHeight: '1.6',
-                        color: 'rgba(255,255,255,0.7)',
+                        color: 'var(--color-text-secondary)',
                         marginBottom: '32px'
                     }}>
                         Please note that this is a <strong>very rudimentary calculation</strong>, not close to the official Sodex one.

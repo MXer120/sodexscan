@@ -379,7 +379,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
 
       <style jsx>{`
         .total-users-chart-container {
-          background: rgba(20, 20, 20, 0.6);
+          background: var(--color-bg-card);
           border: 1px solid var(--color-overlay-medium);
           border-radius: 12px;
           padding: 16px;
@@ -399,7 +399,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           gap: 10px;
           flex-wrap: wrap;
         }
-        .chart-title { font-size: 16px; font-weight: 600; color: #fff; margin: 0; }
+        .chart-title { font-size: 16px; font-weight: 600; color: var(--color-text-main); margin: 0; }
         .chart-subtitle { font-size: 13px; color: var(--color-primary); font-weight: 500; }
         .chart-controls-row {
           display: flex;
@@ -411,18 +411,18 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
         .projection-switch {
           display: flex;
           align-items: center;
-          background: rgba(30, 30, 30, 0.6);
+          background: var(--color-bg-card);
           border-radius: 6px;
           padding: 2px;
           border: 1px solid var(--color-overlay-medium);
         }
-        .switch-label { font-size: 10px; color: #666; padding: 0 6px; text-transform: uppercase; }
+        .switch-label { font-size: 10px; color: var(--color-text-muted); padding: 0 6px; text-transform: uppercase; }
         .timeframe-btn,
         .projection-btn {
           padding: 5px 10px;
           background: transparent;
           border: none;
-          color: #666;
+          color: var(--color-text-muted);
           font-size: 11px;
           font-weight: 500;
           cursor: pointer;
@@ -431,8 +431,8 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
         }
         .timeframe-btn:hover,
         .projection-btn:hover { color: #aaa; }
-        .timeframe-btn.active { background: var(--color-overlay-medium); color: #fff; }
-        .projection-btn.active { background: ${theme.bullishColor}; color: #fff; }
+        .timeframe-btn.active { background: var(--color-overlay-medium); color: var(--color-text-main); }
+        .projection-btn.active { background: ${theme.bullishColor}; color: var(--color-text-main); }
         .chart-body-row { display: flex; gap: 16px; }
         .chart-area { flex: 1; min-width: 0; }
         .chart-loading,
@@ -441,7 +441,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #888;
+          color: var(--color-text-muted);
           font-size: 14px;
         }
         :global(.chart-tooltip) {
@@ -465,12 +465,12 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
         :global(.tooltip-tag.current) { color: var(--color-primary); }
         :global(.tooltip-row) { display: flex; justify-content: space-between; margin-bottom: 2px; }
         :global(.tooltip-label) { color: var(--color-text-muted); font-size: 11px; }
-        :global(.tooltip-value) { color: #fff; font-weight: 600; font-size: 11px; }
+        :global(.tooltip-value) { color: var(--color-text-main); font-weight: 600; font-size: 11px; }
         :global(.tooltip-value.green) { color: ${theme.bullishColor}; }
         .milestones-box {
           width: 160px;
           flex-shrink: 0;
-          background: rgba(30, 30, 30, 0.4);
+          background: var(--color-bg-card);
           border: 1px solid var(--color-overlay-light);
           border-radius: 10px;
           padding: 12px;
@@ -485,7 +485,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           padding-bottom: 8px;
           border-bottom: 1px solid var(--color-overlay-subtle);
         }
-        .milestones-title { font-size: 12px; font-weight: 600; color: #fff; }
+        .milestones-title { font-size: 12px; font-weight: 600; color: var(--color-text-main); }
         .milestones-rate { font-size: 9px; color: ${theme.bullishColor}; font-weight: 500; }
         .milestones-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
         .milestone-item {
@@ -498,11 +498,11 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           transition: background 0.2s;
         }
         .milestone-item:hover { background: var(--color-overlay-subtle); }
-        .milestone-number { font-size: 13px; font-weight: 700; color: #fff; }
+        .milestone-number { font-size: 13px; font-weight: 700; color: var(--color-text-main); }
         .milestone-eta { display: flex; flex-direction: column; align-items: flex-end; }
         .milestone-days { font-size: 11px; font-weight: 600; color: ${theme.bullishColor}; }
-        .milestone-date { font-size: 9px; color: #555; }
-        .no-milestones { color: #666; font-size: 11px; text-align: center; padding: 16px 0; }
+        .milestone-date { font-size: 9px; color: var(--color-text-muted); }
+        .no-milestones { color: var(--color-text-muted); font-size: 11px; text-align: center; padding: 16px 0; }
         .milestones-legend {
           margin-top: 10px;
           padding-top: 8px;
@@ -511,7 +511,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           flex-direction: column;
           gap: 4px;
         }
-        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 9px; color: #777; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 9px; color: var(--color-text-muted); }
         .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
         .legend-dot.actual { background: var(--color-primary); }
         .legend-dot.current { background: var(--color-primary); border: 2px solid #fff; box-sizing: border-box; }

@@ -60,7 +60,7 @@ export default function MilestoneProjectionWidget() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--color-overlay-subtle)' }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>Milestones</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-main)' }}>Milestones</span>
         <span style={{ fontSize: 9, color: 'var(--color-success)', fontWeight: 500 }}>~{avgDaily}/day</span>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -69,7 +69,7 @@ export default function MilestoneProjectionWidget() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '6px 8px', background: 'var(--color-overlay-faint)', borderRadius: 5
           }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{formatNum(m.milestone)}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-main)' }}>{formatNum(m.milestone)}</span>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-success)' }}>{m.daysToReach}d</span>
               <span style={{ fontSize: 9, color: '#555' }}>{formatMilestoneDate(m.eta)}</span>

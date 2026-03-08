@@ -221,11 +221,11 @@ export default function ActivityTimelineWidget({ config, onUpdateConfig, editMod
           const coin = getBaseCoin(item.rawSymbol)
           const color = item.status === 'pos' ? 'var(--color-success, #10b981)' :
             item.status === 'neg' ? 'var(--color-error, #ef4444)' :
-            item.status === 'internal' ? 'rgba(255,255,255,0.7)' : '#fff'
+            item.status === 'internal' ? 'var(--color-text-secondary)' : 'var(--color-text-main)'
 
           return (
             <div key={item.id} className={`timeline-item ${item.status}`} style={{
-              borderBottom: idx === displayedActivity.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)',
+              borderBottom: idx === displayedActivity.length - 1 ? 'none' : '1px solid var(--color-border-subtle)',
               paddingTop: '6px',
               paddingBottom: '8px',
               marginBottom: '6px',
@@ -283,7 +283,7 @@ export default function ActivityTimelineWidget({ config, onUpdateConfig, editMod
                   }} />
                 ) : null}
 
-                <div className="timeline-content" style={{ color: isTrade ? '#fff' : color, fontSize: '11px', fontWeight: '600', paddingLeft: '4px' }}>
+                <div className="timeline-content" style={{ color: isTrade ? 'var(--color-text-main)' : color, fontSize: '11px', fontWeight: '600', paddingLeft: '4px' }}>
                   {isTrade ? (
                     <span>{coin} {item.subType}</span>
                   ) : (
@@ -291,7 +291,7 @@ export default function ActivityTimelineWidget({ config, onUpdateConfig, editMod
                   )}
                 </div>
 
-                <div className="timeline-date" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>
+                <div className="timeline-date" style={{ fontSize: '10px', color: 'var(--color-text-muted)', textAlign: 'right' }}>
                   {formatTimeShort(item.timestamp / 1000)}
                 </div>
               </div>
@@ -299,7 +299,7 @@ export default function ActivityTimelineWidget({ config, onUpdateConfig, editMod
               <div className="timeline-details" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '4px' }}>
                 {isTrade ? (
                   <>
-                    <div className="timeline-desc" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                    <div className="timeline-desc" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                       {item.size} {coin}
                     </div>
                     {item.type === 'Trade Closed' && (
@@ -310,10 +310,10 @@ export default function ActivityTimelineWidget({ config, onUpdateConfig, editMod
                   </>
                 ) : (
                   <>
-                    <div className="timeline-desc" style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                    <div className="timeline-desc" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                       {item.amount || '-'}
                     </div>
-                    <div style={{ fontSize: '10px', fontWeight: '500', color: 'rgba(255,255,255,0.2)' }}>
+                    <div style={{ fontSize: '10px', fontWeight: '500', color: 'var(--color-text-muted)' }}>
                       Confirmed
                     </div>
                   </>

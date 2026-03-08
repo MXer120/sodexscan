@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { ThemeSettings, DEFAULT_THEME, applyTheme, getThemeLogo, ColorScheme, ThemeMode, COLOR_SCHEMES } from './themes'
 import { useSessionContext } from './SessionContext'
 import { supabase } from './supabaseClient'
@@ -8,6 +8,10 @@ import { supabase } from './supabaseClient'
 interface ThemeContextValue {
   theme: ThemeSettings
   setTheme: (settings: Partial<ThemeSettings>) => void
+  /** Apply theme visually (CSS vars) without persisting to localStorage/DB */
+  previewTheme: (settings: Partial<ThemeSettings>) => void
+  /** Persist the current in-memory theme to localStorage + Supabase */
+  commitTheme: () => Promise<void>
   logo: string
   isLoading: boolean
   autoSyncColors: boolean
@@ -38,6 +42,8 @@ function getInitialTheme(): ThemeSettings {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useSessionContext()
   const [theme, setThemeState] = useState<ThemeSettings>(getInitialTheme)
+  const themeRef = useRef(theme)
+  themeRef.current = theme
   const [isLoading, setIsLoading] = useState(true)
   const [autoSyncColors, setAutoSyncColorsState] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -119,6 +125,32 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Preview theme: apply CSS vars + update state, but do NOT persist
+  const previewTheme = (updates: Partial<ThemeSettings>) => {
+    const current = themeRef.current
+    const newTheme = { ...current, ...updates }
+    if (JSON.stringify(newTheme) === JSON.stringify(current)) return
+    setThemeState(newTheme)
+    themeRef.current = newTheme
+    applyTheme(newTheme)
+  }
+
+  // Commit current in-memory theme to localStorage + Supabase
+  const commitTheme = async () => {
+    const current = themeRef.current
+    localStorage.setItem('theme', JSON.stringify(current))
+    if (user) {
+      await supabase.from('profiles').update({
+        color_scheme: current.colorScheme,
+        theme_mode: current.mode,
+        bullish_color: current.bullishColor,
+        bearish_color: current.bearishColor,
+        accent_color: current.accentColor,
+        auto_sync_colors: autoSyncColors,
+      }).eq('id', user.id)
+    }
+  }
+
   const setAutoSyncColors = async (val: boolean) => {
     setAutoSyncColorsState(val)
     localStorage.setItem('autoSyncColors', String(val))
@@ -130,7 +162,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const logo = getThemeLogo(theme.colorScheme)
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, logo, isLoading, autoSyncColors, setAutoSyncColors }}>
+    <ThemeContext.Provider value={{ theme, setTheme, previewTheme, commitTheme, logo, isLoading, autoSyncColors, setAutoSyncColors }}>
       {children}
     </ThemeContext.Provider>
   )

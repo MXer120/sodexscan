@@ -85,7 +85,7 @@
   bottom: 0;
   background:
     radial-gradient(ellipse 60% 40% at 50% 0%,
-      rgba(255, 255, 255, 0.02) 0%,
+      var(--color-overlay-faint) 0%,
       transparent 60%);
   pointer-events: none;
   z-index: -1;
@@ -105,14 +105,14 @@
   display: flex;
   gap: 24px;
   margin-bottom: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: 0;
 }
 
 .tab {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -134,11 +134,11 @@
 }
 
 .tab:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .tab:hover::after {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--color-border-visible);
 }
 
 .tab.active {
@@ -164,7 +164,7 @@
 }
 
 .stat-item:hover .stat-label {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .stat-label {
@@ -232,7 +232,7 @@
 }
 
 .bg-input\/50 {
-  background: rgba(40, 40, 40, 0.5);
+  background: var(--color-overlay-medium);
 }
 
 .rounded-lg {
@@ -250,8 +250,8 @@
 /* Old timeframe button styles (kept for backwards compatibility) */
 .timeframe-btn {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--color-border-visible);
+  color: var(--color-text-muted);
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 12px;
@@ -260,13 +260,13 @@
 }
 
 .timeframe-btn:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  color: rgba(255, 255, 255, 0.8);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
 }
 
 .timeframe-btn.active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--color-overlay-light);
+  border-color: var(--color-border-strong);
   color: var(--color-text-main);
 }
 
@@ -276,7 +276,7 @@
 
 .selector-btn {
   background: var(--color-bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border-visible);
   color: var(--color-text-main);
   padding: 6px 12px;
   border-radius: 4px;
@@ -288,7 +288,7 @@
 }
 
 .selector-btn:hover {
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: var(--color-border-strong);
 }
 
 .dropdown-menu {
@@ -296,7 +296,7 @@
   top: 100%;
   left: 0;
   background: var(--color-bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border-visible);
   border-radius: 8px;
   min-width: 460px;
   max-height: 300px;
@@ -312,31 +312,31 @@
 }
 
 .dropdown-menu::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-faint);
   border-radius: 3px;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-thumb-hover);
 }
 
 .dropdown-header {
   display: flex;
   gap: 8px;
   padding: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .dropdown-header button {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--color-overlay-faint);
+  border: 1px solid var(--color-border-visible);
+  color: var(--color-text-secondary);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -358,7 +358,7 @@
 }
 
 .dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-overlay-faint);
 }
 
 .dropdown-item input {
@@ -369,7 +369,7 @@
   flex: 1;
   cursor: pointer;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .legend {
@@ -387,7 +387,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -407,8 +407,8 @@
 
 .legend-expand-btn {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--color-border-visible);
+  color: var(--color-text-muted);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -418,8 +418,8 @@
 }
 
 .legend-expand-btn:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  color: rgba(255, 255, 255, 0.8);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
 }
 
 .chart-container {
@@ -433,7 +433,7 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
 }
 
 .error {

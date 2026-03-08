@@ -68,14 +68,14 @@ export const Auth = () => {
         <h2 style={{
           fontSize: '20px',
           fontWeight: '700',
-          color: '#fff',
+          color: 'var(--color-text-main)',
           margin: '0 0 8px 0'
         }}>
           {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h2>
         <p style={{
           fontSize: '13px',
-          color: 'rgba(255, 255, 255, 0.6)',
+          color: 'var(--color-text-secondary)',
           margin: 0
         }}>
           {isSignUp ? 'Sign up to get started' : 'Sign in to your account'}
@@ -91,16 +91,16 @@ export const Auth = () => {
           onChange={e => setEmail(e.target.value)}
           style={{
             padding: '12px 14px',
-            background: '#1a1a1a',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--color-bg-input)',
+            border: '1px solid var(--color-border-subtle)',
             borderRadius: '6px',
-            color: '#fff',
+            color: 'var(--color-text-main)',
             fontSize: '14px',
             outline: 'none',
             transition: 'border-color 0.2s'
           }}
           onFocus={(e) => e.target.style.borderColor = THEME_COLORS.primary}
-          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--color-border-subtle)'}
         />
         <input
           type="password"
@@ -109,16 +109,16 @@ export const Auth = () => {
           onChange={e => setPassword(e.target.value)}
           style={{
             padding: '12px 14px',
-            background: '#1a1a1a',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--color-bg-input)',
+            border: '1px solid var(--color-border-subtle)',
             borderRadius: '6px',
-            color: '#fff',
+            color: 'var(--color-text-main)',
             fontSize: '14px',
             outline: 'none',
             transition: 'border-color 0.2s'
           }}
           onFocus={(e) => e.target.style.borderColor = THEME_COLORS.primary}
-          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--color-border-subtle)'}
         />
         {isSignUp && (
           <input
@@ -128,16 +128,16 @@ export const Auth = () => {
             onChange={e => setConfirmPassword(e.target.value)}
             style={{
               padding: '12px 14px',
-              background: '#1a1a1a',
-              border: `1px solid ${confirmPassword && password !== confirmPassword ? 'rgba(244, 67, 54, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
+              background: 'var(--color-bg-input)',
+              border: `1px solid ${confirmPassword && password !== confirmPassword ? 'rgba(244, 67, 54, 0.5)' : 'var(--color-border-subtle)'}`,
               borderRadius: '6px',
-              color: '#fff',
+              color: 'var(--color-text-main)',
               fontSize: '14px',
               outline: 'none',
               transition: 'border-color 0.2s'
             }}
             onFocus={(e) => e.target.style.borderColor = confirmPassword && password !== confirmPassword ? 'rgba(244, 67, 54, 0.7)' : THEME_COLORS.primary}
-            onBlur={(e) => e.target.style.borderColor = confirmPassword && password !== confirmPassword ? 'rgba(244, 67, 54, 0.5)' : 'rgba(255, 255, 255, 0.1)'}
+            onBlur={(e) => e.target.style.borderColor = confirmPassword && password !== confirmPassword ? 'rgba(244, 67, 54, 0.5)' : 'var(--color-border-subtle)'}
           />
         )}
       </div>
@@ -166,7 +166,7 @@ export const Auth = () => {
           background: THEME_COLORS.primary,
           border: 'none',
           borderRadius: '6px',
-          color: '#fff',
+          color: 'var(--color-text-main)',
           fontSize: '15px',
           fontWeight: '600',
           cursor: loading || (isSignUp && (!email || !password || !confirmPassword || password !== confirmPassword)) ? 'not-allowed' : 'pointer',
@@ -180,9 +180,9 @@ export const Auth = () => {
 
       {/* Divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '4px 0' }}>
-        <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>or</span>
-        <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ flex: 1, height: '1px', background: 'var(--color-border-subtle)' }} />
+        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>or</span>
+        <div style={{ flex: 1, height: '1px', background: 'var(--color-border-subtle)' }} />
       </div>
 
       {/* Google Button */}
@@ -196,7 +196,7 @@ export const Auth = () => {
           gap: '10px',
           padding: '11px 16px',
           background: '#fff',
-          border: '1px solid rgba(255,255,255,0.15)',
+          border: '1px solid var(--color-border-subtle)',
           borderRadius: '6px',
           color: '#1f1f1f',
           fontSize: '14px',
@@ -220,9 +220,9 @@ export const Auth = () => {
         textAlign: 'center',
         marginTop: '8px',
         paddingTop: '16px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+        borderTop: '1px solid var(--color-border-subtle)'
       }}>
-        <span style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)' }}>
+        <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
           {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
         </span>
         <button

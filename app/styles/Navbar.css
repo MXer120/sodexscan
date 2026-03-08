@@ -64,6 +64,10 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
   color: var(--color-primary);
 }
 
+html[data-color-scheme="paper"] .nav-link {
+  font-weight: 400;
+}
+
 .navbar-auth {
   display: flex;
   align-items: center;
@@ -73,7 +77,7 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
 
 .login-btn {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--color-border-visible);
   color: var(--color-text-main);
   padding: 6px 16px;
   border-radius: 18px;
@@ -128,7 +132,7 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
   left: 0;
   right: 0;
   background: var(--color-bg-main);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border-subtle);
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
@@ -202,9 +206,9 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     align-items: center;
-    background: rgba(20, 20, 22, 0.75);
+    background: color-mix(in srgb, var(--color-bg-main) 75%, transparent);
     backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--color-border-subtle);
     height: 60px;
     width: 100%;
     pointer-events: auto;
@@ -253,7 +257,7 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
     transform: translateX(-50%);
     background: var(--color-bg-main);
     /* or main */
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 12px;
     padding: 8px;
     min-width: 140px;
@@ -287,7 +291,7 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
 
   .mobile-popup-menu a:active,
   .mobile-popup-menu button:active {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(var(--color-primary-rgb), 0.08);
   }
 
   .highlight-link {
@@ -297,7 +301,7 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
 
   .menu-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-border-subtle);
     margin: 4px 0;
   }
 
@@ -321,12 +325,25 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
 }
 
+/* Light mode: darken the logo so white SVG text is visible */
+html[data-theme="light"] .logo-icon {
+  filter: brightness(0.3);
+}
+
+html[data-theme="light"] .navbar-glow {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.03));
+}
+
 .navbar-star {
   position: absolute;
   width: 1px;
   height: 1px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 50%;
+}
+
+html[data-theme="light"] .navbar-star {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .navbar-star.pulsate {
@@ -354,7 +371,7 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
   left: 50%;
   transform: translateX(-50%);
   background: var(--color-bg-main);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
   padding: 8px 0;
   min-width: 140px;
@@ -379,6 +396,6 @@ html[data-color-scheme="nsa"]    img.logo-icon { content: url('/logo-nsa.svg'); 
 }
 
 .dropdown-link:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(var(--color-primary-rgb), 0.06);
   color: var(--color-primary);
 }

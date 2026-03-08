@@ -287,8 +287,8 @@ export default function ChartCard({
 
     return (
       <div style={{
-        background: 'rgba(15, 15, 15, 0.96)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--color-bg-modal)',
+        border: '1px solid var(--color-border-subtle)',
         borderRadius: '8px',
         padding: '12px 16px',
         minWidth: '160px',
@@ -296,12 +296,12 @@ export default function ChartCard({
         backdropFilter: 'blur(10px)'
       }}>
         <p style={{
-          color: 'rgba(255,255,255,0.5)',
+          color: 'var(--color-text-muted)',
           marginBottom: '10px',
           fontSize: '11px',
           fontWeight: '500',
           letterSpacing: '0.4px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid var(--color-border-subtle)',
           paddingBottom: '8px',
           textTransform: 'uppercase'
         }}>
@@ -325,7 +325,7 @@ export default function ChartCard({
                   ? (entry.value >= 0 ? successColor : errorColor)
                   : entry.color
               }} />
-              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{entry.name}:</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{entry.name}:</span>
             </div>
             <span style={{
               color: entry.dataKey === 'daily'
@@ -340,14 +340,14 @@ export default function ChartCard({
 
         {cumulativeItem && (
           <div style={{
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderTop: '1px solid var(--color-border-subtle)',
             marginTop: '10px',
             paddingTop: '10px',
             display: 'flex',
             justifyContent: 'space-between',
             fontSize: '13px'
           }}>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>Total:</span>
+            <span style={{ color: 'var(--color-text-muted)', fontWeight: '500' }}>Total:</span>
             <span style={{
               color: (cumulativeItem.value >= 0 ? successColor : errorColor),
               fontWeight: '800'
@@ -402,10 +402,10 @@ export default function ChartCard({
                 justifyContent: 'center',
                 height: '24px',
                 borderRadius: '4px',
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--color-overlay-subtle)',
+                border: '1px solid var(--color-border-subtle)',
                 padding: '0 10px',
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'var(--color-text-secondary)',
                 fontSize: '10px',
                 fontWeight: '600',
                 cursor: 'pointer',
@@ -423,8 +423,8 @@ export default function ChartCard({
                 position: 'absolute',
                 top: '36px',
                 right: '0',
-                background: 'rgba(20, 20, 20, 0.95)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                background: 'var(--color-bg-modal)',
+                border: '1px solid var(--color-border-subtle)',
                 borderRadius: '8px',
                 padding: '8px',
                 minWidth: '190px',
@@ -440,17 +440,17 @@ export default function ChartCard({
                   gap: '8px',
                   marginBottom: '8px',
                   paddingBottom: '8px',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                  borderBottom: '1px solid var(--color-border-subtle)'
                 }}>
                   <button
                     onClick={selectAll}
                     style={{
                       flex: 1,
                       padding: '6px 8px',
-                      background: 'rgba(60, 60, 60, 0.6)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      background: 'var(--color-overlay-medium)',
+                      border: '1px solid var(--color-border-subtle)',
                       borderRadius: '4px',
-                      color: 'rgba(255, 255, 255, 0.8)',
+                      color: 'var(--color-text-secondary)',
                       fontSize: '11px',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap'
@@ -463,10 +463,10 @@ export default function ChartCard({
                     style={{
                       flex: 1,
                       padding: '6px 8px',
-                      background: 'rgba(60, 60, 60, 0.6)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      background: 'var(--color-overlay-medium)',
+                      border: '1px solid var(--color-border-subtle)',
                       borderRadius: '4px',
-                      color: 'rgba(255, 255, 255, 0.8)',
+                      color: 'var(--color-text-secondary)',
                       fontSize: '11px',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap'
@@ -515,7 +515,7 @@ export default function ChartCard({
                     />
                     <label
                       style={{
-                        color: 'rgba(255, 255, 255, 0.9)',
+                        color: 'var(--color-text-main)',
                         fontSize: '12px',
                         cursor: 'pointer',
                         userSelect: 'none',
@@ -592,14 +592,14 @@ export default function ChartCard({
             </defs>
             <CartesianGrid
               strokeDasharray="1 10"
-              stroke="rgba(255,255,255,0.07)"
+              stroke="var(--color-overlay-subtle)"
               horizontal={true}
               vertical={true}
             />
             <XAxis
               dataKey={dateKey}
               tickFormatter={formatDate}
-              stroke="rgba(255,255,255,0.4)"
+              stroke="var(--color-text-muted)"
               tick={{ fontSize: 10 }}
               axisLine={false}
               tickLine={false}
@@ -608,7 +608,7 @@ export default function ChartCard({
             <YAxis
               yAxisId="left"
               tickFormatter={formatValue}
-              stroke="rgba(255,255,255,0.4)"
+              stroke="var(--color-text-muted)"
               tick={{ fontSize: 10 }}
               domain={leftDomain}
               axisLine={false}
@@ -620,7 +620,7 @@ export default function ChartCard({
                 yAxisId="right"
                 orientation="right"
                 tickFormatter={formatValue}
-                stroke="rgba(255,255,255,0.4)"
+                stroke="var(--color-text-muted)"
                 tick={{ fontSize: 10 }}
                 domain={rightDomain}
                 axisLine={false}

@@ -13,12 +13,12 @@
 }
 
 .agg-root *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 0;
 }
 
 .agg-root *::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-thumb-hover);
 }
 
 .agg-root *::-webkit-scrollbar-corner {
@@ -28,7 +28,7 @@
 /* Firefox */
 .agg-root * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* ── Loading Screen ────────────────────────────────────────────── */
@@ -43,7 +43,7 @@
   align-items: center;
   justify-content: center;
   gap: 20px;
-  background: var(--color-bg-main, #0a0a0a);
+  background: var(--color-bg-main);
   z-index: 10000;
 }
 
@@ -165,7 +165,7 @@ body.aggregator-active [class*="Navbar"] {
    Navigation Sidebar
    ══════════════════════════════════════════════════════════════════ */
 .agg-nav {
-  background: var(--color-bg-card, rgba(20, 20, 20, 0.95));
+  background: var(--color-bg-card);
   border-right: 1px solid var(--color-border-subtle);
   display: flex;
   flex-direction: column;
@@ -1282,7 +1282,7 @@ body.aggregator-active [class*="Navbar"] {
 }
 
 .agg-modal {
-  background: var(--color-bg-main, #0a0a0a);
+  background: var(--color-bg-main);
   border: 1px solid var(--color-overlay-medium);
   border-radius: 16px;
   width: 100%;
@@ -2538,7 +2538,7 @@ body.aggregator-active [class*="Navbar"] {
 
 .agg-widget-body .timeline-date {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-disabled);
 }
 
 .agg-widget-body .timeline-content {
@@ -2548,7 +2548,7 @@ body.aggregator-active [class*="Navbar"] {
 
 .agg-widget-body .timeline-desc {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   line-height: 1.4;
 }
 

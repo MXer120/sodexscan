@@ -128,7 +128,7 @@ export function TimeSelector({
             top: 0,
             bottom: 0,
             width: '40px',
-            background: 'linear-gradient(to right, transparent, rgba(20, 20, 20, 0.95) 70%)',
+            background: 'linear-gradient(to right, transparent, var(--color-bg-secondary) 70%)',
             pointerEvents: 'none',
             borderRadius: '0 6px 6px 0'
           }}

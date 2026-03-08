@@ -10,7 +10,7 @@
 /* Tab Switch */
 .tab-switch {
   display: inline-flex;
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--color-bg-card);
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--color-overlay-medium);
@@ -55,7 +55,7 @@
 
 /* Top 10 Card */
 .top-10-card {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--color-bg-card);
   border-radius: 12px;
   padding: 0;
   overflow: hidden;
@@ -204,7 +204,7 @@
 
 /* Leaderboard */
 .mainnet-leaderboard {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-overlay-medium);
   border-radius: 12px;
   padding: 24px;
@@ -242,10 +242,10 @@
 
 .leaderboard-search {
   padding: 10px 14px;
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border-visible);
   border-radius: 8px;
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 14px;
   width: 220px;
   outline: none;
@@ -262,7 +262,7 @@
 
 .leaderboard-toggle {
   display: flex;
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--color-bg-card);
   border-radius: 8px;
   gap: 4px;
   padding: 2px;
@@ -273,7 +273,7 @@
   padding: 10px 20px;
   background: transparent;
   border: 1px solid transparent;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -288,7 +288,7 @@
 }
 
 .leaderboard-toggle button:hover:not(.active) {
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Leaderboard Table */
@@ -306,7 +306,7 @@
   text-align: left;
   font-weight: 500;
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-overlay-medium);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -351,7 +351,7 @@
 }
 
 .leaderboard-table td.pnl-cell.zero {
-  color: #888;
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 
@@ -376,7 +376,7 @@
 
 .page-btn {
   padding: 10px 20px;
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border-visible);
   border-radius: 8px;
   color: var(--color-text-main);
@@ -396,13 +396,13 @@
 }
 
 .page-info {
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 /* Top Pairs Card */
 .top-pairs-card {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-overlay-medium);
   border-radius: 12px;
   padding: 24px;
@@ -419,7 +419,7 @@
 }
 
 .top-pairs-header h2 {
-  color: #fff;
+  color: var(--color-text-main);
   font-size: 20px;
   font-weight: 600;
   margin: 0;
@@ -443,7 +443,7 @@
   text-align: left;
   font-weight: 500;
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -464,18 +464,18 @@
 .top-pairs-table td {
   padding: 14px 16px;
   font-size: 14px;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .top-pairs-table td.rank {
   font-weight: 600;
-  color: #888;
+  color: var(--color-text-muted);
   width: 60px;
 }
 
 .top-pairs-table td.pair-symbol {
   font-weight: 500;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .top-pairs-table td.price {
@@ -542,7 +542,7 @@
   gap: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-main);
   user-select: none;
   padding: 6px 12px;
   background: var(--color-overlay-subtle);
@@ -568,7 +568,7 @@
   height: 16px;
   border: 2px solid var(--color-border-strong);
   border-radius: 3px;
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--color-bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -577,7 +577,7 @@
 }
 
 .leaderboard-checkbox:hover .custom-check {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: var(--color-border-strong);
 }
 
 .leaderboard-checkbox input[type="checkbox"]:checked+.custom-check {
@@ -634,7 +634,7 @@
 
 .stat-label {
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -642,7 +642,7 @@
 .stat-value {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Mobile-first responsive styles */
@@ -878,7 +878,7 @@
 .signup-cta-section {
   margin-top: 60px;
   padding: 60px 40px;
-  background: linear-gradient(180deg, rgba(30, 30, 30, 0.4) 0%, rgba(20, 20, 20, 0.6) 100%);
+  background: linear-gradient(180deg, rgba(30, 30, 30, 0.4) 0%, var(--color-bg-card) 100%);
   border-radius: 20px;
   border: 1px solid var(--color-overlay-medium);
   text-align: center;
@@ -906,9 +906,9 @@
 .signup-cta-title {
   font-size: 32px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-main);
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -916,7 +916,7 @@
 
 .signup-cta-subtitle {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   margin-bottom: 48px;
   max-width: 600px;
   margin-left: auto;
@@ -960,13 +960,13 @@
 .feature-title {
   font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-main);
   margin-bottom: 8px;
 }
 
 .feature-description {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   line-height: 1.5;
 }
 
@@ -1005,7 +1005,7 @@
 
 /* Platform Custom Filters */
 .platform-custom-filters-card {
-  background: rgba(20, 20, 20, 0.4);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-overlay-light);
   border-radius: 12px;
   padding: 20px 24px;
@@ -1040,7 +1040,7 @@
 
 .filter-group .filter-label {
   font-size: 11px;
-  color: #888;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 500;
@@ -1049,7 +1049,7 @@
 .filter-inputs {
   display: flex;
   gap: 2px;
-  background: rgba(10, 10, 10, 0.4);
+  background: var(--color-bg-card);
   padding: 3px;
   border-radius: 8px;
   border: 1px solid var(--color-overlay-medium);
@@ -1086,7 +1086,7 @@
 .filter-input {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--color-text-main);
   padding: 0 12px;
   width: 112px;
   outline: none;
@@ -1161,7 +1161,7 @@
 }
 
 .mini-value {
-  color: #fff;
+  color: var(--color-text-main);
   font-weight: 600;
   font-size: 13px;
 }
@@ -1209,7 +1209,7 @@
 .combined-value {
   font-size: 24px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 /* Calculator Toggle Button */
@@ -1303,7 +1303,7 @@
 .modal-header h2 {
   font-size: 20px;
   margin: 0;
-  background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1312,7 +1312,7 @@
 .close-modal-btn {
   background: var(--color-overlay-subtle);
   border: none;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 24px;
   width: 32px;
   height: 32px;
@@ -1326,7 +1326,7 @@
 
 .close-modal-btn:hover {
   background: var(--color-overlay-medium);
-  color: #fff;
+  color: var(--color-text-main);
 }
 
 .platform-custom-filters-modal {
@@ -1392,7 +1392,43 @@
 .skeleton-bar {
   height: 14px;
   border-radius: 4px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background: linear-gradient(90deg, var(--color-overlay-faint) 25%, var(--color-overlay-subtle) 50%, var(--color-overlay-faint) 75%);
   background-size: 200px 100%;
   animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+/* =========================================
+   LIGHT MODE OVERRIDES
+   ========================================= */
+
+[data-theme="light"] .leaderboard-table th {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .leaderboard-table td.pnl-cell.zero {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .top-pairs-table th {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .top-pairs-table td.rank {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .page-info {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .filter-group .filter-label {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .mini-stat {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .modal-note {
+  color: var(--color-text-secondary);
 }

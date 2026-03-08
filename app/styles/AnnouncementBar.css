@@ -11,7 +11,7 @@
     z-index: 99;
     cursor: default;
     transition: all 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--color-border-subtle);
     margin-top: 48px;
 }
 
@@ -116,7 +116,7 @@
 
 .announcement-close:hover {
     opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-overlay-light);
 }
 
 .announcement-close svg {

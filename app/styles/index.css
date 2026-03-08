@@ -92,6 +92,355 @@
 /* Light mode gradient adjustment */
 [data-theme="light"] {
   --gradient-text: linear-gradient(180deg, #1f2937 0%, rgba(31, 41, 55, 0.8) 100%);
+  --color-overlay-faint: rgba(0, 0, 0, 0.02);
+  --color-overlay-subtle: rgba(0, 0, 0, 0.04);
+  --color-overlay-light: rgba(0, 0, 0, 0.06);
+  --color-overlay-medium: rgba(0, 0, 0, 0.1);
+}
+
+/* =========================================
+   LIGHT MODE GLOBAL OVERRIDES
+   Fix hardcoded dark-mode colors across components
+   ========================================= */
+
+/* --- Selects & Dropdowns --- */
+[data-theme="light"] select,
+[data-theme="light"] .admin-select,
+[data-theme="light"] .agg-select,
+[data-theme="light"] .bulk-assign-select {
+  background: var(--color-bg-card) !important;
+  color: var(--color-text-main) !important;
+  border-color: var(--color-border-visible) !important;
+}
+
+/* --- Leaderboard toggle (Total/Futures/Spot) --- */
+[data-theme="light"] .leaderboard-toggle {
+  background: var(--color-overlay-subtle);
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .leaderboard-toggle button {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .leaderboard-toggle button:hover:not(.active) {
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .tab-switch {
+  background: var(--color-overlay-subtle);
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .tab-switch-btn {
+  color: var(--color-text-muted);
+}
+
+[data-theme="light"] .tab-switch-btn:hover:not(.active) {
+  color: var(--color-text-main);
+}
+
+/* --- Search input --- */
+[data-theme="light"] .leaderboard-search {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-visible);
+  color: var(--color-text-main);
+}
+
+/* --- Top 10 cards --- */
+[data-theme="light"] .top-10-card {
+  background: var(--color-bg-card);
+}
+
+/* --- Leaderboard card --- */
+[data-theme="light"] .mainnet-leaderboard {
+  background: var(--color-bg-card);
+  border-color: var(--color-overlay-medium);
+}
+
+/* --- Top pairs card --- */
+[data-theme="light"] .top-pairs-card {
+  background: var(--color-bg-card);
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .top-pairs-header h2 {
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .top-pairs-table td {
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .top-pairs-table td.pair-symbol {
+  color: var(--color-text-main);
+}
+
+/* --- Stat values with hardcoded #fff --- */
+[data-theme="light"] .stat-value {
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .stat-label {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .mini-value {
+  color: var(--color-text-main);
+}
+
+/* --- Leaderboard checkbox --- */
+[data-theme="light"] .leaderboard-checkbox {
+  color: var(--color-text-main);
+  background: var(--color-overlay-subtle);
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .leaderboard-checkbox .custom-check {
+  background: var(--color-bg-card);
+}
+
+/* --- Timeframe buttons --- */
+[data-theme="light"] .timeframe-btn {
+  border-color: var(--color-overlay-medium);
+  color: var(--color-text-muted);
+}
+
+[data-theme="light"] .timeframe-btn:hover {
+  border-color: var(--color-overlay-medium);
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .timeframe-btn.active {
+  background: var(--color-overlay-subtle);
+  border-color: var(--color-overlay-medium);
+  color: var(--color-text-main);
+}
+
+/* --- Selector/Dropdown menus --- */
+[data-theme="light"] .selector-btn {
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .selector-btn:hover {
+  border-color: var(--color-border-visible);
+}
+
+[data-theme="light"] .dropdown-menu {
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .dropdown-header {
+  border-bottom-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .dropdown-header button {
+  background: var(--color-overlay-subtle);
+  border-color: var(--color-overlay-medium);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .dropdown-item:hover {
+  background: var(--color-overlay-subtle);
+}
+
+[data-theme="light"] .dropdown-item label {
+  color: var(--color-text-main);
+}
+
+/* --- Legend items --- */
+[data-theme="light"] .legend-item {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .legend-expand-btn {
+  border-color: var(--color-overlay-medium);
+  color: var(--color-text-muted);
+}
+
+[data-theme="light"] .legend-expand-btn:hover {
+  border-color: var(--color-border-visible);
+  color: var(--color-text-main);
+}
+
+/* --- Loading states --- */
+[data-theme="light"] .loading {
+  color: var(--color-text-muted);
+}
+
+/* --- Filter inputs (calculator) --- */
+[data-theme="light"] .filter-inputs {
+  background: var(--color-overlay-subtle);
+  border-color: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .filter-input {
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .filter-input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+[data-theme="light"] .op-btn {
+  color: var(--color-text-muted);
+}
+
+[data-theme="light"] .op-btn:hover {
+  color: var(--color-text-main);
+  background: var(--color-overlay-subtle);
+}
+
+/* --- Page buttons --- */
+[data-theme="light"] .page-btn {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-visible);
+}
+
+/* --- Signup CTA --- */
+[data-theme="light"] .signup-cta-title {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+[data-theme="light"] .signup-cta-subtitle {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .feature-title {
+  color: var(--color-text-main);
+}
+
+[data-theme="light"] .feature-description {
+  color: var(--color-text-secondary);
+}
+
+/* --- Combined result section --- */
+[data-theme="light"] .combined-value {
+  color: var(--color-text-main);
+}
+
+/* --- Modal header gradient --- */
+[data-theme="light"] .modal-header h2 {
+  background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* --- Platform custom filters --- */
+[data-theme="light"] .platform-custom-filters-card {
+  background: var(--color-bg-card);
+}
+
+/* --- Skeleton shimmer for light mode --- */
+[data-theme="light"] .skeleton-bar {
+  background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%);
+  background-size: 200px 100%;
+}
+
+/* --- Scrollbar in light mode --- */
+[data-theme="light"] .dropdown-menu::-webkit-scrollbar-track {
+  background: var(--color-overlay-subtle);
+}
+
+[data-theme="light"] .dropdown-menu::-webkit-scrollbar-thumb {
+  background: var(--color-overlay-medium);
+}
+
+[data-theme="light"] .dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* --- Inline style overrides for components with hardcoded dark colors --- */
+
+/* MainnetTracker: wallet detail panel inline styles */
+[data-theme="light"] .wallet-detail-panel,
+[data-theme="light"] .wallet-stats-card {
+  background: var(--color-bg-card) !important;
+  border-color: var(--color-border-visible) !important;
+}
+
+[data-theme="light"] .wallet-detail-panel h2,
+[data-theme="light"] .wallet-detail-panel h3,
+[data-theme="light"] .wallet-detail-panel h4,
+[data-theme="light"] .wallet-stats-card h4 {
+  color: var(--color-text-main) !important;
+}
+
+/* Generic: any inline color:#fff or rgba(255,255,255,...) in tables */
+[data-theme="light"] td[style*="color: rgba(255"],
+[data-theme="light"] td[style*="color: #fff"],
+[data-theme="light"] span[style*="color: rgba(255"],
+[data-theme="light"] span[style*="color: '#fff"],
+[data-theme="light"] div[style*="color: rgba(255"],
+[data-theme="light"] div[style*="color: '#fff"] {
+  color: var(--color-text-main) !important;
+}
+
+/* Timeline elements */
+[data-theme="light"] .timeline-date,
+[data-theme="light"] .timeline-desc {
+  color: var(--color-text-muted) !important;
+}
+
+/* SoPoints unlock section */
+[data-theme="light"] .unlock-section,
+[data-theme="light"] .feature-locked {
+  background: var(--color-bg-card) !important;
+}
+
+/* Chart tooltips */
+[data-theme="light"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--color-bg-modal) !important;
+  border-color: var(--color-border-visible) !important;
+  color: var(--color-text-main) !important;
+}
+
+/* Announcements */
+[data-theme="light"] .announcement-bar {
+  border-bottom-color: var(--color-border-subtle) !important;
+}
+
+/* Generic cards and sections */
+[data-theme="light"] .card,
+[data-theme="light"] .section-card,
+[data-theme="light"] .info-card {
+  background: var(--color-bg-card) !important;
+  border-color: var(--color-border-subtle) !important;
+}
+
+/* Paper theme light mode overlay overrides */
+html[data-color-scheme="paper"][data-theme="light"] {
+  --color-border-subtle: rgba(0, 0, 0, 0.08);
+  --color-overlay-faint: rgba(0, 0, 0, 0.02);
+  --color-overlay-subtle: rgba(0, 0, 0, 0.04);
+  --color-overlay-light: rgba(0, 0, 0, 0.06);
+  --color-overlay-medium: rgba(0, 0, 0, 0.1);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+}
+
+/* CLI theme light mode overlay overrides */
+html[data-color-scheme="cli"][data-theme="light"] {
+  --color-border-subtle: rgba(139, 105, 20, 0.12);
+  --color-overlay-faint: rgba(139, 105, 20, 0.02);
+  --color-overlay-subtle: rgba(139, 105, 20, 0.04);
+  --color-overlay-light: rgba(139, 105, 20, 0.06);
+  --color-overlay-medium: rgba(139, 105, 20, 0.1);
+  --scrollbar-thumb: rgba(139, 105, 20, 0.15);
+  --scrollbar-thumb-hover: rgba(139, 105, 20, 0.25);
+}
+
+/* NSA theme light mode overlay overrides */
+html[data-color-scheme="nsa"][data-theme="light"] {
+  --color-border-subtle: rgba(10, 107, 29, 0.1);
+  --color-overlay-faint: rgba(10, 107, 29, 0.02);
+  --color-overlay-subtle: rgba(10, 107, 29, 0.04);
+  --color-overlay-light: rgba(10, 107, 29, 0.06);
+  --color-overlay-medium: rgba(10, 107, 29, 0.1);
+  --scrollbar-thumb: rgba(10, 107, 29, 0.15);
+  --scrollbar-thumb-hover: rgba(10, 107, 29, 0.25);
 }
 
 /* =========================================
@@ -160,6 +509,13 @@ html[data-color-scheme="cli"] *,
 html[data-color-scheme="nsa"] *,
 html[data-color-scheme="paper"] * {
   border-radius: 0px !important;
+}
+
+/* Keep circle previews for non-terminal theme cards */
+html[data-color-scheme="cli"] .theme-preview:not(.terminal-preview),
+html[data-color-scheme="nsa"] .theme-preview:not(.terminal-preview),
+html[data-color-scheme="paper"] .theme-preview:not(.terminal-preview) {
+  border-radius: 50% !important;
 }
 
 /* Kill box-shadows and backdrop-filters */

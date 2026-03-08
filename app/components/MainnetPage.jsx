@@ -860,8 +860,8 @@ export default function MainnetPage() {
                   onClick={() => setWeekDropdownOpen(!weekDropdownOpen)}
                   style={{
                     padding: '10px 16px',
-                    background: 'rgba(30, 30, 30, 0.6)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    background: 'var(--color-bg-card)',
+                    border: '1px solid var(--color-border-subtle)',
                     borderRadius: '8px',
                     color: 'var(--color-text-main)',
                     fontSize: '14px',
@@ -889,7 +889,7 @@ export default function MainnetPage() {
                       left: 0,
                       marginTop: '4px',
                       background: 'var(--color-bg-secondary, rgba(25, 25, 25, 0.98))',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      border: '1px solid var(--color-border-subtle)',
                       borderRadius: '8px',
                       overflow: 'hidden',
                       zIndex: 100,
@@ -1034,7 +1034,7 @@ export default function MainnetPage() {
                       )}
                       <td className="volume-cell text-right">${formatFullNumber(getDisplayVolume(yourRow))}</td>
                       {!isWeeklyView && showSyncStatus && (
-                        <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                        <td className="text-right" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
                           {formatSyncTime(yourRow.lastSyncedAt)}
                         </td>
                       )}
@@ -1051,7 +1051,7 @@ export default function MainnetPage() {
                       )}
                       <td className="volume-cell text-right" aria-label={`Volume: ${getDisplayVolume(user)}`}>${formatFullNumber(getDisplayVolume(user))}</td>
                       {!isWeeklyView && showSyncStatus && (
-                        <td className="text-right" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)' }} data-last-synced={user.lastSyncedAt}>
+                        <td className="text-right" style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }} data-last-synced={user.lastSyncedAt}>
                           {formatSyncTime(user.lastSyncedAt)}
                         </td>
                       )}

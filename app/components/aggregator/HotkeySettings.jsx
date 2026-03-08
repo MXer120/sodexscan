@@ -120,7 +120,7 @@ export default function HotkeySettings({ hotkeyMap, onSave, onClose }) {
                         onClick={() => startListening(key)}
                         style={{
                           background: isListening ? 'var(--color-accent)' : 'var(--color-overlay-subtle)',
-                          color: isListening ? '#fff' : 'var(--color-text-main)',
+                          color: 'var(--color-text-main)',
                           border: isListening ? '1px solid var(--color-accent)' : '1px solid var(--color-overlay-subtle)',
                           borderRadius: 4,
                           padding: '3px 10px',

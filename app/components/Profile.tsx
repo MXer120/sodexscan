@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useUserProfile, useUpdateOwnWallet, useUpdateShowZeroData, useWeeklyWalletStats } from '../hooks/useProfile'
 import {
@@ -36,7 +37,7 @@ export default function Profile() {
   const bulkAssign = useBulkAssignToGroup()
   const updateOwnWallet = useUpdateOwnWallet()
   const updateShowZeroData = useUpdateShowZeroData()
-  const { theme, setTheme, autoSyncColors, setAutoSyncColors, isLoading: themeLoading } = useTheme()
+  const { theme, setTheme, previewTheme, commitTheme, autoSyncColors, setAutoSyncColors, isLoading: themeLoading } = useTheme()
   const ownWalletForWeekly = profileData?.profile?.own_wallet?.toLowerCase() ?? null
   const { data: weeklyStats, isLoading: weeklyLoading } = useWeeklyWalletStats(ownWalletForWeekly)
 
@@ -58,15 +59,47 @@ export default function Profile() {
   const [statsView, setStatsView] = useState<'total' | 'weekly'>('total')
   const router = useRouter()
 
+  // Navbar visibility prefs
+  const [navVisibility, setNavVisibility] = useState<Record<string, boolean>>({})
+  const [navVisibilityLoaded, setNavVisibilityLoaded] = useState(false)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('navVisibility')
+      if (stored) setNavVisibility(JSON.parse(stored))
+    } catch {}
+    setNavVisibilityLoaded(true)
+  }, [])
+
+  const handleNavVisibilityChange = (path: string, visible: boolean) => {
+    const updated = { ...navVisibility, [path]: visible }
+    setNavVisibility(updated)
+    localStorage.setItem('navVisibility', JSON.stringify(updated))
+    window.dispatchEvent(new CustomEvent('navVisibilityChanged'))
+  }
+
+  const navToggleItems = [
+    { path: '/tracker', label: 'Scan' },
+    { path: '/mainnet', label: 'Leaderboard' },
+    { path: '/sopoints', label: 'SoPoints' },
+    { path: '/social', label: 'Social' },
+    { path: '/watchlist', label: 'Watchlist' },
+    { path: '/aggregator', label: 'Aggregator' },
+    { path: '/tickets', label: 'Tickets' },
+    { path: '/platform', label: 'Platform' },
+    { path: '/incoming', label: 'Incoming' },
+    { path: '/reverse-search', label: 'Reverse Search' },
+  ]
+
   // Custom color inputs
   const [customBullish, setCustomBullish] = useState(theme.bullishColor)
   const [customBearish, setCustomBearish] = useState(theme.bearishColor)
   const [customAccent, setCustomAccent] = useState(theme.accentColor)
 
-  // Unsaved changes tracking
+  // Unsaved changes — explicit dirty flag, set by handlers, cleared by save/discard
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [originalValues, setOriginalValues] = useState({
-    ownWallet: '',
+  // Snapshot of saved theme (what's in localStorage/Supabase) for discard
+  const [savedTheme, setSavedTheme] = useState({
     colorScheme: theme.colorScheme,
     mode: theme.mode,
     bullishColor: theme.bullishColor,
@@ -74,17 +107,16 @@ export default function Profile() {
     accentColor: theme.accentColor
   })
 
-  // Once ThemeContext finishes loading from DB, align originalValues so there's no false "unsaved" state
+  // Once ThemeContext finishes loading from DB, update savedTheme snapshot
   useEffect(() => {
     if (!themeLoading) {
-      setOriginalValues(prev => ({
-        ...prev,
+      setSavedTheme({
         colorScheme: theme.colorScheme,
         mode: theme.mode,
         bullishColor: theme.bullishColor,
         bearishColor: theme.bearishColor,
         accentColor: theme.accentColor,
-      }))
+      })
     }
   }, [themeLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -212,22 +244,8 @@ export default function Profile() {
   React.useEffect(() => {
     if (profileData?.profile?.own_wallet) {
       setOwnWalletInput(profileData.profile.own_wallet)
-      setOriginalValues(prev => ({ ...prev, ownWallet: profileData.profile.own_wallet }))
     }
   }, [profileData?.profile?.own_wallet])
-
-  // Check for unsaved changes
-  useEffect(() => {
-    const hasChanges =
-      ownWalletInput.trim() !== originalValues.ownWallet ||
-      theme.colorScheme !== originalValues.colorScheme ||
-      theme.mode !== originalValues.mode ||
-      theme.bullishColor !== originalValues.bullishColor ||
-      theme.bearishColor !== originalValues.bearishColor ||
-      theme.accentColor !== originalValues.accentColor
-
-    setHasUnsavedChanges(hasChanges)
-  }, [ownWalletInput, theme.colorScheme, theme.mode, theme.bullishColor, theme.bearishColor, theme.accentColor, originalValues])
 
   // Block navigation when unsaved changes
   useEffect(() => {
@@ -256,12 +274,10 @@ export default function Profile() {
   const handleSaveAllChanges = async () => {
     setIsSaving(true)
     try {
-      if (ownWalletInput.trim() !== originalValues.ownWallet) {
-        await updateOwnWallet.mutateAsync(ownWalletInput.trim())
-      }
+      await updateOwnWallet.mutateAsync(ownWalletInput.trim())
+      await commitTheme()
 
-      setOriginalValues({
-        ownWallet: ownWalletInput.trim(),
+      setSavedTheme({
         colorScheme: theme.colorScheme,
         mode: theme.mode,
         bullishColor: theme.bullishColor,
@@ -278,26 +294,31 @@ export default function Profile() {
   }
 
   const handleDiscardChanges = () => {
-    // Revert all changes
-    setOwnWalletInput(originalValues.ownWallet)
-    setTheme({
-      colorScheme: originalValues.colorScheme,
-      mode: originalValues.mode,
-      bullishColor: originalValues.bullishColor,
-      bearishColor: originalValues.bearishColor,
-      accentColor: originalValues.accentColor
+    // Revert to the last saved theme
+    previewTheme({
+      colorScheme: savedTheme.colorScheme,
+      mode: savedTheme.mode,
+      bullishColor: savedTheme.bullishColor,
+      bearishColor: savedTheme.bearishColor,
+      accentColor: savedTheme.accentColor
     })
+    if (profileData?.profile?.own_wallet) {
+      setOwnWalletInput(profileData.profile.own_wallet)
+    }
     setHasUnsavedChanges(false)
   }
 
-  // Theme handlers
+  // Theme handlers — use previewTheme for live CSS preview, explicitly mark dirty
+  const markDirty = () => setHasUnsavedChanges(true)
+
   const handleColorSchemeChange = (scheme: ColorScheme) => {
     if (autoSyncColors) {
       const auto = THEME_AUTO_COLORS[scheme]
-      setTheme({ colorScheme: scheme, bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
+      previewTheme({ colorScheme: scheme, bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
     } else {
-      setTheme({ colorScheme: scheme })
+      previewTheme({ colorScheme: scheme })
     }
+    markDirty()
   }
 
   const handleAutoSyncToggle = () => {
@@ -305,32 +326,37 @@ export default function Profile() {
     setAutoSyncColors(newVal)
     if (newVal) {
       const auto = THEME_AUTO_COLORS[theme.colorScheme]
-      setTheme({ bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
+      previewTheme({ bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
+      markDirty()
     }
   }
 
   const handleModeChange = (mode: ThemeMode) => {
-    setTheme({ mode })
+    previewTheme({ mode })
+    markDirty()
   }
 
   const handleBullishColorChange = (color: string) => {
     setCustomBullish(color)
     if (isValidHex(color)) {
-      setTheme({ bullishColor: color })
+      previewTheme({ bullishColor: color })
+      markDirty()
     }
   }
 
   const handleBearishColorChange = (color: string) => {
     setCustomBearish(color)
     if (isValidHex(color)) {
-      setTheme({ bearishColor: color })
+      previewTheme({ bearishColor: color })
+      markDirty()
     }
   }
 
   const handleAccentColorChange = (color: string) => {
     setCustomAccent(color)
     if (isValidHex(color)) {
-      setTheme({ accentColor: color })
+      previewTheme({ accentColor: color })
+      markDirty()
     }
   }
 
@@ -419,8 +445,8 @@ export default function Profile() {
 
   return (
     <div className="profile-container">
-      {/* Unsaved Changes Banner */}
-      {hasUnsavedChanges && (
+      {/* Unsaved Changes Banner — portal to body to escape page-transition transform */}
+      {hasUnsavedChanges && typeof document !== 'undefined' && createPortal(
         <div className="unsaved-changes-banner">
           <div className="banner-content">
             <div className="banner-text">
@@ -440,7 +466,8 @@ export default function Profile() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="profile-layout">
@@ -662,6 +689,33 @@ export default function Profile() {
                   </p>
                 </div>
               </div>
+
+              <div className="profile-section">
+                <h2 className="section-title">Navbar Visibility</h2>
+                <p className="setting-description" style={{ marginBottom: 12 }}>
+                  Toggle which items appear in your navigation bar.
+                </p>
+                <div className="settings-group">
+                  {navToggleItems.map(item => {
+                    const isVisible = navVisibility[item.path] !== false
+                    return (
+                      <label key={item.path} className="setting-item" style={{ cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={isVisible}
+                          onChange={() => handleNavVisibilityChange(item.path, !isVisible)}
+                        />
+                        <span className="custom-checkbox">
+                          <svg viewBox="0 0 24 24" fill="none">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        <span className="setting-label">{item.label}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
             </>
           )}
 
@@ -742,13 +796,7 @@ export default function Profile() {
                   </button>
                   <button
                     className={`mode-btn ${theme.mode === 'light' ? 'active' : ''}`}
-                    disabled
-                    style={{
-                      opacity: 0.4,
-                      cursor: 'not-allowed',
-                      position: 'relative'
-                    }}
-                    title="Coming soon"
+                    onClick={() => handleModeChange('light')}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="5" />
@@ -775,7 +823,7 @@ export default function Profile() {
                       key={color}
                       className={`color-preset ${theme.bullishColor === color ? 'active' : ''}`}
                       style={{ background: color }}
-                      onClick={() => setTheme({ bullishColor: color })}
+                      onClick={() => { previewTheme({ bullishColor: color }); markDirty() }}
                       title={color}
                     />
                   ))}
@@ -805,7 +853,7 @@ export default function Profile() {
                       key={color}
                       className={`color-preset ${theme.bearishColor === color ? 'active' : ''}`}
                       style={{ background: color }}
-                      onClick={() => setTheme({ bearishColor: color })}
+                      onClick={() => { previewTheme({ bearishColor: color }); markDirty() }}
                       title={color}
                     />
                   ))}
@@ -835,7 +883,7 @@ export default function Profile() {
                       key={color}
                       className={`color-preset ${theme.accentColor === color ? 'active' : ''}`}
                       style={{ background: color }}
-                      onClick={() => setTheme({ accentColor: color })}
+                      onClick={() => { previewTheme({ accentColor: color }); markDirty() }}
                       title={color}
                     />
                   ))}

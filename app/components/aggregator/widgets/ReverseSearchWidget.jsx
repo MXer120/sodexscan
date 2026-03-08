@@ -64,7 +64,7 @@ export default function ReverseSearchWidget({ config, editMode = true }) {
   const inputStyle = {
     width: 32, height: 40, borderRadius: 6,
     border: '1px solid var(--color-border-subtle)', background: 'var(--color-overlay-subtle)',
-    color: '#fff', fontSize: 16, textAlign: 'center', fontFamily: 'monospace', outline: 'none'
+    color: 'var(--color-text-main)', fontSize: 16, textAlign: 'center', fontFamily: 'monospace', outline: 'none'
   }
 
   return (

@@ -148,8 +148,8 @@ export default function PnlChartWidget({ config, onUpdateConfig }) {
                 borderRadius: 8,
                 fontSize: 11,
               }}
-              labelStyle={{ color: 'rgba(255,255,255,0.85)' }}
-              itemStyle={{ color: 'rgba(255,255,255,0.7)' }}
+              labelStyle={{ color: 'var(--color-text-main)' }}
+              itemStyle={{ color: 'var(--color-text-secondary)' }}
             />
             {showDaily && (
               <Bar dataKey="daily" yAxisId="left" barSize={chartData.length > 90 ? 2 : chartData.length > 30 ? 4 : 8} opacity={0.8} isAnimationActive={!isPerf}>

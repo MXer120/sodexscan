@@ -67,6 +67,19 @@ function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mobileActiveTab, setMobileActiveTab] = useState(null)
   const [navReady, setNavReady] = useState(navCache.loaded)
+  const [navHidden, setNavHidden] = useState({})
+
+  useEffect(() => {
+    const load = () => {
+      try {
+        const stored = localStorage.getItem('navVisibility')
+        if (stored) setNavHidden(JSON.parse(stored))
+      } catch {}
+    }
+    load()
+    window.addEventListener('navVisibilityChanged', load)
+    return () => window.removeEventListener('navVisibilityChanged', load)
+  }, [])
 
   useEffect(() => {
     setAuthModalCallback(() => () => setShowAuth(true))
@@ -98,8 +111,8 @@ function Navbar() {
 
   const navLinks = useMemo(() => {
     const items = navCache.items || FALLBACK_NAV
-    const mainItems = items.filter(i => !i.in_more && i.enabled)
-    const moreItems = items.filter(i => i.in_more && i.enabled)
+    const mainItems = items.filter(i => !i.in_more && i.enabled && navHidden[i.path] !== false)
+    const moreItems = items.filter(i => i.in_more && i.enabled && navHidden[i.path] !== false)
 
     const links = mainItems
       .filter(item => !isModOnly(item.path) || isMod)
@@ -131,7 +144,7 @@ function Navbar() {
     }
 
     return links
-  }, [navReady, isMod])
+  }, [navReady, isMod, navHidden])
 
   const openCmdK = () => {
     if (typeof window !== 'undefined') {
@@ -394,21 +407,21 @@ function Navbar() {
           />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-            background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+            background: 'var(--color-bg-modal)', border: '1px solid var(--color-border-subtle)', borderRadius: '12px',
             padding: '24px', zIndex: 1001, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(10px)', width: '90%', maxWidth: '400px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600' }}>Login / Register</h3>
+              <h3 style={{ margin: 0, color: 'var(--color-text-main)', fontSize: '18px', fontWeight: '600' }}>Login / Register</h3>
               <button
                 onClick={() => setShowAuth(false)}
                 style={{
-                  background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)',
+                  background: 'transparent', border: 'none', color: 'var(--color-text-secondary)',
                   cursor: 'pointer', fontSize: '24px', lineHeight: '1', padding: '0',
                   width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.2s'
                 }}
-                onMouseEnter={e => e.target.style.color = '#fff'}
-                onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.6)'}
+                onMouseEnter={e => e.target.style.color = 'var(--color-text-main)'}
+                onMouseLeave={e => e.target.style.color = 'var(--color-text-secondary)'}
               >×</button>
             </div>
             <Auth />

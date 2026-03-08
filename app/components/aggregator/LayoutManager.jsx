@@ -59,7 +59,7 @@ function StructurePreview({ layouts, bp = 'lg', size = 'normal' }) {
           height: item.h * (cellH + gap) - gap,
           background: ZONE_COLORS[idx % ZONE_COLORS.length],
           borderRadius: 2,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--color-border-subtle)',
         }} />
       ))}
     </div>

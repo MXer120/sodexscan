@@ -62,6 +62,9 @@ npm run lint
 
 - NEVER hardcode API keys, secrets, or credentials in source files
 - NEVER commit .env files or any file containing secrets
+- NEVER expose API keys, Supabase secrets, or service_role keys in frontend/client code — use server-side routes or edge functions instead
+- If a security vulnerability is found, flag it with a `// WARNING: security vulnerability` comment and suggest a secure alternative immediately
+- Never implement insecure patterns even if asked
 - Always validate user input at system boundaries
 - Always sanitize file paths to prevent directory traversal
 - Run `npx @claude-flow/cli@latest security scan` after security-related changes
