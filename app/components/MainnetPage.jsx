@@ -236,10 +236,10 @@ export default function MainnetPage() {
   }
 
   // Display value helpers based on viewMode
-  // All-time: sodex_pnl/spot_pnl available. Weekly: only futures pnl, fall back.
   const getDisplayPnl = (user) => {
-    if (isWeeklyView) return user.pnl // weekly: only futures PnL reliable
-    return viewMode === 'total' ? (user.sodexPnl || user.pnl || 0) : viewMode === 'spot' ? (user.spotPnl || 0) : user.pnl
+    if (viewMode === 'total') return user.sodexPnl ?? user.pnl ?? 0
+    if (viewMode === 'spot') return user.spotPnl || 0
+    return user.pnl
   }
   const getDisplayVolume = (user) => viewMode === 'total' ? (user.sodexVolume || user.volume || 0) : viewMode === 'spot' ? (user.spotVolume || 0) : user.volume
 
@@ -320,9 +320,10 @@ export default function MainnetPage() {
     setTop10Loading(true)
     try {
       // Fetch large batch to capture both gainers and losers (RPC sorts DESC)
+      const pnlSort = mode === 'total' ? 'total_pnl' : mode === 'spot' ? 'spot_pnl' : 'pnl'
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
         p_week: weekNum,
-        p_sort: 'pnl',
+        p_sort: pnlSort,
         p_limit: 5000,
         p_offset: 0,
         p_exclude_sodex: excludeSodex
@@ -330,7 +331,9 @@ export default function MainnetPage() {
       if (error) throw error
       const rows = (data || []).map(r => ({
         walletAddress: r.wallet_address,
-        pnl: parseFloat(r.weekly_pnl) || 0
+        pnl: mode === 'total' ? (parseFloat(r.weekly_sodex_pnl) || 0)
+           : mode === 'spot' ? (parseFloat(r.weekly_spot_pnl) || 0)
+           : (parseFloat(r.weekly_pnl) || 0)
       }))
       const gainers = rows.filter(r => r.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 10)
       const losers = rows.filter(r => r.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
@@ -359,7 +362,7 @@ export default function MainnetPage() {
 
   // Map leaderboardType + viewMode to RPC sort
   const getRpcSort = (type, mode) => {
-    if (type === 'pnl') return 'pnl'
+    if (type === 'pnl') return mode === 'total' ? 'total_pnl' : mode === 'spot' ? 'spot_pnl' : 'pnl'
     if (mode === 'spot') return 'spot_volume'
     if (mode === 'futures') return 'futures_volume'
     return 'volume' // total
@@ -413,7 +416,9 @@ export default function MainnetPage() {
         pnlRank: row.pnl_rank || null,
         volumeRank: row.volume_rank || null,
         sodexVolume: parseFloat(row.weekly_sodex_volume) || 0,
-        spotVolume: parseFloat(row.weekly_spot_volume) || 0
+        sodexPnl: parseFloat(row.weekly_sodex_pnl) || 0,
+        spotVolume: parseFloat(row.weekly_spot_volume) || 0,
+        spotPnl: parseFloat(row.weekly_spot_pnl) || 0
       }))
 
       globalCache.setWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex, formattedData)
