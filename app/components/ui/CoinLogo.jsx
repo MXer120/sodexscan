@@ -9,7 +9,8 @@ const LOGO_EXTENSIONS = {
   mag7: 'png', soso: 'png', silver: 'svg', wif: 'jpeg'
 }
 const LOGO_ALIASES = {
-  mag7ssi: 'mag7', pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk', arbitrum: 'arb'
+  mag7ssi: 'mag7', defissi: 'defi', ussi: 'u', memessi: 'meme',
+  pepe: '1000pepe', shib: '1000shib', bonk: '1000bonk', arbitrum: 'arb'
 }
 
 // Per-base-coin: tracks how many sources have been tried
