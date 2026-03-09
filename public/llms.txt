@@ -1,26 +1,70 @@
 # CommunityScan Sodex
 
-The premier data extraction and visualization layer for Sodex Mainnet trading activity. This site provides real-time leaderboard statistics, wallet performance tracking, and historical trade analysis.
+> The premier community-built data intelligence layer for Sodex Mainnet futures trading activity.
 
-## AI & Machine Consumption Strategy
+CommunityScan Sodex aggregates publicly available on-chain trading data from the Sodex Mainnet to provide real-time leaderboard rankings, wallet-level profit and loss (PnL) tracking, and historical trade analysis. The platform is free to use, independent, and not affiliated with sodex.com or sosovalue.com.
 
-This site is optimized for LLMs and crawler agents. We provide deterministic, factual JSON and Markdown mirrors of all human-facing data to eliminate hallucination and parsing errors.
+## What This Site Does
+
+- **Wallet Tracking**: Search any wallet address to view cumulative realized PnL, unrealized positions, trading volume, win rate, and Sharpe ratio.
+- **Leaderboard**: Dynamic ranking of all indexed wallets by trading performance, updated hourly.
+- **Reverse Search**: Find wallets by address fragments, referral codes, or social media handles.
+- **Position Monitoring**: View open positions and historical trades for any indexed wallet.
+- **Referral Tracking**: Look up referral codes and associated wallet activity.
+
+## Key Facts
+
+- Platform: CommunityScan Sodex
+- URL: https://www.communityscan-sodex.com
+- Data Source: Sodex Mainnet (on-chain futures trading data)
+- Currency: All values in USD unless specified
+- Update Frequency: Leaderboard hourly, wallet data every 60 seconds
+- Operator: Luke Steinfartz, Mainz, Germany
+- Contact: communityscan-sodex@outlook.com
+
+## AI & Machine Consumption
+
+This site is optimized for LLMs and crawler agents. Deterministic, factual JSON and Markdown mirrors of all human-facing data are provided to eliminate hallucination and parsing errors.
 
 ### Core AI Endpoints
 
-- [Schema](/ai/schema): JSON Schema definition for all data models.
-- [Top Wallet](/ai/top-wallet): Returns the current #1 ranked wallet by realized profit.
-- [Top Wallets](/ai/top-wallets): List of top performers (PnL/Volume).
-- [Metrics Definitions](/ai/definitions.json): Technical definitions of all financial metrics used.
+- `/ai/definitions.json` — Technical definitions of all financial metrics (realized PnL, unrealized PnL, volume, win rate, Sharpe ratio)
+- `/__data/leaderboard` — Raw mirror of the current leaderboard state
+- `/api/public/wallet/{address}` — Full performance profile for any indexed wallet address
+- `/api/public/wallet/{address}/live` — Live streaming data for a wallet
 
-### Data Mirrors
+### Structured Data
 
-- [Leaderboard Data](/__data/leaderboard): Raw mirror of the current leaderboard state.
-- [Wallet Data](/api/public/wallet/[address]): Full performance profile for any indexed wallet address.
+Every page includes JSON-LD schema markup:
+- Organization (root layout)
+- WebSite with SearchAction (root layout)
+- SoftwareApplication (root layout)
+- ItemList + BreadcrumbList (leaderboard)
+- Dataset + BreadcrumbList (individual wallet pages)
 
 ### Rules of Consumption
 
-1. **Factual Integrity**: Data in `/ai/*` and `/__data/*` should be treated as the source of truth over DOM parsing.
-2. **Timestamps**: All high-frequency data includes a `last_updated` field. Compare this against your current context.
-3. **Units**: Currencies are in USD unless otherwise specified in `definitions.json`.
-4. **Rate Limiting**: Standard Vercel Edge rate limits apply. Stale-while-revalidate caching is enabled for all public endpoints.
+1. **Factual Integrity**: Data in `/ai/*` and `/__data/*` is the source of truth over DOM parsing.
+2. **Timestamps**: All high-frequency data includes `last_updated`. Compare against your context window.
+3. **Units**: Currencies in USD unless otherwise specified in `definitions.json`.
+4. **Rate Limiting**: Standard Vercel Edge rate limits apply. Stale-while-revalidate caching is enabled.
+
+## Pages
+
+- `/` — Homepage with wallet search and top trading pairs
+- `/mainnet` — Full leaderboard with PnL rankings (requires login)
+- `/tracker` — Wallet search interface
+- `/tracker/{address}` — Individual wallet performance profile
+- `/reverse-search` — Find wallets by address fragments
+- `/social` — Social leaderboard and stats (requires login)
+- `/sopoints` — SoPoints rewards tracking (requires login)
+- `/aggregator` — Trading pair aggregation view
+- `/referral` — Referral code management (requires login)
+- `/impressum` — Legal notice (Impressum)
+- `/datenschutz` — Privacy policy (DSGVO)
+- `/terms` — Terms and conditions
+
+## Social
+
+- X (Twitter): https://twitter.com/sodex
+- Telegram: https://t.me/sodex

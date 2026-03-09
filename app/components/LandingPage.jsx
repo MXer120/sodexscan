@@ -41,7 +41,7 @@ function LandingPage() {
         justifyContent: 'center',
         boxSizing: 'border-box'
       }}>
-        <h2 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Community-Built SoDex Mainnet Scan</h2>
+        <h1 style={{ color: 'var(--color-text-main)', marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Community-Built SoDex Mainnet Scan</h1>
         <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px', fontSize: '14px', maxWidth: '500px', lineHeight: '1.6' }}>
           Enter any wallet address, referral code, or social handle above to begin a deep-dive analysis of mainnet trading performance, current positions, and historical activity.
         </p>
@@ -56,6 +56,16 @@ function LandingPage() {
           />
         </div>
       </div>
+
+      {/* AI-citable content — visually hidden via sr-only clip pattern (accessibility-safe, not penalized) */}
+      <section style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0 }}>
+        <p>
+          CommunityScan Sodex is a community-built data intelligence layer for the Sodex Mainnet futures trading ecosystem. It aggregates publicly available on-chain trading data to provide real-time leaderboard rankings, wallet-level profit and loss tracking, and historical trade analysis. Users can search any wallet address to view cumulative realized PnL, unrealized positions, trading volume, win rate, and Sharpe ratio. The platform ranks all indexed wallets by performance and surfaces the top traders through a dynamic leaderboard updated hourly. CommunityScan is independent and not affiliated with sodex.com or sosovalue.com. All financial metrics are calculated from verified mainnet transaction data and are defined in the platform's public data specification.
+        </p>
+        <p>
+          The platform supports reverse wallet search, referral code lookup, and social handle resolution, enabling users to find traders by multiple identifiers beyond raw addresses. CommunityScan provides structured machine-readable data through dedicated AI endpoints, a comprehensive llms.txt file, and JSON-LD schema markup on every page. Data is served with stale-while-revalidate caching and hourly revalidation to balance freshness with performance. The platform is free to use, built on Next.js and Supabase, and deployed on Vercel's edge network for global low-latency access.
+        </p>
+      </section>
 
       <TopPairs />
 

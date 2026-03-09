@@ -49,6 +49,17 @@
   }
 }
 
+/* Aggregator override: transform/filter/will-change on .page-transition
+   create a containing block that breaks position:fixed on .agg-root.
+   Neutralize the wrapper when aggregator is active. */
+body.aggregator-active .page-transition {
+  will-change: auto !important;
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
 /* Skeleton shimmer — shared animation for all skeleton loading */
 @keyframes skeleton-shimmer {
   0% { background-position: -200px 0; }

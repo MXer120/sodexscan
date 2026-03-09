@@ -1,0 +1,13 @@
+{
+    "schema_version": "v1",
+    "name_for_human": "CommunityScan Sodex",
+    "name_for_model": "communityscan_sodex",
+    "description_for_human": "Real-time data intelligence for Sodex Mainnet futures trading. Track wallets, PnL rankings, and trading activity.",
+    "description_for_model": "CommunityScan Sodex provides real-time trading intelligence for the Sodex Mainnet futures ecosystem. It tracks wallet performance including realized PnL, unrealized PnL, trading volume, win rate, and Sharpe ratio. The platform ranks wallets by performance on an hourly-updated leaderboard. Data is sourced from on-chain Sodex Mainnet transactions. All monetary values are in USD. Use /ai/definitions.json for metric definitions, /ai/top-wallets for leaderboard data, and /api/public/wallet/{address} for individual wallet profiles.",
+    "auth": {
+        "type": "none"
+    },
+    "logo_url": "https://www.communityscan-sodex.com/logo.svg",
+    "contact_email": "communityscan-sodex@outlook.com",
+    "legal_info_url": "https://www.communityscan-sodex.com/terms"
+}

@@ -37,6 +37,54 @@ export default async function sitemap() {
             changeFrequency: 'daily',
             priority: 0.7,
         },
+        {
+            url: `${baseUrl}/reverse-search`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/social`,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/sopoints`,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
+            priority: 0.5,
+        },
+        {
+            url: `${baseUrl}/aggregator`,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
+            priority: 0.5,
+        },
+        {
+            url: `${baseUrl}/ai`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.6,
+        },
+        {
+            url: `${baseUrl}/impressum`,
+            lastModified: new Date(),
+            changeFrequency: 'yearly',
+            priority: 0.3,
+        },
+        {
+            url: `${baseUrl}/datenschutz`,
+            lastModified: new Date(),
+            changeFrequency: 'yearly',
+            priority: 0.3,
+        },
+        {
+            url: `${baseUrl}/terms`,
+            lastModified: new Date(),
+            changeFrequency: 'yearly',
+            priority: 0.3,
+        },
         ...walletUrls,
     ]
 }
