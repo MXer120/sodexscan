@@ -2,44 +2,9 @@ import { supabaseAdmin as supabase } from '../../../lib/supabaseServer'
 
 const SODEX_LB_API = 'https://mainnet-data.sodex.dev/api/v1/leaderboard'
 const PAGE_SIZE = 50
-const CONCURRENCY = 10
-const UPSERT_BATCH = 500
-
-// Server-side cache: avoid re-fetching 90k items from Sodex API within 30min
-let sodexCache = { items: null, timestamp: 0 }
-const CACHE_TTL = 30 * 60 * 1000 // 30 min
-
-async function fetchAllSodexItems() {
-  // Return cached if fresh
-  if (sodexCache.items && Date.now() - sodexCache.timestamp < CACHE_TTL) {
-    return { items: sodexCache.items, fromCache: true }
-  }
-
-  const allItems = []
-  const firstRes = await fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=1&page_size=${PAGE_SIZE}`)
-  const firstData = await firstRes.json()
-  if (firstData.code !== 0) throw new Error('Sodex API error: ' + firstData.message)
-
-  allItems.push(...firstData.data.items)
-  const totalPages = Math.ceil(firstData.data.total / PAGE_SIZE)
-
-  for (let i = 2; i <= totalPages; i += CONCURRENCY) {
-    const batch = []
-    for (let j = i; j < i + CONCURRENCY && j <= totalPages; j++) {
-      batch.push(
-        fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=${j}&page_size=${PAGE_SIZE}`)
-          .then(r => r.json())
-          .then(d => (d.code === 0 && d.data?.items) ? d.data.items : [])
-          .catch(() => [])
-      )
-    }
-    const results = await Promise.all(batch)
-    for (const items of results) allItems.push(...items)
-  }
-
-  sodexCache = { items: allItems, timestamp: Date.now() }
-  return { items: allItems, fromCache: false }
-}
+const BATCH_PAGES = 3       // 3 pages × 50 = 150 items per run
+const CONCURRENCY = 3
+const UPSERT_BATCH = 150
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization')
@@ -48,7 +13,44 @@ export async function GET(request) {
   }
 
   try {
-    const { items: allItems, fromCache } = await fetchAllSodexItems()
+    // Get current offset from meta
+    const { data: meta } = await supabase
+      .from('leaderboard_meta')
+      .select('sodex_sync_offset')
+      .eq('id', 1)
+      .single()
+    let offset = meta?.sodex_sync_offset || 0
+
+    // Fetch page 1 (or first page of batch) to get total count
+    const probeRes = await fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=1&page_size=1`)
+    const probeData = await probeRes.json()
+    if (probeData.code !== 0) throw new Error('Sodex API error: ' + probeData.message)
+    const totalItems = probeData.data.total
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE)
+
+    // Calculate page range for this batch
+    let startPage = Math.floor(offset / PAGE_SIZE) + 1
+    if (startPage > totalPages) {
+      startPage = 1
+      offset = 0
+    }
+    const endPage = Math.min(startPage + BATCH_PAGES - 1, totalPages)
+
+    // Fetch pages in parallel batches
+    const allItems = []
+    for (let i = startPage; i <= endPage; i += CONCURRENCY) {
+      const fetches = []
+      for (let j = i; j < i + CONCURRENCY && j <= endPage; j++) {
+        fetches.push(
+          fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=${j}&page_size=${PAGE_SIZE}`)
+            .then(r => r.json())
+            .then(d => (d.code === 0 && d.data?.items) ? d.data.items : [])
+            .catch(() => [])
+        )
+      }
+      const results = await Promise.all(fetches)
+      for (const items of results) allItems.push(...items)
+    }
 
     // Batch upsert into leaderboard via RPC
     let totalUpserted = 0
@@ -65,13 +67,20 @@ export async function GET(request) {
       else totalUpserted += data || 0
     }
 
-    // sync_current_week handled by its own pg_cron job (*/15), no need to call here
+    // Update offset — wrap around when done
+    const newOffset = endPage >= totalPages ? 0 : endPage * PAGE_SIZE
+    await supabase
+      .from('leaderboard_meta')
+      .update({ sodex_sync_offset: newOffset })
+      .eq('id', 1)
 
     return Response.json({
       success: true,
+      totalItems,
       fetched: allItems.length,
-      fromCache,
-      upserted: totalUpserted
+      pages: `${startPage}-${endPage}/${totalPages}`,
+      upserted: totalUpserted,
+      wrapped: endPage >= totalPages
     })
   } catch (error) {
     console.error('Sync sodex leaderboard error:', error)
