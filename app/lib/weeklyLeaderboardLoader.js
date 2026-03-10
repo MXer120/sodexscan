@@ -23,21 +23,26 @@ export async function fetchHistoricalWeek(weekNumber) {
 
   const data = await res.json()
 
-  // Expand compact keys to match RPC output format
-  const rows = data.rows.map(r => ({
-    account_id: r.a,
-    wallet_address: r.w,
-    weekly_pnl: r.pnl,
-    weekly_volume: r.vol,
-    unrealized_pnl: r.upnl,
-    pnl_rank: r.pr,
-    volume_rank: r.vr,
-    weekly_sodex_volume: r.sv,
-    weekly_sodex_pnl: r.sp,
-    weekly_spot_volume: r.spv,
-    weekly_spot_pnl: r.spp,
-    is_sodex_owned: r.sox === 1
-  }))
+  // Expand compact keys to match RPC output format.
+  // For weeks where sodex data wasn't synced yet (weeks 1-4),
+  // fall back sodex fields to futures values so display isn't $0.
+  const rows = data.rows.map(r => {
+    const hasSodexPnl = r.sp !== 0
+    return {
+      account_id: r.a,
+      wallet_address: r.w,
+      weekly_pnl: r.pnl,
+      weekly_volume: r.vol,
+      unrealized_pnl: r.upnl,
+      pnl_rank: r.pr,
+      volume_rank: r.vr,
+      weekly_sodex_volume: r.sv || r.vol,
+      weekly_sodex_pnl: hasSodexPnl ? r.sp : r.pnl,
+      weekly_spot_volume: r.spv,
+      weekly_spot_pnl: hasSodexPnl ? r.spp : 0,
+      is_sodex_owned: r.sox === 1
+    }
+  })
 
   const result = { week: data.week, rows, count: rows.length }
   weekCache.set(weekNumber, result)
@@ -70,11 +75,17 @@ export function queryHistoricalWeek(weekData, { sort = 'volume', limit = 20, off
 function getSortFn(sort) {
   switch (sort) {
     case 'pnl':
-      return (a, b) => (a.pnl_rank || 9999) - (b.pnl_rank || 9999)
+      // Use pnl_rank if available, else sort by actual PnL value DESC
+      return (a, b) => {
+        if (a.pnl_rank && b.pnl_rank) return a.pnl_rank - b.pnl_rank
+        return (b.weekly_pnl || 0) - (a.weekly_pnl || 0)
+      }
     case 'volume':
-      return (a, b) => (a.volume_rank || 9999) - (b.volume_rank || 9999)
     case 'futures_volume':
-      return (a, b) => (a.volume_rank || 9999) - (b.volume_rank || 9999)
+      return (a, b) => {
+        if (a.volume_rank && b.volume_rank) return a.volume_rank - b.volume_rank
+        return (b.weekly_volume || 0) - (a.weekly_volume || 0)
+      }
     case 'spot_volume':
       return (a, b) => (b.weekly_spot_volume || 0) - (a.weekly_spot_volume || 0)
     case 'total_pnl':
@@ -82,7 +93,10 @@ function getSortFn(sort) {
     case 'spot_pnl':
       return (a, b) => (b.weekly_spot_pnl || 0) - (a.weekly_spot_pnl || 0)
     default:
-      return (a, b) => (a.volume_rank || 9999) - (b.volume_rank || 9999)
+      return (a, b) => {
+        if (a.volume_rank && b.volume_rank) return a.volume_rank - b.volume_rank
+        return (b.weekly_volume || 0) - (a.weekly_volume || 0)
+      }
   }
 }
 
