@@ -134,29 +134,41 @@ export default function MainnetPage() {
     if (!ownWallet) { setYourRow(null); return }
     yourRowRankCache.current = {}
     loadYourRow()
-  }, [ownWallet, timeRange])
+  }, [ownWallet, timeRange, viewMode])
 
   const loadYourRow = async () => {
     if (!ownWallet) return
     try {
-      if (timeRange === 'all') {
-        // Always fetch from DB for futures/spot data (needed for all modes)
+      if (timeRange === 'all' && viewMode === 'total') {
+        // Total all-time: 100% from Sodex API rank endpoint (zero DB)
+        const [volRes, pnlRes] = await Promise.all([
+          fetch(`/api/sodex-leaderboard/rank?wallet_address=${ownWallet}&sort_by=volume`),
+          fetch(`/api/sodex-leaderboard/rank?wallet_address=${ownWallet}&sort_by=pnl`)
+        ])
+        const [volJson, pnlJson] = await Promise.all([volRes.json(), pnlRes.json()])
+        if (!volJson.found && !pnlJson.found) { setYourRow(null); return }
+        const src = volJson.found ? volJson : pnlJson
+        setYourRow({
+          walletAddress: src.walletAddress,
+          pnl: 0,
+          volume: 0,
+          unrealizedPnl: 0,
+          pnlRank: pnlJson.found ? pnlJson.pnlRank : null,
+          volumeRank: volJson.found ? volJson.volumeRank : null,
+          sodexVolume: src.sodexVolume || 0,
+          sodexPnl: src.sodexPnl || 0,
+          spotVolume: 0,
+          spotPnl: 0,
+          isYou: true
+        })
+      } else if (timeRange === 'all') {
+        // Futures / Spot all-time: from DB
         const { data, error } = await supabase
           .from('leaderboard_smart')
           .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl, spot_volume, spot_pnl, last_synced_at')
           .ilike('wallet_address', ownWallet)
           .maybeSingle()
-
-        // For total mode, also try Sodex API to get fresh total data
-        let sodexVolume = 0, sodexPnl = 0
-        if (data) {
-          sodexVolume = parseFloat(data.sodex_total_volume) || 0
-          sodexPnl = parseFloat(data.sodex_pnl) || 0
-        }
-
-        if (!error && !data) { setYourRow(null); return }
-        if (error) { setYourRow(null); return }
-
+        if (error || !data) { setYourRow(null); return }
         setYourRow({
           walletAddress: data.wallet_address,
           pnl: parseFloat(data.cumulative_pnl) || 0,
@@ -165,8 +177,8 @@ export default function MainnetPage() {
           pnlRank: parseInt(data.pnl_rank, 10) || null,
           volumeRank: parseInt(data.volume_rank, 10) || null,
           lastSyncedAt: data.last_synced_at,
-          sodexVolume,
-          sodexPnl,
+          sodexVolume: parseFloat(data.sodex_total_volume) || 0,
+          sodexPnl: parseFloat(data.sodex_pnl) || 0,
           spotVolume: parseFloat(data.spot_volume) || 0,
           spotPnl: parseFloat(data.spot_pnl) || 0,
           isYou: true
