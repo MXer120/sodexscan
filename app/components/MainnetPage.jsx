@@ -522,9 +522,10 @@ export default function MainnetPage() {
     try {
       const pageSize = 20
 
-      // Total all-time: fetch directly from Sodex API (100% live data)
+      // Total all-time: fetch directly from Sodex API (100% live data, zero DB)
       if (mode === 'total') {
-        const res = await fetch(`/api/sodex-leaderboard?page=${page}&limit=${pageSize}&type=${type}`)
+        const sortBy = type === 'pnl' ? 'pnl' : 'volume'
+        const res = await fetch(`/api/sodex-leaderboard?page=${page}&page_size=${pageSize}&sort_by=${sortBy}&sort_order=desc`)
         const json = await res.json()
         if (json.error) throw new Error(json.error)
 
@@ -612,20 +613,19 @@ export default function MainnetPage() {
 
     setTop10Loading(true)
     try {
-      // Total all-time: fetch from Sodex API directly
+      // Total all-time: fetch from Sodex API directly (zero DB)
       if (mode === 'total') {
-        const res = await fetch('/api/sodex-leaderboard?page=1&limit=200&type=pnl')
-        const json = await res.json()
-        if (json.error) throw new Error(json.error)
-        const rows = (json.data || []).map(r => ({
-          walletAddress: r.walletAddress,
-          pnl: r.sodexPnl || 0,
-          volume: r.sodexVolume || 0
+        const [gRes, lRes] = await Promise.all([
+          fetch('/api/sodex-leaderboard?page=1&page_size=10&sort_by=pnl&sort_order=desc'),
+          fetch('/api/sodex-leaderboard?page=1&page_size=10&sort_by=pnl&sort_order=asc')
+        ])
+        const [gJson, lJson] = await Promise.all([gRes.json(), lRes.json()])
+        const gainers = (gJson.data || []).map(r => ({
+          walletAddress: r.walletAddress, pnl: r.sodexPnl || 0, volume: r.sodexVolume || 0
         }))
-        // Sodex API sorts by volume, so we re-sort by PnL
-        rows.sort((a, b) => b.pnl - a.pnl)
-        const gainers = rows.filter(r => r.pnl > 0).slice(0, 10)
-        const losers = rows.filter(r => r.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
+        const losers = (lJson.data || []).map(r => ({
+          walletAddress: r.walletAddress, pnl: r.sodexPnl || 0, volume: r.sodexVolume || 0
+        }))
         globalCache.setTop10(gainers, losers, top10Key)
         setTopGainersData(gainers)
         setTopLosersData(losers)
