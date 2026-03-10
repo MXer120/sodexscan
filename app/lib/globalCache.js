@@ -3,8 +3,23 @@
  * Used to avoid refetching data when navigating between pages
  */
 
+// Bump this on every deploy that changes data sources to auto-invalidate stale localStorage
+const CACHE_VERSION = 2
+
 class GlobalCache {
   constructor() {
+    // Nuke old localStorage if version mismatch
+    if (typeof window !== 'undefined') {
+      try {
+        const storedVersion = localStorage.getItem('cacheVersion')
+        if (storedVersion !== String(CACHE_VERSION)) {
+          localStorage.removeItem('leaderboardCache')
+          localStorage.removeItem('socialLeaderboardCache')
+          localStorage.setItem('cacheVersion', String(CACHE_VERSION))
+        }
+      } catch (e) { /* ignore */ }
+    }
+
     this.caches = {
       // MainnetPage caches
       leaderboardPages: new Map(), // key: "page_type_excludeSodex" -> {data, timestamp}
@@ -41,7 +56,7 @@ class GlobalCache {
     }
 
     this.TTL = {
-      mainnetPage: 30 * 60 * 1000,  // 30 minutes (leaderboard data)
+      mainnetPage: 2 * 60 * 1000,   // 2 minutes (leaderboard data — Sodex API is fast)
       tracker: 2 * 60 * 1000,       // 2 minutes
       platform: 5 * 60 * 1000,      // 5 minutes for tickers & new traders
       logos: 24 * 60 * 60 * 1000,   // 24 hours for logos
