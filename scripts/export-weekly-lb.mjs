@@ -134,7 +134,6 @@ async function exportWeek(weekNumber) {
 async function main() {
   const args = process.argv.slice(2)
   const weeksArg = args.find(a => a.startsWith('--weeks='))
-  const shouldPush = args.includes('--push')
 
   // Get current week from meta
   const { data: meta, error: metaErr } = await supabase
@@ -144,45 +143,70 @@ async function main() {
     .single()
   if (metaErr) throw metaErr
 
-  // leaderboard_meta.current_week_number is the live week (6 in config = 5 in DB)
-  // Frozen weeks in DB: 1..current_week_number-1 = 1..5
   const currentWeek = meta.current_week_number
   console.log(`Current week in meta: ${currentWeek}`)
+  console.log(`Latest frozen week: ${currentWeek - 1}`)
+
+  // Read existing manifest to know what's already exported
+  const manifestPath = resolve(OUT_DIR, 'manifest.json')
+  let existingWeeks = []
+  if (existsSync(manifestPath)) {
+    const m = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+    existingWeeks = m.available_weeks || []
+    console.log(`Already exported: weeks ${existingWeeks.join(', ')}`)
+  }
 
   let weeks
   if (weeksArg) {
+    // Manual override: only allow explicit --weeks flag
     weeks = weeksArg.replace('--weeks=', '').split(',').map(Number)
+    console.log(`Manual export requested: weeks ${weeks.join(', ')}`)
   } else {
-    // Export all frozen weeks (1 through currentWeek-1)
-    weeks = []
-    for (let i = 1; i < currentWeek; i++) weeks.push(i)
+    // Auto mode: only export the LATEST frozen week, and only if not already exported
+    const latestFrozen = currentWeek - 1
+    if (latestFrozen < 1) {
+      console.log('No frozen weeks to export.')
+      return
+    }
+    if (existingWeeks.includes(latestFrozen)) {
+      console.log(`Week ${latestFrozen} already exported. Nothing to do.`)
+      return
+    }
+    weeks = [latestFrozen]
   }
 
-  console.log(`Exporting weeks: ${weeks.join(', ')}`)
-  let totalRows = 0
+  // Skip weeks that already have a JSON file (never overwrite historical data)
+  const toExport = []
   for (const w of weeks) {
-    totalRows += await exportWeek(w)
+    const weekPath = resolve(OUT_DIR, `week-${w}.json`)
+    if (existsSync(weekPath)) {
+      console.log(`Skipping week ${w}: already exported (file exists)`)
+    } else {
+      toExport.push(w)
+    }
   }
 
-  // Write manifest
+  if (toExport.length === 0) {
+    console.log('All requested weeks already exported. Nothing to do.')
+    return
+  }
+
+  console.log(`Exporting weeks: ${toExport.join(', ')}`)
+  let totalNewRows = 0
+  for (const w of toExport) {
+    totalNewRows += await exportWeek(w)
+  }
+
+  // Update manifest (merge with existing)
+  const allWeeks = [...new Set([...existingWeeks, ...toExport])].sort((a, b) => a - b)
   const manifest = {
     last_updated: new Date().toISOString(),
     current_week: currentWeek,
-    available_weeks: weeks.sort((a, b) => a - b),
-    total_rows_exported: totalRows
+    available_weeks: allWeeks
   }
-  writeFileSync(resolve(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2))
-  console.log(`\nManifest written. Total rows: ${totalRows}`)
-
-  if (shouldPush) {
-    console.log('\n--push specified. Commit & push via git...')
-    const { execSync } = await import('child_process')
-    const opts = { cwd: ROOT, stdio: 'inherit' }
-    execSync('git add public/data/leaderboard/', opts)
-    execSync(`git commit -m "Export weekly LB data: weeks ${weeks.join(',')}"`, opts)
-    execSync('git push', opts)
-    console.log('Pushed to remote.')
-  }
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+  console.log(`\nManifest updated. Available weeks: ${allWeeks.join(', ')}`)
+  console.log(`New rows exported: ${totalNewRows}`)
 }
 
 main().catch(err => {
