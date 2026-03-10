@@ -522,14 +522,25 @@ export default function MainnetPage() {
     try {
       const pageSize = 20
 
-      // Determine order column and direction based on viewMode
+      // Total all-time: fetch directly from Sodex API (100% live data)
+      if (mode === 'total') {
+        const res = await fetch(`/api/sodex-leaderboard?page=${page}&limit=${pageSize}&type=${type}`)
+        const json = await res.json()
+        if (json.error) throw new Error(json.error)
+
+        setTotalLeaderboardCount(json.meta.total)
+        globalCache.setTotalCount(cacheType, excludeSodex, showZero, json.meta.total)
+        globalCache.setLeaderboardPage(page, cacheType, excludeSodex, showZero, json.data)
+        setLeaderboardData(json.data)
+        setLeaderboardLoading(false)
+        return
+      }
+
+      // Futures / Spot: from our DB
       let orderColumn, ascending
       if (mode === 'futures') {
         orderColumn = type === 'volume' ? 'volume_rank' : 'pnl_rank'
         ascending = true
-      } else if (mode === 'total') {
-        orderColumn = type === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
-        ascending = false
       } else {
         orderColumn = type === 'volume' ? 'spot_volume' : 'spot_pnl'
         ascending = false
@@ -544,7 +555,6 @@ export default function MainnetPage() {
         if (excludeSodex) countQuery = countQuery.not('is_sodex_owned', 'is', true)
         if (!showZero) {
           if (mode === 'futures') countQuery = countQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
-          else if (mode === 'total') countQuery = countQuery.or('sodex_total_volume.gt.0,sodex_pnl.neq.0')
           else countQuery = countQuery.gt('spot_volume', 0)
         }
         const { count } = await countQuery
@@ -560,7 +570,6 @@ export default function MainnetPage() {
       if (excludeSodex) dataQuery = dataQuery.not('is_sodex_owned', 'is', true)
       if (!showZero) {
         if (mode === 'futures') dataQuery = dataQuery.or('cumulative_volume.gt.0,cumulative_pnl.neq.0')
-        else if (mode === 'total') dataQuery = dataQuery.or('sodex_total_volume.gt.0,sodex_pnl.neq.0')
         else dataQuery = dataQuery.gt('spot_volume', 0)
       }
 
@@ -601,10 +610,31 @@ export default function MainnetPage() {
       return
     }
 
-    const pnlColumn = mode === 'total' ? 'sodex_pnl' : mode === 'spot' ? 'spot_pnl' : 'cumulative_pnl'
-
     setTop10Loading(true)
     try {
+      // Total all-time: fetch from Sodex API directly
+      if (mode === 'total') {
+        const res = await fetch('/api/sodex-leaderboard?page=1&limit=200&type=pnl')
+        const json = await res.json()
+        if (json.error) throw new Error(json.error)
+        const rows = (json.data || []).map(r => ({
+          walletAddress: r.walletAddress,
+          pnl: r.sodexPnl || 0,
+          volume: r.sodexVolume || 0
+        }))
+        // Sodex API sorts by volume, so we re-sort by PnL
+        rows.sort((a, b) => b.pnl - a.pnl)
+        const gainers = rows.filter(r => r.pnl > 0).slice(0, 10)
+        const losers = rows.filter(r => r.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
+        globalCache.setTop10(gainers, losers, top10Key)
+        setTopGainersData(gainers)
+        setTopLosersData(losers)
+        setTop10Loading(false)
+        return
+      }
+
+      const pnlColumn = mode === 'spot' ? 'spot_pnl' : 'cumulative_pnl'
+
       let gainersQuery = supabase
         .from('leaderboard_smart')
         .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, is_sodex_owned, sodex_pnl, spot_pnl')
@@ -635,7 +665,7 @@ export default function MainnetPage() {
 
       const formatUser = (row) => ({
         walletAddress: row.wallet_address,
-        pnl: mode === 'total' ? (parseFloat(row.sodex_pnl) || 0) : mode === 'spot' ? (parseFloat(row.spot_pnl) || 0) : (parseFloat(row.cumulative_pnl) || 0),
+        pnl: mode === 'spot' ? (parseFloat(row.spot_pnl) || 0) : (parseFloat(row.cumulative_pnl) || 0),
         volume: parseFloat(row.cumulative_volume) || 0
       })
 
