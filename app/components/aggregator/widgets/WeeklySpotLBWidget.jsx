@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabaseClient'
 import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
+import { fetchHistoricalWeek } from '../../../lib/weeklyLeaderboardLoader'
 import CopyableAddress from '../../ui/CopyableAddress'
 import { SkeletonLeaderboard } from '../../Skeleton'
 
@@ -24,15 +25,24 @@ export default function WeeklySpotLBWidget({ config }) {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['weekly-spot-lb', targetWeek],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-        p_week: targetWeek,
-        p_sort: 'spot_volume',
-        p_limit: 500,
-        p_offset: 0,
-        p_exclude_sodex: true
-      })
-      if (error) throw error
-      return (data || [])
+      let rawRows
+      if (targetWeek >= 1) {
+        // Historical: static JSON
+        const weekData = await fetchHistoricalWeek(targetWeek)
+        rawRows = weekData.rows.filter(r => !r.is_sodex_owned)
+      } else {
+        // Current: Supabase RPC
+        const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
+          p_week: targetWeek,
+          p_sort: 'spot_volume',
+          p_limit: 500,
+          p_offset: 0,
+          p_exclude_sodex: true
+        })
+        if (error) throw error
+        rawRows = data || []
+      }
+      return rawRows
         .map(r => ({
           wallet: r.wallet_address,
           volume: parseFloat(r.weekly_spot_volume) || 0

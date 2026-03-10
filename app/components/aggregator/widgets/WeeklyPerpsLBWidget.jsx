@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../../lib/supabaseClient'
 import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
+import { fetchHistoricalWeek, queryHistoricalWeek } from '../../../lib/weeklyLeaderboardLoader'
 import CopyableAddress from '../../ui/CopyableAddress'
 
 const PAGE_SIZE = 20
@@ -26,6 +27,15 @@ export default function WeeklyPerpsLBWidget({ config }) {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['weekly-perps-lb', weekNum, weekOffset, rpcSort, page],
     queryFn: async () => {
+      // Historical weeks: static JSON from GitHub
+      if (p_week >= 1) {
+        const weekData = await fetchHistoricalWeek(p_week)
+        const { rows } = queryHistoricalWeek(weekData, {
+          sort: rpcSort, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE, excludeSodex: true
+        })
+        return rows
+      }
+      // Current week: Supabase RPC
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
         p_week,
         p_sort: rpcSort,

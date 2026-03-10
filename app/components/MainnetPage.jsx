@@ -68,6 +68,7 @@ const CopyableAddress = ({ address }) => {
 }
 
 import { SkeletonTop10, SkeletonLeaderboard } from './Skeleton'
+import { fetchHistoricalWeek, queryHistoricalWeek, findWalletInWeek } from '../lib/weeklyLeaderboardLoader'
 
 export default function MainnetPage() {
   // Leaderboard data - paginated
@@ -161,12 +162,34 @@ export default function MainnetPage() {
         })
       } else {
         const weekNum = timeRange === 'current' ? 0 : timeRange
-        const actualWeek = weekNum === 0 ? 0 : weekNum
-        const prevWeek = weekNum === 0 ? (lbMeta?.current_week_number || 1) - 1 : weekNum - 1
+
+        // Historical weeks: look up from static JSON
+        if (weekNum >= 1) {
+          try {
+            const weekData = await fetchHistoricalWeek(weekNum)
+            const found = findWalletInWeek(weekData, ownWallet)
+            if (!found) { setYourRow(null); return }
+            setYourRow({
+              walletAddress: ownWallet,
+              pnl: parseFloat(found.weekly_pnl) || 0,
+              volume: parseFloat(found.weekly_volume) || 0,
+              unrealizedPnl: parseFloat(found.unrealized_pnl) || 0,
+              pnlRank: found.pnl_rank || null,
+              volumeRank: found.volume_rank || null,
+              sodexVolume: parseFloat(found.weekly_sodex_volume) || 0,
+              spotVolume: parseFloat(found.weekly_spot_volume) || 0,
+              isYou: true
+            })
+          } catch { setYourRow(null) }
+          return
+        }
+
+        // Current week (0): Supabase (prev frozen week stays in DB for delta calc)
+        const prevWeek = (lbMeta?.current_week_number || 1) - 1
         const { data: cw } = await supabase
           .from('leaderboard_weekly')
           .select('cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl')
-          .eq('week_number', actualWeek)
+          .eq('week_number', 0)
           .ilike('wallet_address', ownWallet)
           .maybeSingle()
         if (!cw) { setYourRow(null); return }
@@ -259,10 +282,21 @@ export default function MainnetPage() {
         if (isWeeklyView) {
           const weekNum = timeRange === 'current' ? 0 : timeRange
           const rpcSort = getRpcSort(leaderboardType, viewMode)
-          const { data } = await supabase.rpc('get_weekly_leaderboard', {
-            p_week: weekNum, p_sort: rpcSort, p_limit: 100, p_offset: 0, p_exclude_sodex: excludeSodexOwned
-          })
-          const pos = (data || []).findIndex(r => r.wallet_address?.toLowerCase() === ownWallet)
+          let searchRows
+          if (weekNum >= 1) {
+            // Historical: from static JSON
+            const weekData = await fetchHistoricalWeek(weekNum)
+            const { rows } = queryHistoricalWeek(weekData, {
+              sort: rpcSort, limit: 100, offset: 0, excludeSodex: excludeSodexOwned
+            })
+            searchRows = rows
+          } else {
+            const { data } = await supabase.rpc('get_weekly_leaderboard', {
+              p_week: weekNum, p_sort: rpcSort, p_limit: 100, p_offset: 0, p_exclude_sodex: excludeSodexOwned
+            })
+            searchRows = data || []
+          }
+          const pos = searchRows.findIndex(r => r.wallet_address?.toLowerCase() === ownWallet)
           yourRowRankCache.current[cacheKey] = pos !== -1 ? pos + 1 : '100+'
         } else {
           let orderColumn, ascending
@@ -292,7 +326,7 @@ export default function MainnetPage() {
     scanTop100()
   }, [ownWallet, yourRow, timeRange, viewMode, leaderboardType, excludeSodexOwned, isWeeklyView])
 
-  // Load weekly top 10 gainers/losers via RPC
+  // Load weekly top 10 gainers/losers
   const loadWeeklyTop10 = async (weekNum, excludeSodex, mode) => {
     const top10Key = `weekly_${weekNum}_${excludeSodex}_${mode}`
     const cached = globalCache.getTop10(top10Key)
@@ -305,22 +339,36 @@ export default function MainnetPage() {
 
     setTop10Loading(true)
     try {
-      // Fetch large batch to capture both gainers and losers (RPC sorts DESC)
-      const pnlSort = mode === 'total' ? 'total_pnl' : mode === 'spot' ? 'spot_pnl' : 'pnl'
-      const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-        p_week: weekNum,
-        p_sort: pnlSort,
-        p_limit: 5000,
-        p_offset: 0,
-        p_exclude_sodex: excludeSodex
-      })
-      if (error) throw error
-      const rows = (data || []).map(r => ({
-        walletAddress: r.wallet_address,
-        pnl: mode === 'total' ? (parseFloat(r.weekly_sodex_pnl) || 0)
-           : mode === 'spot' ? (parseFloat(r.weekly_spot_pnl) || 0)
-           : (parseFloat(r.weekly_pnl) || 0)
-      }))
+      let rows
+      if (weekNum >= 1) {
+        // Historical: from static JSON
+        const weekData = await fetchHistoricalWeek(weekNum)
+        let allRows = weekData.rows
+        if (excludeSodex) allRows = allRows.filter(r => !r.is_sodex_owned)
+        rows = allRows.map(r => ({
+          walletAddress: r.wallet_address,
+          pnl: mode === 'total' ? (parseFloat(r.weekly_sodex_pnl) || 0)
+             : mode === 'spot' ? (parseFloat(r.weekly_spot_pnl) || 0)
+             : (parseFloat(r.weekly_pnl) || 0)
+        }))
+      } else {
+        // Current week: Supabase RPC
+        const pnlSort = mode === 'total' ? 'total_pnl' : mode === 'spot' ? 'spot_pnl' : 'pnl'
+        const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
+          p_week: weekNum,
+          p_sort: pnlSort,
+          p_limit: 5000,
+          p_offset: 0,
+          p_exclude_sodex: excludeSodex
+        })
+        if (error) throw error
+        rows = (data || []).map(r => ({
+          walletAddress: r.wallet_address,
+          pnl: mode === 'total' ? (parseFloat(r.weekly_sodex_pnl) || 0)
+             : mode === 'spot' ? (parseFloat(r.weekly_spot_pnl) || 0)
+             : (parseFloat(r.weekly_pnl) || 0)
+        }))
+      }
       const gainers = rows.filter(r => r.pnl > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 10)
       const losers = rows.filter(r => r.pnl < 0).sort((a, b) => a.pnl - b.pnl).slice(0, 10)
       globalCache.setTop10(gainers, losers, top10Key)
@@ -354,9 +402,54 @@ export default function MainnetPage() {
     return 'volume' // total
   }
 
-  // ── Weekly leaderboard loading (RPC) ──
+  // ── Weekly leaderboard loading ──
+  // Week 0 (current live): Supabase RPC
+  // Week >= 1 (historical): Static JSON from GitHub CDN
   const loadWeeklyPage = async (page, weekNum, type, excludeSodex, mode = 'futures') => {
     const rpcSort = getRpcSort(type, mode)
+
+    // Historical weeks: fetch from static JSON
+    if (weekNum >= 1) {
+      const cached = globalCache.getWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex)
+      if (cached) {
+        setLeaderboardData(cached)
+        const cachedCount = globalCache.getWeeklyTotalCount(weekNum, rpcSort, excludeSodex)
+        if (cachedCount !== null) setTotalLeaderboardCount(cachedCount)
+        setLeaderboardLoading(false)
+        return
+      }
+      setLeaderboardLoading(true)
+      try {
+        const weekData = await fetchHistoricalWeek(weekNum)
+        const pageSize = 20
+        const { rows: pageRows, totalCount } = queryHistoricalWeek(weekData, {
+          sort: rpcSort, limit: pageSize, offset: (page - 1) * pageSize, excludeSodex
+        })
+        setTotalLeaderboardCount(totalCount)
+        globalCache.setWeeklyTotalCount(weekNum, rpcSort, excludeSodex, totalCount)
+        const formattedData = pageRows.map(row => ({
+          accountId: row.account_id,
+          walletAddress: row.wallet_address,
+          pnl: parseFloat(row.weekly_pnl) || 0,
+          volume: parseFloat(row.weekly_volume) || 0,
+          unrealizedPnl: parseFloat(row.unrealized_pnl) || 0,
+          pnlRank: row.pnl_rank || null,
+          volumeRank: row.volume_rank || null,
+          sodexVolume: parseFloat(row.weekly_sodex_volume) || 0,
+          sodexPnl: parseFloat(row.weekly_sodex_pnl) || 0,
+          spotVolume: parseFloat(row.weekly_spot_volume) || 0,
+          spotPnl: parseFloat(row.weekly_spot_pnl) || 0
+        }))
+        globalCache.setWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex, formattedData)
+        setLeaderboardData(formattedData)
+      } catch (err) {
+        console.error('Failed to load historical leaderboard:', err)
+      }
+      setLeaderboardLoading(false)
+      return
+    }
+
+    // Current week (0): Supabase RPC
     const cached = globalCache.getWeeklyLeaderboardPage(weekNum, page, rpcSort, excludeSodex)
     if (cached) {
       setLeaderboardData(cached)
@@ -370,7 +463,6 @@ export default function MainnetPage() {
     try {
       const pageSize = 20
 
-      // Get total count
       let totalCount = globalCache.getWeeklyTotalCount(weekNum, type, excludeSodex)
       if (totalCount === null) {
         const { data: cnt, error: cntErr } = await supabase.rpc('get_weekly_leaderboard_count', {
@@ -383,7 +475,6 @@ export default function MainnetPage() {
       }
       setTotalLeaderboardCount(totalCount)
 
-      // Get page data
       const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
         p_week: weekNum,
         p_sort: rpcSort,
