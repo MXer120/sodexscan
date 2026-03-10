@@ -140,12 +140,23 @@ export default function MainnetPage() {
     if (!ownWallet) return
     try {
       if (timeRange === 'all') {
+        // Always fetch from DB for futures/spot data (needed for all modes)
         const { data, error } = await supabase
           .from('leaderboard_smart')
           .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, sodex_total_volume, sodex_pnl, spot_volume, spot_pnl, last_synced_at')
           .ilike('wallet_address', ownWallet)
           .maybeSingle()
-        if (error || !data) { setYourRow(null); return }
+
+        // For total mode, also try Sodex API to get fresh total data
+        let sodexVolume = 0, sodexPnl = 0
+        if (data) {
+          sodexVolume = parseFloat(data.sodex_total_volume) || 0
+          sodexPnl = parseFloat(data.sodex_pnl) || 0
+        }
+
+        if (!error && !data) { setYourRow(null); return }
+        if (error) { setYourRow(null); return }
+
         setYourRow({
           walletAddress: data.wallet_address,
           pnl: parseFloat(data.cumulative_pnl) || 0,
@@ -154,8 +165,8 @@ export default function MainnetPage() {
           pnlRank: parseInt(data.pnl_rank, 10) || null,
           volumeRank: parseInt(data.volume_rank, 10) || null,
           lastSyncedAt: data.last_synced_at,
-          sodexVolume: parseFloat(data.sodex_total_volume) || 0,
-          sodexPnl: parseFloat(data.sodex_pnl) || 0,
+          sodexVolume,
+          sodexPnl,
           spotVolume: parseFloat(data.spot_volume) || 0,
           spotPnl: parseFloat(data.spot_pnl) || 0,
           isYou: true
@@ -298,22 +309,25 @@ export default function MainnetPage() {
           }
           const pos = searchRows.findIndex(r => r.wallet_address?.toLowerCase() === ownWallet)
           yourRowRankCache.current[cacheKey] = pos !== -1 ? pos + 1 : '100+'
+        } else if (viewMode === 'total') {
+          // Total all-time: scan via Sodex API proxy (zero DB)
+          const sortBy = leaderboardType === 'pnl' ? 'pnl' : 'volume'
+          const res = await fetch(`/api/sodex-leaderboard?page=1&page_size=50&sort_by=${sortBy}&sort_order=desc`)
+          const json = await res.json()
+          const rows1 = json.data || []
+          const res2 = await fetch(`/api/sodex-leaderboard?page=2&page_size=50&sort_by=${sortBy}&sort_order=desc`)
+          const json2 = await res2.json()
+          const allRows = [...rows1, ...(json2.data || [])]
+          const pos = allRows.findIndex(r => r.walletAddress?.toLowerCase() === ownWallet)
+          yourRowRankCache.current[cacheKey] = pos !== -1 ? pos + 1 : '100+'
         } else {
-          let orderColumn, ascending
-          if (viewMode === 'total') {
-            orderColumn = leaderboardType === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
-            ascending = false
-          } else {
-            orderColumn = leaderboardType === 'volume' ? 'spot_volume' : 'spot_pnl'
-            ascending = false
-          }
+          // Spot all-time: from DB
           let q = supabase.from('leaderboard_smart')
             .select('wallet_address')
-            .order(orderColumn, { ascending, nullsFirst: false })
+            .order(leaderboardType === 'volume' ? 'spot_volume' : 'spot_pnl', { ascending: false, nullsFirst: false })
             .limit(100)
           if (excludeSodexOwned) q = q.not('is_sodex_owned', 'is', true)
-          if (viewMode === 'total') q = q.or('sodex_total_volume.gt.0,sodex_pnl.neq.0')
-          else q = q.gt('spot_volume', 0)
+          q = q.gt('spot_volume', 0)
           const { data } = await q
           const pos = (data || []).findIndex(r => r.wallet_address?.toLowerCase() === ownWallet)
           yourRowRankCache.current[cacheKey] = pos !== -1 ? pos + 1 : '100+'
@@ -508,7 +522,8 @@ export default function MainnetPage() {
 
   // ── All-time leaderboard loading (existing) ──
   const loadLeaderboardPage = async (page, type, excludeSodex = true, showZero = false, mode = 'futures') => {
-    const cacheType = `${mode}_${type}`
+    // Use distinct cache key for Sodex API data so old DB-cached entries don't collide
+    const cacheType = mode === 'total' ? `sodexapi_${type}` : `${mode}_${type}`
     const cachedData = globalCache.getLeaderboardPage(page, cacheType, excludeSodex, showZero)
     if (cachedData) {
       setLeaderboardData(cachedData)
@@ -602,7 +617,7 @@ export default function MainnetPage() {
 
   // Load top 10 gainers/losers (PnL only)
   const loadTop10 = async (showZero = false, excludeSodex = true, mode = 'futures') => {
-    const top10Key = `${showZero}_${excludeSodex}_${mode}`
+    const top10Key = mode === 'total' ? `sodexapi_top10_${mode}` : `${showZero}_${excludeSodex}_${mode}`
     const cached = globalCache.getTop10(top10Key)
     if (cached) {
       setTopGainersData(cached.gainers)
@@ -762,13 +777,35 @@ export default function MainnetPage() {
   // Export CSV
   const exportLeaderboardCSV = async () => {
     try {
+      // Total all-time: export from Sodex API (zero DB)
+      if (viewMode === 'total' && timeRange === 'all') {
+        const sortBy = leaderboardType === 'pnl' ? 'pnl' : 'volume'
+        const allData = []
+        const maxPages = Math.min(Math.ceil(totalLeaderboardCount / 50), 20) // cap at 1000 rows
+        for (let p = 1; p <= maxPages; p++) {
+          const res = await fetch(`/api/sodex-leaderboard?page=${p}&page_size=50&sort_by=${sortBy}&sort_order=desc`)
+          const json = await res.json()
+          if (json.data) allData.push(...json.data)
+        }
+        const headers = ['rank', 'wallet_address', 'total_pnl', 'total_volume']
+        const rows = allData.map((row, idx) => [idx + 1, row.walletAddress, row.sodexPnl, row.sodexVolume])
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `leaderboard_total_${leaderboardType}_${new Date().toISOString().split('T')[0]}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        return
+      }
+
       let orderColumn, ascending
       if (viewMode === 'futures') {
         orderColumn = leaderboardType === 'volume' ? 'volume_rank' : 'pnl_rank'
         ascending = true
-      } else if (viewMode === 'total') {
-        orderColumn = leaderboardType === 'volume' ? 'sodex_total_volume' : 'sodex_pnl'
-        ascending = false
       } else { // spot
         orderColumn = leaderboardType === 'volume' ? 'spot_volume' : 'spot_pnl'
         ascending = false
@@ -791,14 +828,10 @@ export default function MainnetPage() {
 
       const headers = viewMode === 'futures'
         ? ['rank', 'wallet_address', 'pnl', 'volume', 'unrealized_pnl']
-        : viewMode === 'total'
-          ? ['rank', 'wallet_address', 'total_pnl', 'total_volume']
-          : ['rank', 'wallet_address', 'spot_pnl', 'spot_volume']
+        : ['rank', 'wallet_address', 'spot_pnl', 'spot_volume']
       const rows = allData.map((row, idx) => viewMode === 'futures'
         ? [idx + 1, row.wallet_address, row.cumulative_pnl, row.cumulative_volume, row.unrealized_pnl]
-        : viewMode === 'total'
-          ? [idx + 1, row.wallet_address, row.sodex_pnl, row.sodex_total_volume]
-          : [idx + 1, row.wallet_address, row.spot_pnl, row.spot_volume]
+        : [idx + 1, row.wallet_address, row.spot_pnl, row.spot_volume]
       )
 
       const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
