@@ -15,10 +15,10 @@ import { resolve } from 'path'
 const ROOT = process.cwd()
 const OUT_DIR = resolve(ROOT, 'public/data/leaderboard')
 
-// Load .env.local
+// Load .env.local (local dev only — in CI, env vars are set by GitHub secrets)
 function loadEnv() {
   const envPath = resolve(ROOT, '.env.local')
-  if (!existsSync(envPath)) throw new Error(`.env.local not found at ${envPath}`)
+  if (!existsSync(envPath)) return
   const lines = readFileSync(envPath, 'utf-8').replace(/\r/g, '').split('\n')
   for (const line of lines) {
     if (!line || line.startsWith('#')) continue
@@ -31,6 +31,10 @@ function loadEnv() {
 }
 
 loadEnv()
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars')
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

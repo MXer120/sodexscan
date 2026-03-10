@@ -1,9 +1,9 @@
 name: Export Weekly Leaderboard
 
 on:
-  # Runs Monday 00:30 UTC (30min after freeze_current_week cron)
+  # Runs Saturday 00:30 UTC (30min after freeze_current_week cron)
   schedule:
-    - cron: '30 0 * * 1'
+    - cron: '30 0 * * 6'
   # Manual trigger
   workflow_dispatch:
     inputs:
