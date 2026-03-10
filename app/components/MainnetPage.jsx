@@ -91,6 +91,7 @@ export default function MainnetPage() {
 
   // "Your Row" - connected wallet's leaderboard entry
   const [yourRow, setYourRow] = useState(null)
+  const [yourRowLoading, setYourRowLoading] = useState(false)
 
   const weekDropdownRef = useRef(null)
 
@@ -138,6 +139,7 @@ export default function MainnetPage() {
 
   const loadYourRow = async () => {
     if (!ownWallet) return
+    setYourRowLoading(true)
     try {
       if (timeRange === 'all' && viewMode === 'total') {
         // Total all-time: 100% from Sodex API rank endpoint (zero DB)
@@ -245,6 +247,8 @@ export default function MainnetPage() {
     } catch (err) {
       console.error('Failed to load your row:', err)
       setYourRow(null)
+    } finally {
+      setYourRowLoading(false)
     }
   }
 
@@ -1186,7 +1190,18 @@ export default function MainnetPage() {
                 <SkeletonLeaderboard rows={20} cols={isWeeklyView && viewMode === 'spot' ? 3 : showSyncStatus && !isWeeklyView ? 5 : 4} />
               ) : (
                 <tbody>
-                  {yourRow && (
+                  {yourRowLoading && ownWallet && (
+                    <tr className="your-row" style={{ background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.08)', borderBottom: '2px solid rgba(var(--color-primary-rgb, 60, 200, 240), 0.3)' }}>
+                      <td className="rank-cell"><span className="skeleton-cell" style={{ width: '32px', height: '14px', display: 'inline-block', background: 'var(--color-skeleton, rgba(255,255,255,0.06))', borderRadius: '4px', animation: 'skeleton-shimmer 1.4s ease infinite' }} /></td>
+                      <td className="address-cell"><span style={{ fontSize: '10px', opacity: 0.7, marginRight: 4 }}>YOU</span><span className="skeleton-cell" style={{ width: '120px', height: '14px', display: 'inline-block', background: 'var(--color-skeleton, rgba(255,255,255,0.06))', borderRadius: '4px', animation: 'skeleton-shimmer 1.4s ease infinite' }} /></td>
+                      {!(isWeeklyView && viewMode === 'spot') && (
+                        <td className="text-right"><span className="skeleton-cell" style={{ width: '70px', height: '14px', display: 'inline-block', background: 'var(--color-skeleton, rgba(255,255,255,0.06))', borderRadius: '4px', animation: 'skeleton-shimmer 1.4s ease infinite' }} /></td>
+                      )}
+                      <td className="text-right"><span className="skeleton-cell" style={{ width: '70px', height: '14px', display: 'inline-block', background: 'var(--color-skeleton, rgba(255,255,255,0.06))', borderRadius: '4px', animation: 'skeleton-shimmer 1.4s ease infinite' }} /></td>
+                      {!isWeeklyView && showSyncStatus && <td />}
+                    </tr>
+                  )}
+                  {!yourRowLoading && yourRow && (
                     <tr className="your-row" style={{ background: 'rgba(var(--color-primary-rgb, 60, 200, 240), 0.08)', borderBottom: '2px solid rgba(var(--color-primary-rgb, 60, 200, 240), 0.3)' }}>
                       <td className="rank-cell" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>#{getYourRowRank()}</td>
                       <td className="address-cell" style={{ color: 'var(--color-primary)' }}>
