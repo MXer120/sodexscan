@@ -6,10 +6,11 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
-const VERSION = '2026-03-10-v8'
+const VERSION = '2026-03-11-v9'
 const MAINNET_API = 'https://mainnet-data.sodex.dev/api/v1'
-const PROCESS_LIMIT = 100
-const CONCURRENCY = 3
+const SODEX_RANK_API = 'https://mainnet-data.sodex.dev/api/v1/leaderboard/rank'
+const PROCESS_LIMIT = 150
+const BATCH_SIZE = 10
 
 // ── helpers ──────────────────────────────────────────────
 
@@ -30,97 +31,140 @@ async function apiFetch(url: string): Promise<Response> {
   throw new Error('unreachable')
 }
 
+// ── fetch both APIs for one account ─────────────────────
+
+interface AccountRow {
+  account_id: number
+  wallet_address: string
+}
+
+interface SyncResult {
+  account_id: number
+  wallet_address: string
+  // Futures (perps API)
+  cumulative_pnl: string | null
+  cumulative_volume: string | null
+  unrealized_pnl: string | null
+  first_trade_ts_ms: number | null
+  // Sodex total (rank API)
+  sodex_total_volume: number | null
+  sodex_pnl: number | null
+}
+
+async function fetchAccount(acc: AccountRow): Promise<SyncResult> {
+  // Parallel: perps API + Sodex rank API
+  const [perpsRes, sodexRes] = await Promise.all([
+    apiFetch(`${MAINNET_API}/perps/pnl/overview?account_id=${acc.account_id}`)
+      .then(r => r.json())
+      .catch(() => null),
+    apiFetch(`${SODEX_RANK_API}?window_type=ALL_TIME&sort_by=volume&wallet_address=${acc.wallet_address}`)
+      .then(r => r.json())
+      .catch(() => null),
+  ])
+
+  // Futures data
+  const d = perpsRes?.data
+  const rawPnl = d?.cumulative_pnl ?? null
+  const rawVol = d?.cumulative_quote_volume ?? null
+  const rawUpnl = d?.unrealized_pnl ?? null
+  const rawFts = d?.first_trade_ts_ms ?? null
+
+  // Sodex combined data
+  const sodexItem = (sodexRes?.code === 0 && sodexRes?.data?.found) ? sodexRes.data.item : null
+  const sodexVol = sodexItem ? (parseFloat(sodexItem.volume_usd) || 0) : null
+  const sodexPnl = sodexItem ? (parseFloat(sodexItem.pnl_usd) || 0) : null
+
+  return {
+    account_id: acc.account_id,
+    wallet_address: acc.wallet_address,
+    cumulative_pnl: (rawPnl && rawPnl !== '0') ? rawPnl : null,
+    cumulative_volume: (rawVol && rawVol !== '0') ? rawVol : null,
+    unrealized_pnl: (rawUpnl && rawUpnl !== '0') ? rawUpnl : null,
+    first_trade_ts_ms: rawFts,
+    sodex_total_volume: sodexVol,
+    sodex_pnl: sodexPnl,
+  }
+}
+
 // ── main ─────────────────────────────────────────────────
 
 Deno.serve(async () => {
   const t0 = Date.now()
   try {
-    // Fetch accounts with oldest last_synced_at (nulls first = never synced)
+    // Fetch 150 accounts with oldest last_synced_at (nulls first = never synced)
     const { data: accounts, error: e1 } = await supabase
       .from('leaderboard')
-      .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, first_trade_ts_ms')
+      .select('account_id, wallet_address')
       .order('last_synced_at', { ascending: true, nullsFirst: true })
       .limit(PROCESS_LIMIT)
     if (e1) throw e1
     if (!accounts?.length) return json({ message: 'Empty leaderboard' })
 
-    const ids = accounts.map((a: { account_id: number }) => a.account_id)
-    console.log(`Fetched ${accounts.length} oldest-synced accounts [${ids[0]}..${ids[ids.length - 1]}]`)
+    console.log(`Fetching ${accounts.length} oldest-synced accounts`)
 
     let errs = 0
-    const batchRows: Record<string, unknown>[] = []
-    const diag: Record<string, unknown>[] = []
+    const futuresRows: Record<string, unknown>[] = []
+    const sodexRows: Record<string, unknown>[] = []
 
-    // Fetch API data for all accounts, collect rows for single batch upsert
-    for (let i = 0; i < accounts.length; i += CONCURRENCY) {
-      const slice = accounts.slice(i, i + CONCURRENCY)
-      await Promise.all(slice.map(async (acc) => {
-        try {
-          const res = await apiFetch(
-            `${MAINNET_API}/perps/pnl/overview?account_id=${acc.account_id}`
-          )
-          const body = await res.json()
-          const d = body?.data
+    // Process in batches of 10 (parallel per batch)
+    for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
+      const slice = accounts.slice(i, i + BATCH_SIZE)
+      const results = await Promise.allSettled(
+        slice.map((acc: AccountRow) => fetchAccount(acc))
+      )
 
-          const rawPnl = d?.cumulative_pnl ?? null
-          const rawVol = d?.cumulative_quote_volume ?? null
-          const rawUpnl = d?.unrealized_pnl ?? null
-          const rawFts = d?.first_trade_ts_ms ?? null
+      for (const r of results) {
+        if (r.status === 'rejected') { errs++; continue }
+        const row = r.value
 
-          if (diag.length < 10) {
-            diag.push({
-              id: acc.account_id,
-              api: { pnl: rawPnl, vol: rawVol, upnl: rawUpnl, fts: rawFts },
-              db: {
-                pnl: acc.cumulative_pnl,
-                vol: acc.cumulative_volume,
-                upnl: acc.unrealized_pnl,
-                fts: acc.first_trade_ts_ms,
-                pnl_type: typeof acc.cumulative_pnl,
-              },
-            })
-          }
+        // Futures batch
+        futuresRows.push({
+          account_id: row.account_id,
+          wallet_address: row.wallet_address,
+          cumulative_pnl: row.cumulative_pnl,
+          cumulative_volume: row.cumulative_volume,
+          unrealized_pnl: row.unrealized_pnl,
+          first_trade_ts_ms: row.first_trade_ts_ms,
+        })
 
-          batchRows.push({
-            account_id: acc.account_id,
-            wallet_address: acc.wallet_address,
-            cumulative_pnl: (rawPnl && rawPnl !== '0') ? rawPnl : null,
-            cumulative_volume: (rawVol && rawVol !== '0') ? rawVol : null,
-            unrealized_pnl: (rawUpnl && rawUpnl !== '0') ? rawUpnl : null,
-            first_trade_ts_ms: rawFts,
+        // Sodex batch (only if rank API returned data)
+        if (row.sodex_total_volume !== null) {
+          sodexRows.push({
+            account_id: row.account_id,
+            wallet_address: row.wallet_address,
+            sodex_total_volume: row.sodex_total_volume,
+            sodex_pnl: row.sodex_pnl,
           })
-        } catch (err) {
-          console.error(`Fetch ${acc.account_id}:`, (err as Error).message)
-          errs++
         }
-      }))
+      }
 
-      if (i + CONCURRENCY < accounts.length) await sleep(200)
+      // Small delay between batches to be nice to API
+      if (i + BATCH_SIZE < accounts.length) await sleep(100)
     }
 
-    // Single batch upsert (upsert_leaderboard_batch sets last_synced_at = now())
-    let changed = 0
-    if (batchRows.length > 0) {
-      const { data: touched, error } = await supabase.rpc(
-        'upsert_leaderboard_batch',
-        { rows: batchRows }
-      )
-      if (error) {
-        console.error('Batch RPC error:', error.message)
-        errs += batchRows.length
-      } else {
-        changed = touched ?? 0
-      }
+    // Batch upsert futures data (cascades to week 0)
+    let futuresChanged = 0
+    if (futuresRows.length > 0) {
+      const { data, error } = await supabase.rpc('upsert_leaderboard_batch', { rows: futuresRows })
+      if (error) { console.error('Futures RPC:', error.message); errs += futuresRows.length }
+      else futuresChanged = data ?? 0
+    }
+
+    // Batch upsert sodex data (cascades to week 0)
+    let sodexChanged = 0
+    if (sodexRows.length > 0) {
+      const { data, error } = await supabase.rpc('upsert_sodex_batch', { rows: sodexRows })
+      if (error) { console.error('Sodex RPC:', error.message); errs += sodexRows.length }
+      else sodexChanged = data ?? 0
     }
 
     const result = {
       version: VERSION,
       success: true,
       processed: accounts.length,
-      changed,
-      unchanged: batchRows.length - changed,
+      futures: { changed: futuresChanged, total: futuresRows.length },
+      sodex: { changed: sodexChanged, total: sodexRows.length },
       errors: errs,
-      diagnostics: diag,
       ms: Date.now() - t0,
     }
 
