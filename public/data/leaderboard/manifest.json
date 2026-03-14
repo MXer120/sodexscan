@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-03-10T19:14:17.341Z",
-  "current_week": 6,
+  "last_updated": "2026-03-14T03:12:20.156Z",
+  "current_week": 7,
   "available_weeks": [
     1,
     2,
     3,
     4,
-    5
-  ],
-  "total_rows_exported": 50476
+    5,
+    6
+  ]
 }
