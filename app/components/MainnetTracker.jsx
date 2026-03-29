@@ -3267,17 +3267,18 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               ) : isMobile ? (
                 <div className="mobile-card-list">
                   {fundingHistory.map((f, i) => {
-                    const amt = parseFloat(f.amount || f.funding || 0)
+                    const amt = parseFloat(f.fundingFee || f.amount || f.funding || 0)
                     const amtColor = amt >= 0 ? BULLISH_COLOR : BEARISH_COLOR
                     return (
                       <div key={i} className="mobile-card">
                         <div className="mobile-card-summary">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
                             <span style={{ fontWeight: '600', fontSize: '12px' }}>{f.symbol || '-'}</span>
+                            {f.positionSide && <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontWeight: 500 }}>{f.positionSide}</span>}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: '600', fontSize: '12px', color: amtColor }}>
-                              {amt >= 0 ? '+' : ''}{trimSmallWithSig3(amt)}
+                              {amt >= 0 ? '+' : ''}{amt.toString()}
                             </span>
                           </div>
                         </div>
@@ -3298,17 +3299,17 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     </thead>
                     <tbody>
                       {fundingHistory.map((f, i) => {
-                        const amt = parseFloat(f.amount || f.funding || 0)
+                        const amt = parseFloat(f.fundingFee || f.amount || f.funding || 0)
                         const amtColor = amt >= 0 ? BULLISH_COLOR : BEARISH_COLOR
-                        const ts = f.time || f.timestamp || f.ts
+                        const ts = f.timestamp || f.time || f.ts
                         return (
                           <tr key={i}>
                             <td style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
                               {ts ? formatTimeShort(typeof ts === 'string' ? Date.parse(ts) / 1000 : ts) : '-'}
                             </td>
-                            <td style={{ fontWeight: '600' }}>{f.symbol || '-'}</td>
+                            <td style={{ fontWeight: '600' }}>{f.symbol || '-'} {f.positionSide && <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontWeight: 500 }}>{f.positionSide}</span>}</td>
                             <td style={{ textAlign: 'right', color: amtColor, fontWeight: '600' }}>
-                              {amt >= 0 ? '+' : ''}{trimSmallWithSig3(amt)}
+                              {amt >= 0 ? '+' : ''}{amt.toString()} {f.feeCoin || ''}
                             </td>
                             <td style={{ textAlign: 'right', color: amtColor }}>
                               {amt >= 0 ? 'Received' : 'Paid'}
