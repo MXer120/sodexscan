@@ -446,6 +446,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [balancesLimit, setBalancesLimit] = useState(20)
   const [ordersLimit, setOrdersLimit] = useState(20)
   const [activityLimit, setActivityLimit] = useState(50)
+  const [fundingLimit, setFundingLimit] = useState(20)
+  const [spotTradesLimit, setSpotTradesLimit] = useState(20)
 
   // Sorting states
   const [withdrawSortField, setWithdrawSortField] = useState('date')
@@ -1167,8 +1169,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         }
       }
 
-      // Fire tier 2 in background — don't await
-      fetchTier2()
+      // Fire tier 2 in background — don't await (skip for blocked accounts)
+      if (!isBlockedAccount) fetchTier2()
 
     } catch (error) {
       console.error('Failed to fetch mainnet data:', error)
@@ -1355,9 +1357,13 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         if (balancesLimit < totalBal) setBalancesLimit(prev => prev + 20)
       } else if (activeTab === 'Orders' && ordersLimit < 50) {
         setOrdersLimit(prev => prev + 20)
+      } else if (activeTab === 'Funding' && fundingLimit < fundingHistory.length) {
+        setFundingLimit(prev => prev + 40)
+      } else if (activeTab === 'Trades' && tradesView === 'Spot' && spotTradesLimit < spotTradeHistory.length) {
+        setSpotTradesLimit(prev => prev + 40)
       }
     }
-  }, [activeTab, positionsLimit, positions.length, withdrawalsLimit, withdrawals.length, fundTransfers.length, tradesLimit, positionHistory.length, performanceLimit, balanceView, accountDetails?.balances?.length, spotBalances.length, balancesLimit, ordersLimit])
+  }, [activeTab, positionsLimit, positions.length, withdrawalsLimit, withdrawals.length, fundTransfers.length, tradesLimit, positionHistory.length, performanceLimit, balanceView, accountDetails?.balances?.length, spotBalances.length, balancesLimit, ordersLimit, fundingLimit, fundingHistory.length, spotTradesLimit, spotTradeHistory.length, tradesView])
 
   const formatTimeShort = (stmp) => {
     if (!stmp) return ''
@@ -2256,8 +2262,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         {isBlockedAccount && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(var(--color-bg-card-rgb, 20,20,24), 0.7)', zIndex: 10, borderRadius: '8px',
-            backdropFilter: 'blur(2px)'
+            background: 'var(--color-bg-card)', opacity: 0.85, zIndex: 10, borderRadius: '8px'
           }}>
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted)', padding: '8px 16px', background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
               Account data restricted
@@ -2267,8 +2272,16 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         <div style={isBlockedAccount ? { filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' } : {}}>
         <h3 style={{ color: 'var(--color-text-main)', fontSize: '15px', marginBottom: '16px', fontWeight: '700', paddingLeft: '0px', marginTop: '4px' }}>Recent Activity</h3>
         <div className="timeline" style={{ paddingLeft: '12px', paddingRight: '12px', marginTop: '4px' }}>
-          {displayedActivity.length > 0 ? (
-            displayedActivity.map((item, idx) => {
+          {(() => {
+            const items = isBlockedAccount ? [
+              {type:'Trade Closed',status:'pos',rawSymbol:'BTC',subType:'Long Closed',size:'0.5',pnl:1234,amount:null,id:'p1',timestamp:Date.now()},
+              {type:'Deposit',status:'pos',rawSymbol:'USDC',subType:'',size:'',pnl:0,amount:'5,000 USDC',id:'p2',timestamp:Date.now()-3600000},
+              {type:'Trade Closed',status:'neg',rawSymbol:'ETH',subType:'Short Closed',size:'2.0',pnl:-456,amount:null,id:'p3',timestamp:Date.now()-7200000},
+              {type:'Withdraw',status:'neg',rawSymbol:'USDC',subType:'',size:'',pnl:0,amount:'1,000 USDC',id:'p4',timestamp:Date.now()-10800000},
+              {type:'Trade Closed',status:'pos',rawSymbol:'SOL',subType:'Long Closed',size:'10',pnl:789,amount:null,id:'p5',timestamp:Date.now()-14400000}
+            ] : displayedActivity
+            return items.length > 0 ? (
+            items.map((item, idx) => {
               const isTrade = item.type.includes('Trade')
               const coin = getBaseCoin(item.rawSymbol)
               const color = item.status === 'pos' ? BULLISH_COLOR :
@@ -2397,7 +2410,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             })
           ) : (
             <div style={{ color: '#666', fontSize: '12px' }}>No recent activity</div>
-          )}
+          )
+          })()}
         </div>
         </div>
       </aside>
@@ -2574,8 +2588,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         {isBlockedAccount && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(var(--color-bg-card-rgb, 20,20,24), 0.7)', zIndex: 10, borderRadius: '8px',
-            backdropFilter: 'blur(2px)'
+            background: 'var(--color-bg-card)', opacity: 0.85, zIndex: 10, borderRadius: '8px'
           }}>
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted)', padding: '8px 16px', background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
               Account data restricted
@@ -3266,7 +3279,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 </div>
               ) : isMobile ? (
                 <div className="mobile-card-list">
-                  {fundingHistory.map((f, i) => {
+                  {fundingHistory.slice(0, fundingLimit).map((f, i) => {
                     const amt = parseFloat(f.fundingFee || f.amount || f.funding || 0)
                     const amtColor = amt >= 0 ? BULLISH_COLOR : BEARISH_COLOR
                     return (
@@ -3332,7 +3345,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                 </div>
               ) : isMobile ? (
                 <div className="mobile-card-list">
-                  {spotTradeHistory.map((t, i) => {
+                  {spotTradeHistory.slice(0, spotTradesLimit).map((t, i) => {
                     const isBuy = (t.side || '').toUpperCase() === 'BUY'
                     const sideColor = isBuy ? BULLISH_COLOR : BEARISH_COLOR
                     return (
@@ -3364,7 +3377,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                       </tr>
                     </thead>
                     <tbody>
-                      {spotTradeHistory.map((t, i) => {
+                      {spotTradeHistory.slice(0, spotTradesLimit).map((t, i) => {
                         const isBuy = (t.side || '').toUpperCase() === 'BUY'
                         const sideColor = isBuy ? BULLISH_COLOR : BEARISH_COLOR
                         const ts = t.time || t.timestamp || t.ts
