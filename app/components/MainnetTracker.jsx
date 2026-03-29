@@ -380,13 +380,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     setTimeout(() => { setToastMessage(null); setToastExiting(false) }, 300)
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
   }
-  const isBlockedAccount = useMemo(() => {
-    if (isMod || isOwner) return false
-    const addrBlocked = walletAddress && BLOCKED_ACCOUNTS[walletAddress]
-    const idBlocked = accountId && BLOCKED_IDS.has(Number(accountId))
-    return !!(addrBlocked || idBlocked)
-  }, [walletAddress, accountId, isMod, isOwner])
-
   const [performanceView, setPerformanceView] = useState('Trade')
   const [tradesView, setTradesView] = useState('Perps')
   const [notFound, setNotFound] = useState(false)
@@ -466,6 +459,12 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
   // Sidebar hooks & state
   const { user, isMod, isOwner } = useSessionContext()
+  const isBlockedAccount = useMemo(() => {
+    if (isMod || isOwner) return false
+    const addrBlocked = walletAddress && BLOCKED_ACCOUNTS[walletAddress]
+    const idBlocked = accountId && BLOCKED_IDS.has(Number(accountId))
+    return !!(addrBlocked || idBlocked)
+  }, [walletAddress, accountId, isMod, isOwner])
   const { watchlist, addToWatchlist, removeFromWatchlistByAddress, isAdding, isRemoving } = useWatchlist()
   const { data: tags } = useWalletTags()
   const { data: groups } = useWalletGroups()
