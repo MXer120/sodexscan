@@ -105,6 +105,7 @@ function Navbar() {
   }
 
   const isModOnly = (path) => {
+    if (path === '/admin') return true
     const cfg = configCache[path]
     return cfg ? cfg.permission === 'mod' : false
   }

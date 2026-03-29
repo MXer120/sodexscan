@@ -956,12 +956,14 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       setLoadingProgress(60)
       setLoadingStep('Restoring cached data...')
       setAccountDetails(cached.accountDetails)
-      setSpotBalances(cached.spotBalances)
-      setWithdrawals(cached.withdrawals)
+      if (!isBlockedAccount) {
+        setSpotBalances(cached.spotBalances)
+        setWithdrawals(cached.withdrawals)
+        setPositionHistory(cached.positionHistory)
+        setPositions(cached.positions)
+        setTotalAssets(cached.totalAssets)
+      }
       setPnlHistory(cached.pnlHistory)
-      setPositionHistory(cached.positionHistory)
-      setPositions(cached.positions)
-      setTotalAssets(cached.totalAssets)
 
       await fetchMetadata()
 
@@ -1001,7 +1003,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       let processedPositions = []
       if (detailsData.code === 0 && detailsData.data) {
         processedAccountDetails = detailsData.data
-        processedPositions = detailsData.data.positions || []
+        processedPositions = isBlockedAccount ? [] : (detailsData.data.positions || [])
         setAccountDetails(processedAccountDetails)
         setPositions(processedPositions)
       }
