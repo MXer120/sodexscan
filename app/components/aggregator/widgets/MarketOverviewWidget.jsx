@@ -1,8 +1,18 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { perpsTickers, spotTickers } from '../../../lib/sodexApi'
 
 const REFRESH_MS = 30_000
+
+const normalizeTicker = (t) => {
+  if (!t) return t
+  return {
+    ...t,
+    lastPrice: t.lastPrice ?? t.last ?? t.price ?? t.markPrice ?? null,
+    priceChangePercent: t.priceChangePercent ?? t.change24h ?? t.priceChange ?? null,
+    volume: t.volume ?? t.quoteVolume ?? t.volume24h ?? t.turnover24h ?? null,
+  }
+}
 
 const fmtPrice = (v) => {
   const n = parseFloat(v)
@@ -29,10 +39,12 @@ const fmtPct = (v) => {
 }
 
 export default function MarketOverviewWidget({ settings }) {
-  const [tab, setTab] = useState('perps')
+  const [tab, setTab] = useState('combined')
   const [data, setData] = useState({ perps: [], spot: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [sortField, setSortField] = useState(null)
+  const [sortDir, setSortDir] = useState('desc')
 
   const fetchData = useCallback(async () => {
     try {
@@ -42,8 +54,8 @@ export default function MarketOverviewWidget({ settings }) {
         spotTickers().catch(() => []),
       ])
       setData({
-        perps: Array.isArray(perps) ? perps : [],
-        spot: Array.isArray(spot) ? spot : [],
+        perps: Array.isArray(perps) ? perps.map(normalizeTicker) : [],
+        spot: Array.isArray(spot) ? spot.map(normalizeTicker) : [],
       })
     } catch (err) {
       console.error('MarketOverviewWidget fetch error', err)
@@ -59,7 +71,39 @@ export default function MarketOverviewWidget({ settings }) {
     return () => clearInterval(iv)
   }, [fetchData])
 
-  const rows = tab === 'perps' ? data.perps : data.spot
+  const rows = tab === 'combined' ? [...data.perps, ...data.spot] : tab === 'perps' ? data.perps : data.spot
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
+
+  const sortedRows = useMemo(() => {
+    if (!sortField) return rows
+    return [...rows].sort((a, b) => {
+      let av, bv
+      if (sortField === 'symbol') {
+        av = (a.symbol || a.pair || a.name || '').toLowerCase()
+        bv = (b.symbol || b.pair || b.name || '').toLowerCase()
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+      if (sortField === 'price') {
+        av = parseFloat(a.lastPrice ?? 0)
+        bv = parseFloat(b.lastPrice ?? 0)
+      } else if (sortField === 'change') {
+        av = parseFloat(a.priceChangePercent ?? 0)
+        bv = parseFloat(b.priceChangePercent ?? 0)
+      } else if (sortField === 'volume') {
+        av = parseFloat(a.volume ?? 0)
+        bv = parseFloat(b.volume ?? 0)
+      }
+      return sortDir === 'asc' ? av - bv : bv - av
+    })
+  }, [rows, sortField, sortDir])
 
   const tabBtn = (key, label) => (
     <button
@@ -100,10 +144,11 @@ export default function MarketOverviewWidget({ settings }) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '8px 12px', boxSizing: 'border-box' }}>
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+        {tabBtn('combined', 'Combined')}
         {tabBtn('perps', 'Perps')}
         {tabBtn('spot', 'Spot')}
         <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-muted)', alignSelf: 'center' }}>
-          {rows.length} pairs
+          {sortedRows.length} pairs
         </span>
       </div>
 
@@ -112,27 +157,35 @@ export default function MarketOverviewWidget({ settings }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ position: 'sticky', top: 0, background: 'var(--color-bg-card)', zIndex: 1 }}>
-              <th style={thStyle}>Symbol</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>Last Price</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>24h Change</th>
-              <th style={{ ...thStyle, textAlign: 'right' }}>24h Volume</th>
+              <th style={{ ...thStyle, cursor: 'pointer' }} onClick={() => handleSort('symbol')}>
+                Symbol {sortField === 'symbol' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
+              <th style={{ ...thStyle, textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('price')}>
+                Last Price {sortField === 'price' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
+              <th style={{ ...thStyle, textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('change')}>
+                24h Change {sortField === 'change' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
+              <th style={{ ...thStyle, textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('volume')}>
+                24h Volume {sortField === 'volume' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {sortedRows.length === 0 && (
               <tr>
                 <td colSpan={4} style={{ textAlign: 'center', padding: 16, color: 'var(--color-text-muted)', fontSize: 12 }}>
                   No data available
                 </td>
               </tr>
             )}
-            {rows.map((t) => {
+            {sortedRows.map((t, i) => {
               const sym = t.symbol || t.pair || t.name || '-'
-              const change = parseFloat(t.priceChangePercent ?? t.change24h ?? 0)
+              const change = parseFloat(t.priceChangePercent ?? 0)
               return (
-                <tr key={sym} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <tr key={sym + '-' + i} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
                   <td style={tdStyle}>{sym}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtPrice(t.lastPrice ?? t.last ?? t.price)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtPrice(t.lastPrice)}</td>
                   <td style={{
                     ...tdStyle,
                     textAlign: 'right',
@@ -140,7 +193,7 @@ export default function MarketOverviewWidget({ settings }) {
                   }}>
                     {fmtPct(change)}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtVol(t.volume ?? t.quoteVolume ?? t.volume24h)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>{fmtVol(t.volume)}</td>
                 </tr>
               )
             })}

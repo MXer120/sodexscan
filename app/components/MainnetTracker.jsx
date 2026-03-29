@@ -31,6 +31,11 @@ const LOGO_ALIASES = {
   arbitrum: 'arb'
 }
 
+const BLOCKED_ACCOUNTS = {
+  '0x96c475f6dBfD140DD21365FD2c7d143a47cD5476': 1515,
+}
+const BLOCKED_IDS = new Set(Object.values(BLOCKED_ACCOUNTS))
+
 const getCoinLogoUrl = (symbol) => {
   if (!symbol) return null
   let lower = symbol.toLowerCase()
@@ -375,7 +380,15 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     setTimeout(() => { setToastMessage(null); setToastExiting(false) }, 300)
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
   }
+  const isBlockedAccount = useMemo(() => {
+    if (isMod || isOwner) return false
+    const addrBlocked = walletAddress && BLOCKED_ACCOUNTS[walletAddress]
+    const idBlocked = accountId && BLOCKED_IDS.has(Number(accountId))
+    return !!(addrBlocked || idBlocked)
+  }, [walletAddress, accountId, isMod, isOwner])
+
   const [performanceView, setPerformanceView] = useState('Trade')
+  const [tradesView, setTradesView] = useState('Perps')
   const [notFound, setNotFound] = useState(false)
   const router = useRouter()
   const [searchInput, setSearchInput] = useState('')
@@ -452,7 +465,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [tradeSortDir, setTradeSortDir] = useState('desc')
 
   // Sidebar hooks & state
-  const { user } = useSessionContext()
+  const { user, isMod, isOwner } = useSessionContext()
   const { watchlist, addToWatchlist, removeFromWatchlistByAddress, isAdding, isRemoving } = useWatchlist()
   const { data: tags } = useWalletTags()
   const { data: groups } = useWalletGroups()
@@ -1130,7 +1143,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           }
 
           // Fetch funding history & spot trades via official API (non-blocking)
-          if (walletAddress) {
+          if (walletAddress && !isBlockedAccount) {
             perpsFundings(walletAddress).then(data => {
               if (Array.isArray(data)) setFundingHistory(data)
             }).catch(() => {})
@@ -1372,7 +1385,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     : 0
 
 
-  const tabs = ['Positions', 'Balances', 'Orders', 'Trades', 'Transfers', 'Funding', 'Spot Trades', 'Performance']
+  const tabs = ['Positions', 'Balances', 'Orders', 'Trades', 'Transfers', 'Funding', 'Performance']
   const tabIds = {
     'Positions': 'positions',
     'Balances': 'balances',
@@ -1380,7 +1393,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     'Trades': 'position-history',
     'Transfers': 'withdrawals',
     'Funding': 'funding',
-    'Spot Trades': 'spot-trades',
     'Performance': 'pnl'
   }
 
@@ -2241,7 +2253,19 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         </div>
       </div>
 
-      <aside className="section-activity" onScroll={handleActivityScroll} style={{ overflowY: 'auto' }}>
+      <aside className="section-activity" onScroll={handleActivityScroll} style={{ overflowY: 'auto', position: 'relative' }}>
+        {isBlockedAccount && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(var(--color-bg-card-rgb, 20,20,24), 0.7)', zIndex: 10, borderRadius: '8px',
+            backdropFilter: 'blur(2px)'
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted)', padding: '8px 16px', background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
+              Account data restricted
+            </span>
+          </div>
+        )}
+        <div style={isBlockedAccount ? { filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' } : {}}>
         <h3 style={{ color: 'var(--color-text-main)', fontSize: '15px', marginBottom: '16px', fontWeight: '700', paddingLeft: '0px', marginTop: '4px' }}>Recent Activity</h3>
         <div className="timeline" style={{ paddingLeft: '12px', paddingRight: '12px', marginTop: '4px' }}>
           {displayedActivity.length > 0 ? (
@@ -2376,10 +2400,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             <div style={{ color: '#666', fontSize: '12px' }}>No recent activity</div>
           )}
         </div>
+        </div>
       </aside>
 
       {/* 4. Bottom Center - Tabs */}
-      <div className="section-bottom-center">
+      <div className="section-bottom-center" style={{ position: 'relative' }}>
         {/* Tab Navigation */}
         <div style={{ position: 'relative', marginBottom: '0', borderBottom: '1px solid var(--color-border-subtle)', flexShrink: 0 }}>
           <div className="tab-nav-row" style={{
@@ -2478,6 +2503,39 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
               </div>
             )}
 
+            {activeTab === 'Trades' && (
+              <div style={{
+                display: 'flex',
+                background: 'var(--color-overlay-subtle)',
+                padding: '2px',
+                borderRadius: '6px',
+                border: '1px solid var(--color-border-subtle)',
+                position: 'relative',
+                zIndex: 10
+              }}>
+                {['Perps', 'Spot'].map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setTradesView(mode)}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      borderRadius: '4px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: tradesView === mode ? 'rgba(var(--color-primary-rgb), 0.15)' : 'var(--color-overlay-faint)',
+                      color: tradesView === mode ? THEME_COLORS.primary : 'var(--color-text-muted)',
+                      transition: 'all 0.2s ease',
+                      margin: '0 1px'
+                    }}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {activeTab === 'Performance' && (
               <div style={{
                 display: 'flex',
@@ -2514,7 +2572,18 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
           <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', width: '100%' }} />
         </div>
 
-        <div className="tab-scroll-area" onScroll={handleScroll}>
+        {isBlockedAccount && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(var(--color-bg-card-rgb, 20,20,24), 0.7)', zIndex: 10, borderRadius: '8px',
+            backdropFilter: 'blur(2px)'
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted)', padding: '8px 16px', background: 'var(--color-bg-card)', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
+              Account data restricted
+            </span>
+          </div>
+        )}
+        <div className="tab-scroll-area" onScroll={handleScroll} style={isBlockedAccount ? { filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' } : {}}>
           {/* Tab Content */}
           {activeTab === 'Positions' && (
             <div>
@@ -2903,7 +2972,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             </div>
           )}
 
-          {activeTab === 'Trades' && (
+          {activeTab === 'Trades' && tradesView === 'Perps' && (
             <div>
               {positionHistory.length === 0 ? (
                 <div className="empty-state-container">
@@ -3209,7 +3278,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: '600', fontSize: '12px', color: amtColor }}>
-                              {amt >= 0 ? '+' : ''}{formatNumber(amt)}
+                              {amt >= 0 ? '+' : ''}{trimSmallWithSig3(amt)}
                             </span>
                           </div>
                         </div>
@@ -3240,7 +3309,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                             </td>
                             <td style={{ fontWeight: '600' }}>{f.symbol || '-'}</td>
                             <td style={{ textAlign: 'right', color: amtColor, fontWeight: '600' }}>
-                              {amt >= 0 ? '+' : ''}{formatNumber(amt)}
+                              {amt >= 0 ? '+' : ''}{trimSmallWithSig3(amt)}
                             </td>
                             <td style={{ textAlign: 'right', color: amtColor }}>
                               {amt >= 0 ? 'Received' : 'Paid'}
@@ -3255,7 +3324,7 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             </div>
           )}
 
-          {activeTab === 'Spot Trades' && (
+          {activeTab === 'Trades' && tradesView === 'Spot' && (
             <div>
               {spotTradeHistory.length === 0 ? (
                 <div className="empty-state-container">
