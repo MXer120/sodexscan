@@ -18,6 +18,7 @@ import { useWatchlist } from '../hooks/useWatchlist'
 import { useWalletTags, useAddTag, useRenameTag, useDeleteTag, useAssignToGroup, useWalletGroups } from '../hooks/useWalletTags'
 import { useSessionContext } from '../lib/SessionContext'
 import { THEME_COLORS, getThemeHexColors } from '../lib/themeColors'
+import { perpsMarkPrices, perpsFundings, spotTrades as fetchSpotTrades } from '../lib/sodexApi'
 const LOGO_BASE_URL = 'https://yifkydhsbflzfprteots.supabase.co/storage/v1/object/public/coin-logos/'
 
 const LOGO_EXTENSIONS = {
@@ -420,6 +421,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
   const [calendarView, setCalendarView] = useState('rolling') // 'rolling' | 'weekly' | 'monthly' | 'yearly'
   const [positions, setPositions] = useState([])
   const [positionHistory, setPositionHistory] = useState([])
+  const [fundingHistory, setFundingHistory] = useState([])
+  const [spotTradeHistory, setSpotTradeHistory] = useState([])
   const [totalAssets, setTotalAssets] = useState(0)
   const [symbolMap, setSymbolMap] = useState({})
   const [leverageBrackets, setLeverageBrackets] = useState({})
@@ -965,19 +968,18 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
       // These are what the user sees first
       setLoadingProgress(25)
 
-      const [detailsRes, pnlRes, markPriceRes] = await Promise.all([
+      const [detailsRes, pnlRes, markPriceArr] = await Promise.all([
         fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
         fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
-        fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/q/mark-price')
+        perpsMarkPrices().catch(() => [])
       ])
 
       setLoadingProgress(50)
       setLoadingStep('Loading positions & chart...')
 
-      const [detailsData, pnlData, markPriceData] = await Promise.all([
+      const [detailsData, pnlData] = await Promise.all([
         detailsRes.json(),
-        pnlRes.json(),
-        markPriceRes.json()
+        pnlRes.json()
       ])
 
       // Process account details + positions (sidebar + positions tab)
@@ -992,9 +994,9 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
 
       // Process mark prices (needed for position display)
       const priceMap = {}
-      if (markPriceData.code === 0 && markPriceData.data) {
-        markPriceData.data.forEach(item => {
-          priceMap[item.s] = parseFloat(item.p) || 0
+      if (Array.isArray(markPriceArr)) {
+        markPriceArr.forEach(item => {
+          priceMap[item.s || item.symbol] = parseFloat(item.p || item.markPrice || item.price) || 0
         })
         setMarkPrices(priceMap)
       }
@@ -1127,6 +1129,16 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
             setPositionHistory(processedPosHistory)
           }
 
+          // Fetch funding history & spot trades via official API (non-blocking)
+          if (walletAddress) {
+            perpsFundings(walletAddress).then(data => {
+              if (Array.isArray(data)) setFundingHistory(data)
+            }).catch(() => {})
+            fetchSpotTrades(walletAddress).then(data => {
+              if (Array.isArray(data)) setSpotTradeHistory(data)
+            }).catch(() => {})
+          }
+
           // Cache everything
           globalCache.setAccountData(accountId, {
             accountDetails: processedAccountDetails,
@@ -1160,7 +1172,6 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         fetch(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
         fetch(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
         fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
-        fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/q/mark-price')
       ]
       // Slow (every 5s): chart, orders, transfers
       const slowPromises = includeSlow ? [
@@ -1169,8 +1180,11 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         fetch(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`)
       ] : []
 
-      const allRes = await Promise.all([...fastPromises, ...slowPromises])
-      const [detailsData, balanceData, overviewData, markPriceData, ...slowData] = await Promise.all(
+      const [allRes, markPriceArr] = await Promise.all([
+        Promise.all([...fastPromises, ...slowPromises]),
+        perpsMarkPrices().catch(() => [])
+      ])
+      const [detailsData, balanceData, overviewData, ...slowData] = await Promise.all(
         allRes.map(r => r.json())
       )
 
@@ -1191,8 +1205,8 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
         const balances = balanceData.data?.spotBalance || []
         setSpotBalances(balances)
         const priceMap = {}
-        if (markPriceData.code === 0 && markPriceData.data) {
-          markPriceData.data.forEach(item => { priceMap[item.s] = parseFloat(item.p) || 0 })
+        if (Array.isArray(markPriceArr)) {
+          markPriceArr.forEach(item => { priceMap[item.s || item.symbol] = parseFloat(item.p || item.markPrice || item.price) || 0 })
           setMarkPrices(priceMap)
         }
         let totalUSDC = 0
@@ -1358,13 +1372,15 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     : 0
 
 
-  const tabs = ['Positions', 'Balances', 'Orders', 'Trades', 'Transfers', 'Performance']
+  const tabs = ['Positions', 'Balances', 'Orders', 'Trades', 'Transfers', 'Funding', 'Spot Trades', 'Performance']
   const tabIds = {
     'Positions': 'positions',
     'Balances': 'balances',
     'Orders': 'orders',
     'Trades': 'position-history',
     'Transfers': 'withdrawals',
+    'Funding': 'funding',
+    'Spot Trades': 'spot-trades',
     'Performance': 'pnl'
   }
 
@@ -3170,6 +3186,135 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
                     </table>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'Funding' && (
+            <div>
+              {fundingHistory.length === 0 ? (
+                <div className="empty-state-container">
+                  <p style={{ color: 'var(--color-text-muted)' }}>No funding history found</p>
+                </div>
+              ) : isMobile ? (
+                <div className="mobile-card-list">
+                  {fundingHistory.map((f, i) => {
+                    const amt = parseFloat(f.amount || f.funding || 0)
+                    const amtColor = amt >= 0 ? BULLISH_COLOR : BEARISH_COLOR
+                    return (
+                      <div key={i} className="mobile-card">
+                        <div className="mobile-card-summary">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px' }}>{f.symbol || '-'}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px', color: amtColor }}>
+                              {amt >= 0 ? '+' : ''}{formatNumber(amt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="table-scroll-wrapper">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>Time</th>
+                        <th style={{ textAlign: 'left' }}>Symbol</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                        <th style={{ textAlign: 'right' }}>Direction</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fundingHistory.map((f, i) => {
+                        const amt = parseFloat(f.amount || f.funding || 0)
+                        const amtColor = amt >= 0 ? BULLISH_COLOR : BEARISH_COLOR
+                        const ts = f.time || f.timestamp || f.ts
+                        return (
+                          <tr key={i}>
+                            <td style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                              {ts ? formatTimeShort(typeof ts === 'string' ? Date.parse(ts) / 1000 : ts) : '-'}
+                            </td>
+                            <td style={{ fontWeight: '600' }}>{f.symbol || '-'}</td>
+                            <td style={{ textAlign: 'right', color: amtColor, fontWeight: '600' }}>
+                              {amt >= 0 ? '+' : ''}{formatNumber(amt)}
+                            </td>
+                            <td style={{ textAlign: 'right', color: amtColor }}>
+                              {amt >= 0 ? 'Received' : 'Paid'}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'Spot Trades' && (
+            <div>
+              {spotTradeHistory.length === 0 ? (
+                <div className="empty-state-container">
+                  <p style={{ color: 'var(--color-text-muted)' }}>No spot trades found</p>
+                </div>
+              ) : isMobile ? (
+                <div className="mobile-card-list">
+                  {spotTradeHistory.map((t, i) => {
+                    const isBuy = (t.side || '').toUpperCase() === 'BUY'
+                    const sideColor = isBuy ? BULLISH_COLOR : BEARISH_COLOR
+                    return (
+                      <div key={i} className="mobile-card">
+                        <div className="mobile-card-summary">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px' }}>{t.symbol || '-'}</span>
+                            <span style={{ fontSize: '10px', color: sideColor, fontWeight: '700' }}>{isBuy ? 'BUY' : 'SELL'}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: '600', fontSize: '12px' }}>${formatNumber(parseFloat(t.price || 0))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="table-scroll-wrapper">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left' }}>Time</th>
+                        <th style={{ textAlign: 'left' }}>Pair</th>
+                        <th style={{ textAlign: 'left' }}>Side</th>
+                        <th style={{ textAlign: 'right' }}>Price</th>
+                        <th style={{ textAlign: 'right' }}>Quantity</th>
+                        <th style={{ textAlign: 'right' }}>Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {spotTradeHistory.map((t, i) => {
+                        const isBuy = (t.side || '').toUpperCase() === 'BUY'
+                        const sideColor = isBuy ? BULLISH_COLOR : BEARISH_COLOR
+                        const ts = t.time || t.timestamp || t.ts
+                        return (
+                          <tr key={i}>
+                            <td style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                              {ts ? formatTimeShort(typeof ts === 'string' ? Date.parse(ts) / 1000 : ts) : '-'}
+                            </td>
+                            <td style={{ fontWeight: '600' }}>{t.symbol || '-'}</td>
+                            <td style={{ color: sideColor, fontWeight: '700' }}>{isBuy ? 'BUY' : 'SELL'}</td>
+                            <td style={{ textAlign: 'right' }}>${formatNumber(parseFloat(t.price || 0))}</td>
+                            <td style={{ textAlign: 'right' }}>{formatNumber(parseFloat(t.qty || t.quantity || 0))}</td>
+                            <td style={{ textAlign: 'right', color: BEARISH_COLOR }}>{formatNumber(parseFloat(t.fee || t.commission || 0))}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}

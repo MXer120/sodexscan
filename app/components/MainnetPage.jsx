@@ -918,14 +918,24 @@ export default function MainnetPage() {
       <h1 className="dashboard-title">Leaderboard</h1>
 
       {/* Futures / Spot / Total Toggle */}
-      <div className="leaderboard-toggle" style={{ marginBottom: isWeeklyView && viewMode !== 'total' ? '8px' : '20px', display: 'inline-flex' }}>
+      <div className="leaderboard-toggle" style={{ marginBottom: (viewMode !== 'total' || isWeeklyView) ? '8px' : '20px', display: 'inline-flex' }}>
         <button className={viewMode === 'total' ? 'active' : ''} onClick={() => setViewMode('total')}>Total</button>
         <button className={viewMode === 'futures' ? 'active' : ''} onClick={() => setViewMode('futures')}>Futures</button>
         <button className={viewMode === 'spot' ? 'active' : ''} onClick={() => setViewMode('spot')}>Spot</button>
       </div>
-      {isWeeklyView && viewMode !== 'total' && (
-        <div style={{ fontSize: '11px', color: '#f59e0b', marginBottom: '16px', opacity: 0.85 }}>
-          Week 6 {viewMode} data may be inaccurate due to sync issues. Use the Total tab for accurate rankings.
+      {(viewMode !== 'total' || isWeeklyView) && (
+        <div style={{
+          fontSize: '12px', color: '#f59e0b', marginBottom: '16px',
+          padding: '8px 12px', borderRadius: '6px',
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          display: 'flex', alignItems: 'center', gap: '8px'
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          This page is no longer maintained. Use the <strong>Total</strong> tab for accurate, live data.
         </div>
       )}
 

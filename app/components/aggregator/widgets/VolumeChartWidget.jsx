@@ -46,13 +46,14 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
                 const endDate = new Date().toISOString().slice(0, 10)
                 const base = `https://mainnet-data.sodex.dev/api/v1/dashboard/volume?start_date=2024-01-01&end_date=${endDate}&market_type=`
                 const [allRes, spotRes, futRes] = await Promise.all([
-                    fetch(base + 'all').then(r => r.json()),
-                    fetch(base + 'spot').then(r => r.json()),
-                    fetch(base + 'futures').then(r => r.json()),
+                    fetch(base + 'all').then(r => r.json()).catch(() => null),
+                    fetch(base + 'spot').then(r => r.json()).catch(() => null),
+                    fetch(base + 'futures').then(r => r.json()).catch(() => null),
                 ])
                 setPlatformVolume({ all: allRes, spot: spotRes, futures: futRes })
             } catch (err) {
-                console.error('VolumeChartWidget: platform volume error', err)
+                console.error('VolumeChartWidget: platform volume fetch failed, using empty data', err)
+                setPlatformVolume({ all: null, spot: null, futures: null })
             }
             setPlatformVolumeLoading(false)
         })()

@@ -21,6 +21,7 @@ const MilestoneProjectionWidget = lazy(() => import('./widgets/MilestoneProjecti
 const UpcomingListingsWidget = lazy(() => import('./widgets/UpcomingListingsWidget'))
 const ReverseSearchWidget = lazy(() => import('./widgets/ReverseSearchWidget'))
 const SearchBarWidget = lazy(() => import('./widgets/SearchBarWidget'))
+const MarketOverviewWidget = lazy(() => import('./widgets/MarketOverviewWidget'))
 
 // ── New scanner widgets ────────────────────────────────────────────
 const AccountValueWidget = lazy(() => import('./widgets/AccountValueWidget'))
@@ -68,6 +69,16 @@ export const WIDGET_REGISTRY = {
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: []
+  },
+  'market-overview': {
+    component: MarketOverviewWidget,
+    label: 'Market Overview',
+    description: 'Live perps & spot market tickers with prices and 24h stats',
+    category: 'market',
+    defaultSize: { w: 12, h: 8, minW: 6, minH: 4 }, smH: 6, mdH: 7,
+    defaultSettings: {},
+    settingsSchema: [],
+    visibilitySchema: [],
   },
   'upcoming-listings': {
     component: UpcomingListingsWidget,

@@ -409,7 +409,8 @@ function Navbar() {
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
             background: 'var(--color-bg-modal)', border: '1px solid var(--color-border-subtle)', borderRadius: '12px',
             padding: '24px', zIndex: 1001, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(10px)', width: '90%', maxWidth: '400px'
+            backdropFilter: 'blur(10px)', width: '90%', maxWidth: '400px',
+            maxHeight: '90vh', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, color: 'var(--color-text-main)', fontSize: '18px', fontWeight: '600' }}>Login / Register</h3>
