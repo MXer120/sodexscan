@@ -504,10 +504,10 @@ html[data-color-scheme="paper"] div {
   font-family: 'JetBrains Mono', 'Andale Mono', 'Lucida Console', monospace !important;
 }
 
-/* Kill all border-radius on terminal themes */
-html[data-color-scheme="cli"] *,
-html[data-color-scheme="nsa"] *,
-html[data-color-scheme="paper"] * {
+/* Kill all border-radius on terminal themes (skip larp frame) */
+html[data-color-scheme="cli"] :where(:not(.larp-frame, .larp-frame *)),
+html[data-color-scheme="nsa"] :where(:not(.larp-frame, .larp-frame *)),
+html[data-color-scheme="paper"] :where(:not(.larp-frame, .larp-frame *)) {
   border-radius: 0px !important;
 }
 
@@ -518,12 +518,22 @@ html[data-color-scheme="paper"] .theme-preview:not(.terminal-preview) {
   border-radius: 50% !important;
 }
 
-/* Kill box-shadows and backdrop-filters */
-html[data-color-scheme="cli"] *,
-html[data-color-scheme="nsa"] *,
-html[data-color-scheme="paper"] * {
+/* Kill box-shadows and backdrop-filters (skip larp frame) */
+html[data-color-scheme="cli"] :where(:not(.larp-frame, .larp-frame *)),
+html[data-color-scheme="nsa"] :where(:not(.larp-frame, .larp-frame *)),
+html[data-color-scheme="paper"] :where(:not(.larp-frame, .larp-frame *)) {
   box-shadow: none !important;
   text-shadow: none !important;
+}
+
+/* Force monospace font exemption — LARP uses its own Inter font branding */
+html[data-color-scheme="cli"] .larp-frame,
+html[data-color-scheme="cli"] .larp-frame *,
+html[data-color-scheme="nsa"] .larp-frame,
+html[data-color-scheme="nsa"] .larp-frame *,
+html[data-color-scheme="paper"] .larp-frame,
+html[data-color-scheme="paper"] .larp-frame * {
+  font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
 }
 
 /* Hard 1px solid borders instead of subtle transparency */

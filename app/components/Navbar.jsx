@@ -20,6 +20,7 @@ const FALLBACK_NAV = [
   { path: '/watchlist',      label: 'Watchlist',      enabled: true, tag: null,  sort_order: 50,  in_more: false },
   { path: '/aggregator',     label: 'Aggregator',     enabled: true, tag: 'V1',  sort_order: 60,  in_more: false },
   { path: '/tickets',        label: 'Tickets',        enabled: true, tag: null,  sort_order: 70,  in_more: false },
+  { path: '/larp',           label: 'LARP',           enabled: false, tag: 'New', sort_order: 75,  in_more: false },
   { path: '/admin',          label: 'Admin',          enabled: true, tag: null,  sort_order: 80,  in_more: false },
   { path: '/platform',       label: 'Platform',       enabled: true, tag: null,  sort_order: 90,  in_more: true  },
   { path: '/incoming',       label: 'Incoming',       enabled: true, tag: null,  sort_order: 100, in_more: true  },
@@ -37,7 +38,14 @@ async function loadNavConfig() {
     .select('path, label, enabled, tag, sort_order, in_more')
     .order('sort_order')
     .then(({ data, error }) => {
-      navCache.items = (error || !data) ? FALLBACK_NAV : data
+      if (error || !data) {
+        navCache.items = FALLBACK_NAV
+      } else {
+        // Merge fallback items missing from DB
+        const dbPaths = new Set(data.map(d => d.path))
+        const missing = FALLBACK_NAV.filter(f => !dbPaths.has(f.path))
+        navCache.items = [...data, ...missing].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
+      }
       navCache.loaded = true
     })
   return navCache.promise
