@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-28T03:21:27.802Z",
-  "current_week": 9,
+  "last_updated": "2026-04-04T03:21:28.866Z",
+  "current_week": 12,
   "available_weeks": [
     1,
     2,
@@ -9,6 +9,7 @@
     5,
     6,
     7,
-    8
+    8,
+    11
   ]
 }
