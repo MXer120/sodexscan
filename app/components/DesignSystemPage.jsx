@@ -242,9 +242,19 @@ function SpacingVis() {
   )
 }
 
+// ─── SVG icon helpers ─────────────────────────────────────────────────────────
+
+const IcoDashboard = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+const IcoCustomers = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+const IcoAnalytics = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+const IcoReports = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
+const IcoSettings = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+const IcoHelp = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+
 // ─── Component section components ─────────────────────────────────────────────
 
 function KpiCardsDemo() {
+  const [hovered, setHovered] = useState(null)
   const cards = [
     { label: 'Total Revenue', value: '$48,295', suffix: 'usd', delta: '+0.94%', deltaLabel: 'last year', positive: true },
     { label: 'Active Customers', value: '2,841', suffix: '', delta: '+12.3%', deltaLabel: 'last month', positive: true },
@@ -254,12 +264,17 @@ function KpiCardsDemo() {
   const sparkHeights = [30, 55, 40, 70, 50, 80, 65, 90]
   return (
     <div className="ds-kpi-grid">
-      {cards.map(c => (
-        <div key={c.label} className="ds-kpi-card">
+      {cards.map((c, idx) => (
+        <div
+          key={c.label}
+          className={`ds-kpi-card${hovered === idx ? ' hovered' : ''}`}
+          onMouseEnter={() => setHovered(idx)}
+          onMouseLeave={() => setHovered(null)}
+        >
           <div className="ds-kpi-inner">
             <div className="ds-kpi-label-row">
               <span className="ds-kpi-label">{c.label}</span>
-              <span className="ds-info-icon" title="More info">i</span>
+              <span className="ds-info-icon" title={`About ${c.label}`}>i</span>
             </div>
             <div className="ds-kpi-value-row">
               <span className="ds-kpi-value">{c.value}</span>
@@ -271,9 +286,13 @@ function KpiCardsDemo() {
               ))}
             </div>
           </div>
+          {/* Footer: info icon LEFT, delta% + label RIGHT */}
           <div className="ds-kpi-footer">
-            <span className="ds-kpi-delta-label">{c.deltaLabel}</span>
-            <span className={`ds-kpi-delta ${c.positive ? 'up' : 'down'}`}>{c.delta}</span>
+            <span className="ds-info-icon" title={`About ${c.label}`}>i</span>
+            <div className="ds-kpi-footer-right">
+              <span className={`ds-kpi-delta ${c.positive ? 'up' : 'down'}`}>{c.delta}</span>
+              <span className="ds-kpi-delta-label">{c.deltaLabel}</span>
+            </div>
           </div>
         </div>
       ))}
@@ -284,6 +303,7 @@ function KpiCardsDemo() {
 function PixelChartDemo() {
   const COLS = 24
   const ROWS = 12
+  const [hoveredCol, setHoveredCol] = useState(null)
   const getHeight = (col) => Math.round(3 + Math.sin(col * 0.4) * 2 + (col * 7 % 4))
   const cols = Array.from({ length: COLS }, (_, i) => ({
     filled: Math.min(ROWS, getHeight(i)),
@@ -293,7 +313,12 @@ function PixelChartDemo() {
     <div className="ds-pixel-demo">
       <div className="ds-pixel-grid" style={{ '--cols': COLS, '--rows': ROWS }}>
         {cols.map((col, ci) => (
-          <div key={ci} className={`ds-pixel-col ${col.peak ? 'peak' : ''}`}>
+          <div
+            key={ci}
+            className={`ds-pixel-col ${col.peak ? 'peak' : ''} ${hoveredCol === ci ? 'hov' : ''}`}
+            onMouseEnter={() => setHoveredCol(ci)}
+            onMouseLeave={() => setHoveredCol(null)}
+          >
             {Array.from({ length: ROWS }, (_, ri) => {
               const fromBottom = ROWS - 1 - ri
               const filled = fromBottom < col.filled
@@ -309,26 +334,40 @@ function PixelChartDemo() {
         <span><span className="ds-swatch" style={{ background: '#f26b1f' }} /> Filled (high)</span>
         <span><span className="ds-swatch" style={{ background: '#ff8844' }} /> Filled (low)</span>
         <span><span className="ds-swatch" style={{ background: '#252525' }} /> Empty</span>
+        {hoveredCol !== null && <span style={{ color: 'var(--ds-accent)', marginLeft: 'auto' }}>Col {hoveredCol + 1} · {cols[hoveredCol].filled}/{ROWS} filled</span>}
       </div>
     </div>
   )
 }
 
 function ButtonsDemo() {
+  const [clicked, setClicked] = useState(null)
+  const [notifOn, setNotifOn] = useState(false)
+  const flash = (id) => { setClicked(id); setTimeout(() => setClicked(null), 600) }
   return (
     <div className="ds-component-row">
       <div className="ds-component-group">
         <span className="ds-component-label">Primary</span>
         <div className="ds-flex-row">
-          <button className="ds-btn ds-btn-primary">Save Changes</button>
+          <button
+            className={`ds-btn ds-btn-primary${clicked === 'save' ? ' pressed' : ''}`}
+            onClick={() => flash('save')}
+          >
+            {clicked === 'save' ? 'Saved ✓' : 'Save Changes'}
+          </button>
           <button className="ds-btn ds-btn-primary" disabled>Disabled</button>
         </div>
       </div>
       <div className="ds-component-group">
         <span className="ds-component-label">Secondary</span>
         <div className="ds-flex-row">
-          <button className="ds-btn ds-btn-secondary">Export</button>
-          <button className="ds-btn ds-btn-secondary">
+          <button
+            className={`ds-btn ds-btn-secondary${clicked === 'export' ? ' pressed' : ''}`}
+            onClick={() => flash('export')}
+          >
+            {clicked === 'export' ? 'Exported ✓' : 'Export'}
+          </button>
+          <button className="ds-btn ds-btn-secondary" onClick={() => flash('add')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Transaction
           </button>
@@ -337,17 +376,23 @@ function ButtonsDemo() {
       <div className="ds-component-group">
         <span className="ds-component-label">Ghost</span>
         <div className="ds-flex-row">
-          <button className="ds-btn ds-btn-ghost">Cancel</button>
-          <button className="ds-btn ds-btn-ghost">View All</button>
+          <button className="ds-btn ds-btn-ghost" onClick={() => flash('cancel')}>
+            {clicked === 'cancel' ? '✕ Cancelled' : 'Cancel'}
+          </button>
+          <button className="ds-btn ds-btn-ghost" onClick={() => flash('view')}>View All</button>
         </div>
       </div>
       <div className="ds-component-group">
         <span className="ds-component-label">Icon Button</span>
         <div className="ds-flex-row">
-          <button className="ds-icon-btn" title="More options">
+          <button className="ds-icon-btn" title="More options" onClick={() => flash('dots')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
           </button>
-          <button className="ds-icon-btn ds-icon-btn-active">
+          <button
+            className={`ds-icon-btn${notifOn ? ' ds-icon-btn-active' : ''}`}
+            title={notifOn ? 'Mute notifications' : 'Enable notifications'}
+            onClick={() => setNotifOn(v => !v)}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </button>
         </div>
@@ -357,6 +402,7 @@ function ButtonsDemo() {
 }
 
 function StatusPillsDemo() {
+  const [selected, setSelected] = useState(null)
   const statuses = [
     { label: 'Completed', cls: 'success' },
     { label: 'Pending', cls: 'pending' },
@@ -366,15 +412,34 @@ function StatusPillsDemo() {
     { label: 'VIP', cls: 'vip' },
   ]
   return (
-    <div className="ds-flex-row ds-wrap">
-      {statuses.map(s => (
-        <span key={s.label} className={`ds-status-pill ${s.cls}`}>{s.label}</span>
-      ))}
+    <div>
+      <div className="ds-flex-row ds-wrap">
+        {statuses.map(s => (
+          <button
+            key={s.label}
+            className={`ds-status-pill ${s.cls}${selected === s.label ? ' ring' : ''}`}
+            onClick={() => setSelected(v => v === s.label ? null : s.label)}
+            style={{ cursor: 'pointer', border: 'none', background: undefined }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <p style={{ marginTop: 12, fontSize: 12, color: 'var(--ds-text-tertiary)' }}>
+          Selected: <span style={{ color: 'var(--ds-text-secondary)' }}>{selected}</span> — click again to deselect
+        </p>
+      )}
     </div>
   )
 }
 
 function FormControlsDemo() {
+  const [seg, setSeg] = useState('Daily')
+  const [activeChip, setActiveChip] = useState('All')
+  const [checks, setChecks] = useState([true, false, false])
+  const [searchVal, setSearchVal] = useState('')
+  const toggleCheck = (i) => setChecks(c => c.map((v, idx) => idx === i ? !v : v))
   return (
     <div>
       <div className="ds-form-row">
@@ -382,20 +447,20 @@ function FormControlsDemo() {
           <label className="ds-label">Search</label>
           <div className="ds-input-box">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input placeholder="Search…" />
+            <input placeholder="Search…" value={searchVal} onChange={e => setSearchVal(e.target.value)} />
             <span className="ds-kbd">⌘K</span>
           </div>
         </div>
         <div className="ds-form-group">
           <label className="ds-label">Text Input</label>
-          <input className="ds-input" placeholder="Enter value…" defaultValue="" />
+          <input className="ds-input" placeholder="Enter value…" />
         </div>
         <div className="ds-form-group">
           <label className="ds-label">Segmented Control</label>
           <div className="ds-segmented">
-            <button className="active">Daily</button>
-            <button>Weekly</button>
-            <button>Monthly</button>
+            {['Daily', 'Weekly', 'Monthly'].map(v => (
+              <button key={v} className={seg === v ? 'active' : ''} onClick={() => setSeg(v)}>{v}</button>
+            ))}
           </div>
         </div>
         <div className="ds-form-group">
@@ -403,7 +468,7 @@ function FormControlsDemo() {
           <div className="ds-split-control">
             <button>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Daily
+              {seg}
             </button>
             <div className="ds-divider" />
             <button>
@@ -417,17 +482,31 @@ function FormControlsDemo() {
         <div className="ds-form-group">
           <label className="ds-label">Filter Chips</label>
           <div className="ds-flex-row">
-            <span className="ds-chip active">All</span>
-            <span className="ds-chip">Completed</span>
-            <span className="ds-chip">Pending</span>
-            <span className="ds-chip">VIP</span>
+            {['All', 'Completed', 'Pending', 'VIP'].map(v => (
+              <button
+                key={v}
+                className={`ds-chip${activeChip === v ? ' active' : ''}`}
+                onClick={() => setActiveChip(v)}
+              >{v}</button>
+            ))}
           </div>
         </div>
         <div className="ds-form-group">
           <label className="ds-label">Checkbox</label>
-          <div className="ds-flex-row">
-            <div className="ds-checkbox checked" />
-            <div className="ds-checkbox" />
+          <div className="ds-flex-row" style={{ gap: 12 }}>
+            {['Notify me', 'Remember', 'Auto-save'].map((lbl, i) => (
+              <label key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 12, color: 'var(--ds-text-secondary)' }}>
+                <div
+                  className={`ds-checkbox${checks[i] ? ' checked' : ''}`}
+                  onClick={() => toggleCheck(i)}
+                  role="checkbox"
+                  aria-checked={checks[i]}
+                  tabIndex={0}
+                  onKeyDown={e => e.key === ' ' && toggleCheck(i)}
+                />
+                {lbl}
+              </label>
+            ))}
           </div>
         </div>
       </div>
@@ -436,35 +515,61 @@ function FormControlsDemo() {
 }
 
 function AiInsightPillDemo() {
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
+  const click = () => {
+    if (loading || done) return
+    setLoading(true)
+    setTimeout(() => { setLoading(false); setDone(true) }, 1800)
+    setTimeout(() => setDone(false), 4000)
+  }
   return (
-    <button className="ds-ai-pill">
-      <div className="ds-ai-pill-icon">✦</div>
-      <span>Get AI insights for better analysis</span>
-      <div className="ds-ai-pill-arrow">→</div>
+    <button className={`ds-ai-pill${loading ? ' loading' : ''}${done ? ' done' : ''}`} onClick={click}>
+      <div className="ds-ai-pill-icon">{loading ? '⟳' : done ? '✓' : '✦'}</div>
+      <span>{loading ? 'Analyzing…' : done ? 'Revenue up 12% vs last quarter' : 'Get AI insights for better analysis'}</span>
+      <div className="ds-ai-pill-arrow">{done ? '✓' : '→'}</div>
     </button>
   )
 }
 
 function TableDemo() {
-  const rows = [
-    { id: 'TXN-00184', customer: 'Alex Chen', email: 'alex@example.com', amount: '$240.00', status: 'success', date: 'Apr 19, 2026' },
-    { id: 'TXN-00183', customer: 'Sarah Kim', email: 'sarah@example.com', amount: '$89.50', status: 'pending', date: 'Apr 18, 2026' },
-    { id: 'TXN-00182', customer: 'Marcus Webb', email: 'marcus@example.com', amount: '$312.00', status: 'refunded', date: 'Apr 17, 2026' },
+  const allRows = [
+    { id: 'TXN-00184', customer: 'Alex Chen', email: 'alex@example.com', amount: 240.00, amountFmt: '$240.00', status: 'success', date: 'Apr 19, 2026' },
+    { id: 'TXN-00183', customer: 'Sarah Kim', email: 'sarah@example.com', amount: 89.50, amountFmt: '$89.50', status: 'pending', date: 'Apr 18, 2026' },
+    { id: 'TXN-00182', customer: 'Marcus Webb', email: 'marcus@example.com', amount: 312.00, amountFmt: '$312.00', status: 'refunded', date: 'Apr 17, 2026' },
   ]
+  const [search, setSearch] = useState('')
+  const [selectedRows, setSelectedRows] = useState(new Set())
+  const [sortDir, setSortDir] = useState(1)
+  const [page, setPage] = useState(1)
+
+  const rows = allRows
+    .filter(r => !search || r.customer.toLowerCase().includes(search.toLowerCase()) || r.id.includes(search))
+    .sort((a, b) => (a.amount - b.amount) * sortDir)
+
+  const toggleRow = (id) => setSelectedRows(prev => {
+    const n = new Set(prev)
+    n.has(id) ? n.delete(id) : n.add(id)
+    return n
+  })
+
   return (
     <div className="ds-table-card">
       <div className="ds-table-topstrip">
         <div className="ds-table-search">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input placeholder="Search transactions…" />
+          <input placeholder="Search transactions…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="ds-table-tools">
+          {selectedRows.size > 0 && (
+            <span style={{ fontSize: 12, color: 'var(--ds-accent)', marginRight: 4 }}>{selectedRows.size} selected</span>
+          )}
           <button className="ds-btn ds-btn-secondary" style={{ fontSize: '12px', padding: '6px 10px' }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add
           </button>
-          <button className="ds-icon-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+          <button className="ds-icon-btn" title="Sort by amount" onClick={() => setSortDir(d => d * -1)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           </button>
         </div>
       </div>
@@ -472,9 +577,16 @@ function TableDemo() {
         <table>
           <thead>
             <tr>
+              <th style={{ width: 36 }}></th>
               <th>Transaction ID</th>
               <th>Customer</th>
-              <th>Amount</th>
+              <th
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => setSortDir(d => d * -1)}
+                title="Click to sort"
+              >
+                Amount {sortDir === 1 ? '↑' : '↓'}
+              </th>
               <th>Status</th>
               <th>Date</th>
               <th></th>
@@ -482,7 +594,17 @@ function TableDemo() {
           </thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.id}>
+              <tr
+                key={r.id}
+                style={{ background: selectedRows.has(r.id) ? 'rgba(242,107,31,0.06)' : undefined }}
+                onClick={() => toggleRow(r.id)}
+              >
+                <td>
+                  <div
+                    className={`ds-checkbox${selectedRows.has(r.id) ? ' checked' : ''}`}
+                    style={{ margin: '0 auto' }}
+                  />
+                </td>
                 <td className="mono">{r.id}</td>
                 <td>
                   <div className="ds-customer-cell">
@@ -495,10 +617,10 @@ function TableDemo() {
                     </div>
                   </div>
                 </td>
-                <td className="mono">{r.amount}</td>
+                <td className="mono">{r.amountFmt}</td>
                 <td><span className={`ds-status-pill ${r.status}`}>{r.status}</span></td>
                 <td style={{ color: 'var(--ds-text-secondary)', fontSize: 12 }}>{r.date}</td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   <button className="ds-row-actions">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
                   </button>
@@ -508,13 +630,13 @@ function TableDemo() {
           </tbody>
         </table>
         <div className="ds-pagination">
-          <span>Showing 1–3 of 184</span>
+          <span>Showing {rows.length} of {allRows.length}</span>
           <div className="ds-pagination-btns">
-            <button className="ds-page-btn" disabled>‹</button>
-            <button className="ds-page-btn active">1</button>
-            <button className="ds-page-btn">2</button>
-            <button className="ds-page-btn">3</button>
-            <button className="ds-page-btn">›</button>
+            <button className="ds-page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
+            {[1, 2, 3].map(p => (
+              <button key={p} className={`ds-page-btn${page === p ? ' active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+            ))}
+            <button className="ds-page-btn" disabled={page === 3} onClick={() => setPage(p => p + 1)}>›</button>
           </div>
         </div>
       </div>
@@ -525,14 +647,14 @@ function TableDemo() {
 function SidebarDemo() {
   const [active, setActive] = useState('dashboard')
   const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: '▦' },
-    { id: 'customers', label: 'Customers', icon: '◉' },
-    { id: 'analytics', label: 'Analytics', icon: '▲', badge: true },
-    { id: 'reports', label: 'Reports', icon: '▤' },
+    { id: 'dashboard', label: 'Dashboard', Icon: IcoDashboard },
+    { id: 'customers', label: 'Customers', Icon: IcoCustomers },
+    { id: 'analytics', label: 'Analytics', Icon: IcoAnalytics, badge: true },
+    { id: 'reports', label: 'Reports', Icon: IcoReports },
   ]
   const bottom = [
-    { id: 'settings', label: 'Settings', icon: '⚙' },
-    { id: 'help', label: 'Help', icon: '?' },
+    { id: 'settings', label: 'Settings', Icon: IcoSettings },
+    { id: 'help', label: 'Help', Icon: IcoHelp },
   ]
   return (
     <div className="ds-sidebar-demo">
@@ -552,7 +674,7 @@ function SidebarDemo() {
               className={`ds-nav-item ${active === i.id ? 'active' : ''}`}
               onClick={() => setActive(i.id)}
             >
-              <span className="ds-nav-icon">{i.icon}</span>
+              <span className="ds-nav-icon"><i.Icon /></span>
               {i.label}
               {i.badge && <span className="ds-badge-dot" />}
             </button>
@@ -561,8 +683,12 @@ function SidebarDemo() {
         <div className="ds-nav-section">
           <div className="ds-nav-title">System</div>
           {bottom.map(i => (
-            <button key={i.id} className="ds-nav-item" onClick={() => setActive(i.id)}>
-              <span className="ds-nav-icon">{i.icon}</span>
+            <button
+              key={i.id}
+              className={`ds-nav-item ${active === i.id ? 'active' : ''}`}
+              onClick={() => setActive(i.id)}
+            >
+              <span className="ds-nav-icon"><i.Icon /></span>
               {i.label}
             </button>
           ))}
@@ -576,7 +702,9 @@ function SidebarDemo() {
         </div>
       </div>
       <div className="ds-sidebar-demo-note">
-        Active item uses bg-3 (not orange). Hover turns orange. Sections separated by subtle horizontal dividers.
+        <p style={{ margin: '0 0 8px', color: 'var(--ds-text-secondary)', fontWeight: 500 }}>Try clicking any item →</p>
+        <p style={{ margin: 0 }}>Active = bg-3. Hover = orange. Sections separated by subtle dividers.</p>
+        {active && <p style={{ margin: '10px 0 0', color: 'var(--ds-accent)', fontSize: 11 }}>Active: {active}</p>}
       </div>
     </div>
   )

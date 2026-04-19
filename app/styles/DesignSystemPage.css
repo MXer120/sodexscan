@@ -564,12 +564,27 @@
   background: var(--ds-accent);
 }
 
+.ds-kpi-card {
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.ds-kpi-card.hovered {
+  box-shadow: 0 0 0 1px var(--ds-border-default), 0 8px 24px rgba(0,0,0,0.5);
+  transform: translateY(-1px);
+}
+
 .ds-kpi-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 14px;
   font-size: 11px;
+}
+
+.ds-kpi-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .ds-kpi-delta-label {
@@ -588,6 +603,51 @@
 
 .ds-kpi-delta.down {
   color: var(--ds-danger-red);
+}
+
+/* ── Button interactive states ───────────────────────────────── */
+.ds-btn.pressed {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+.ds-btn-primary:active {
+  transform: scale(0.96);
+}
+
+/* ── Status pill ring (selected) ─────────────────────────────── */
+.ds-status-pill.ring {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ── AI pill loading/done states ─────────────────────────────── */
+.ds-ai-pill.loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.ds-ai-pill.loading .ds-ai-pill-icon {
+  animation: spin 1s linear infinite;
+}
+
+.ds-ai-pill.done {
+  border-color: var(--ds-success);
+  color: var(--ds-success);
+}
+
+.ds-ai-pill.done .ds-ai-pill-icon,
+.ds-ai-pill.done .ds-ai-pill-arrow {
+  color: var(--ds-success);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Pixel chart hover state ─────────────────────────────────── */
+.ds-pixel-col.hov .ds-pixel-cell {
+  filter: brightness(1.4);
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
