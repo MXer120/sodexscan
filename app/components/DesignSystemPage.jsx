@@ -276,7 +276,10 @@ function KpiCards() {
         {cards.map(c => (
           <div key={c.label} className="ds-kpi-card">
             <div className="ds-kpi-inner">
-              <div className="ds-kpi-label">{c.label}</div>
+              <div className="ds-kpi-label-row">
+                <span className="ds-kpi-label">{c.label}</span>
+                <span className="ds-info-icon" title="More info">i</span>
+              </div>
               <div className="ds-kpi-value-row">
                 <span className="ds-kpi-value">{c.value}</span>
                 {c.suffix && <span className="ds-kpi-suffix">{c.suffix}</span>}
@@ -288,10 +291,8 @@ function KpiCards() {
               </div>
             </div>
             <div className="ds-kpi-footer">
-              <span className={`ds-kpi-delta ${c.positive ? '' : 'down'}`}>
-                {c.positive ? '↑' : '↓'} {c.delta}
-                <span className="ds-kpi-delta-label">{c.deltaLabel}</span>
-              </span>
+              <span className="ds-kpi-delta-label">{c.deltaLabel}</span>
+              <span className={`ds-kpi-delta ${c.positive ? 'up' : 'down'}`}>{c.delta}</span>
             </div>
           </div>
         ))}
@@ -631,13 +632,13 @@ export default function DesignSystemPage() {
           <ColorPalette />
           <Typography />
           <Spacing />
-          <PixelChartExample />
-          <KpiCards />
         </div>
       )}
 
       {tab === 'components' && (
         <div className="ds-content">
+          <KpiCards />
+          <PixelChartExample />
           <Buttons />
           <StatusPills />
           <FormControls />
