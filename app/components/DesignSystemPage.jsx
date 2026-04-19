@@ -594,12 +594,13 @@ function TopbarExample() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'system', label: 'Design System' },
+  { id: 'tokens', label: 'Design Tokens' },
+  { id: 'components', label: 'Components' },
   { id: 'preview', label: 'Dashboard Preview' },
 ]
 
 export default function DesignSystemPage() {
-  const [tab, setTab] = useState('system')
+  const [tab, setTab] = useState('tokens')
 
   useEffect(() => {
     document.title = 'Design System | CommunityScan SoDEX'
@@ -610,7 +611,7 @@ export default function DesignSystemPage() {
       <div className="ds-page-header">
         <div>
           <h1 className="ds-page-title">Design System</h1>
-          <p className="ds-page-subtitle">Tokens, components, and patterns — Northside Studio design language</p>
+          <p className="ds-page-subtitle">Northside Studio — tokens, components, and patterns</p>
         </div>
         <div className="ds-tab-switch">
           {TABS.map(t => (
@@ -625,18 +626,23 @@ export default function DesignSystemPage() {
         </div>
       </div>
 
-      {tab === 'system' && (
+      {tab === 'tokens' && (
         <div className="ds-content">
           <ColorPalette />
           <Typography />
           <Spacing />
+          <PixelChartExample />
           <KpiCards />
+        </div>
+      )}
+
+      {tab === 'components' && (
+        <div className="ds-content">
           <Buttons />
           <StatusPills />
           <FormControls />
           <AiInsightPill />
           <TableExample />
-          <PixelChartExample />
           <SidebarExample />
           <TopbarExample />
         </div>
