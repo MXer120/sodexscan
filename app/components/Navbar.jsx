@@ -21,6 +21,7 @@ const FALLBACK_NAV = [
   { path: '/aggregator',     label: 'Aggregator',     enabled: true, tag: 'V1',  sort_order: 60,  in_more: false },
   { path: '/tickets',        label: 'Tickets',        enabled: true, tag: null,  sort_order: 70,  in_more: false },
   { path: '/larp',           label: 'LARP',           enabled: false, tag: 'New', sort_order: 75,  in_more: false },
+  { path: '/design-system', label: 'Design System',  enabled: true, tag: null,  sort_order: 78,  in_more: true  },
   { path: '/admin',          label: 'Admin',          enabled: true, tag: null,  sort_order: 80,  in_more: false },
   { path: '/platform',       label: 'Platform',       enabled: true, tag: null,  sort_order: 90,  in_more: true  },
   { path: '/incoming',       label: 'Incoming',       enabled: true, tag: null,  sort_order: 100, in_more: true  },
