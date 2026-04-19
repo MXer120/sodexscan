@@ -54,7 +54,9 @@ function KpiCard({ label, value, colorClass, deltaValue, deltaDir, deltaLabel, s
 }
 
 // ── DS Table wrapper ───────────────────────────────────────────
-function DsTable({ title, count, children, page, totalPages, onPage }) {
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
+function DsTable({ title, count, children, page, totalPages, onPage, pageSize, onPageSize, totalRows }) {
   const showPagination = totalPages != null && totalPages > 1 && onPage
   const pageWindow = () => {
     if (!showPagination) return []
@@ -69,19 +71,34 @@ function DsTable({ title, count, children, page, totalPages, onPage }) {
     })
     return result
   }
+  const rowStart = totalRows ? page * pageSize + 1 : null
+  const rowEnd   = totalRows ? Math.min((page + 1) * pageSize, totalRows) : null
   return (
     <div className="ds-table-card">
-      {(title || count != null) && (
+      {(title || count != null || onPageSize) && (
         <div className="ds-table-topstrip">
-          {title && <span className="rd-section-title">{title}</span>}
-          {count != null && <span className="rd-section-count">{count}</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {title && <span className="rd-section-title">{title}</span>}
+            {count != null && <span className="rd-section-count">{count}</span>}
+          </div>
+          {onPageSize && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--ds-text-muted)' }}>Rows</span>
+              <div className="ds-segmented" style={{ display: 'inline-flex' }}>
+                {PAGE_SIZE_OPTIONS.map(s => (
+                  <button key={s} className={pageSize === s ? 'active' : ''}
+                    onClick={() => { onPageSize(s); onPage(0) }}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="ds-table-inner">
         {children}
         {showPagination && (
           <div className="ds-pagination">
-            <span>Page {page + 1} of {totalPages}</span>
+            <span>{rowStart != null ? `${rowStart}–${rowEnd} of ${totalRows}` : `Page ${page + 1} of ${totalPages}`}</span>
             <div className="ds-pagination-btns">
               <button className="ds-page-btn" disabled={page === 0} onClick={() => onPage(page - 1)}>‹</button>
               {pageWindow().map((p, i) =>
@@ -123,10 +140,9 @@ function downloadCSV(trades, meta) {
 }
 
 // ── Main component ─────────────────────────────────────────────
-const PAGE_SIZE = 50
-
 export default function ReportDashboard({ trades = [], meta = {}, onNewReport, onRefresh }) {
   const [tradePage, setTradePage] = useState(0)
+  const [pageSize,  setPageSize]  = useState(10)
   const currency = meta.currency ?? 'USD'
 
   const stats = useMemo(() => {
@@ -186,8 +202,8 @@ export default function ReportDashboard({ trades = [], meta = {}, onNewReport, o
       .sort((a, b) => b.netPnl - a.netPnl)
   }, [trades, meta.inclFees])
 
-  const totalPages = Math.ceil(trades.length / PAGE_SIZE)
-  const visibleTrades = trades.slice(tradePage * PAGE_SIZE, (tradePage + 1) * PAGE_SIZE)
+  const totalPages = Math.ceil(trades.length / pageSize)
+  const visibleTrades = trades.slice(tradePage * pageSize, (tradePage + 1) * pageSize)
 
   return (
     <div className="rd-root">
@@ -322,7 +338,8 @@ export default function ReportDashboard({ trades = [], meta = {}, onNewReport, o
 
       {/* ── Trade history ── */}
       <DsTable title="Trade History" count={`${trades.length} positions`}
-        page={tradePage} totalPages={totalPages} onPage={setTradePage}>
+        page={tradePage} totalPages={totalPages} onPage={setTradePage}
+        pageSize={pageSize} onPageSize={setPageSize} totalRows={trades.length}>
         <table>
           <thead><tr>
             <th>Date</th>
