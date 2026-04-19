@@ -1672,28 +1672,6 @@ var KpiRow = function KpiRow() {
       columnNumber: 7
     }
   }), /*#__PURE__*/React.createElement(KPI, {
-    label: "TOTAL ORDERS",
-    value: "10,320",
-    suffix: "Orders",
-    delta: "0.94",
-    sparkData: spark2,
-    __source: {
-      fileName: _jsxFileName,
-      lineNumber: 209,
-      columnNumber: 7
-    }
-  }), /*#__PURE__*/React.createElement(KPI, {
-    label: "NEW CUSTOMERS",
-    value: "4,305",
-    suffix: "New Users",
-    delta: "0.94",
-    sparkData: spark3,
-    __source: {
-      fileName: _jsxFileName,
-      lineNumber: 210,
-      columnNumber: 7
-    }
-  }), /*#__PURE__*/React.createElement(KPI, {
     label: "CONVERSION RATE",
     value: "3.9%",
     delta: "0.94",
@@ -4043,5 +4021,122 @@ const App = () => {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 
+<!-- Sales Trend crosshair overlay -->
+<style>
+.sales-crosshair-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  overflow: hidden;
+}
+.sales-vline {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(242,107,31,0.55) 0px,
+    rgba(242,107,31,0.55) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.9) 18%, rgba(0,0,0,0.9) 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.9) 18%, rgba(0,0,0,0.9) 82%, transparent 100%);
+  transform: translateX(-50%);
+}
+.sales-dot {
+  position: absolute;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: #141414;
+  border: 2px solid #f26b1f;
+  box-shadow: 0 0 8px rgba(242,107,31,0.5);
+  transform: translate(-50%, -50%);
+}
+.sales-label {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  background: rgba(20,20,20,0.92);
+  border: 1px solid rgba(242,107,31,0.35);
+  border-radius: 5px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #f5f5f5;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 14px rgba(242,107,31,0.22), 0 0 4px rgba(242,107,31,0.12), inset 0 0 12px rgba(242,107,31,0.05);
+}
+</style>
+<script>
+(function() {
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function init() {
+    var grid = document.querySelector('.pixel-grid');
+    if (!grid) { setTimeout(init, 400); return; }
+
+    var container = grid.parentElement; /* the position:relative div */
+    container.style.position = 'relative';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'sales-crosshair-wrap';
+
+    var vline = document.createElement('div');
+    vline.className = 'sales-vline';
+
+    var dot = document.createElement('div');
+    dot.className = 'sales-dot';
+
+    var lbl = document.createElement('div');
+    lbl.className = 'sales-label';
+
+    wrap.appendChild(vline);
+    wrap.appendChild(dot);
+    wrap.appendChild(lbl);
+    container.appendChild(wrap);
+
+    function hide() {
+      wrap.style.display = 'none';
+    }
+    hide();
+
+    grid.addEventListener('mousemove', function(e) {
+      var cRect = container.getBoundingClientRect();
+      var gRect = grid.getBoundingClientRect();
+
+      var x = e.clientX - cRect.left;
+      var y = e.clientY - cRect.top;
+
+      /* clamp x to grid bounds */
+      var xClamped = Math.max(gRect.left - cRect.left, Math.min(gRect.right - cRect.left, x));
+
+      /* figure out month from column index */
+      var cols = grid.querySelectorAll('.pixel-col');
+      var col = e.target.closest && e.target.closest('.pixel-col');
+      var colIdx = col ? Array.from(cols).indexOf(col) : -1;
+      var monthIdx = colIdx >= 0 ? Math.round(colIdx / (cols.length - 1) * 11) : 0;
+
+      vline.style.left = xClamped + 'px';
+      dot.style.left = xClamped + 'px';
+      dot.style.top = y + 'px';
+      lbl.style.left = xClamped + 'px';
+      lbl.style.top = y + 'px';
+      lbl.textContent = MONTHS[monthIdx] + ' 2025';
+
+      wrap.style.display = 'block';
+    });
+
+    grid.addEventListener('mouseleave', hide);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 600); /* wait for React to render */
+  }
+})();
+</script>
 
 </body></html>
