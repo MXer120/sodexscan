@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import '../styles/DesignSystemPage.css'
 
-// ─── Token data pulled from the imported design system ────────────────────────
+// ─── Token data ───────────────────────────────────────────────────────────────
 
 const COLOR_GROUPS = [
   {
@@ -48,15 +48,14 @@ const COLOR_GROUPS = [
     tokens: [
       { name: '--ds-success', value: '#22c55e', desc: 'Completed / positive' },
       { name: '--ds-warning', value: '#f59e0b', desc: 'Pending / caution' },
-      { name: '--ds-danger', value: '#9ca3af', desc: 'Refunded / neutral-danger' },
+      { name: '--ds-danger-red', value: '#ef4444', desc: 'Negative / error' },
     ],
   },
   {
     label: 'Chart Pixels',
     tokens: [
       { name: '--ds-pixel-off', value: '#252525', desc: 'Empty cell' },
-      { name: '--ds-pixel-low', value: '#3a3a3a', desc: 'Low fill' },
-      { name: '--ds-pixel-mid', value: '#ff8844', desc: 'Mid fill' },
+      { name: '--ds-pixel-low', value: '#ff8844', desc: 'Low fill' },
       { name: '--ds-pixel-high', value: '#f26b1f', desc: 'Peak fill' },
     ],
   },
@@ -90,16 +89,69 @@ const RADIUS_SCALE = [
   { token: '--ds-r-xl', value: '16px', label: 'XL' },
 ]
 
-// ─── Section components ───────────────────────────────────────────────────────
+// ─── Canvas wrapper ───────────────────────────────────────────────────────────
 
-function SectionHeader({ title, desc }) {
+function Canvas({ id, title, desc, children }) {
   return (
-    <div className="ds-section-header">
-      <h2 className="ds-section-title">{title}</h2>
-      {desc && <p className="ds-section-desc">{desc}</p>}
+    <div className="ds-canvas" id={id}>
+      <div className="ds-canvas-header">
+        <h2 className="ds-canvas-title">{title}</h2>
+        {desc && <p className="ds-canvas-desc">{desc}</p>}
+      </div>
+      <div className="ds-canvas-body">{children}</div>
     </div>
   )
 }
+
+// ─── Scroll-tracking sidebar ──────────────────────────────────────────────────
+
+function DsSidebar({ sections, activeId }) {
+  return (
+    <nav className="ds-sidenav">
+      <span className="ds-sidenav-label">On this page</span>
+      {sections.map(s => (
+        <a
+          key={s.id}
+          href={`#${s.id}`}
+          className={`ds-sidenav-item ${activeId === s.id ? 'active' : ''}`}
+          onClick={e => {
+            e.preventDefault()
+            document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        >
+          {s.label}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+function TabWithSidebar({ sections, children }) {
+  const [activeId, setActiveId] = useState(sections[0]?.id)
+
+  useEffect(() => {
+    const observers = sections.map(s => {
+      const el = document.getElementById(s.id)
+      if (!el) return null
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveId(s.id) },
+        { rootMargin: '-10% 0px -80% 0px', threshold: 0 }
+      )
+      obs.observe(el)
+      return obs
+    })
+    return () => observers.forEach(o => o?.disconnect())
+  }, [sections])
+
+  return (
+    <div className="ds-tab-layout">
+      <DsSidebar sections={sections} activeId={activeId} />
+      <div className="ds-main-content">{children}</div>
+    </div>
+  )
+}
+
+// ─── Token section components ─────────────────────────────────────────────────
 
 function ColorPalette() {
   const [copied, setCopied] = useState(null)
@@ -109,8 +161,7 @@ function ColorPalette() {
     setTimeout(() => setCopied(null), 1200)
   }
   return (
-    <section className="ds-section">
-      <SectionHeader title="Color Tokens" desc="Warm-tinted dark neutrals with a single orange accent. All backgrounds use the --ds-bg-* scale." />
+    <div className="ds-color-groups">
       {COLOR_GROUPS.map(g => (
         <div key={g.label} className="ds-color-group">
           <h3 className="ds-color-group-label">{g.label}</h3>
@@ -134,43 +185,39 @@ function ColorPalette() {
           </div>
         </div>
       ))}
-    </section>
+    </div>
   )
 }
 
-function Typography() {
+function TypographyTable() {
   return (
-    <section className="ds-section">
-      <SectionHeader title="Typography" desc="Inter for UI text. JetBrains Mono for numeric values, IDs, and code." />
-      <div className="ds-type-table">
-        {TYPE_SCALE.map(t => (
-          <div key={t.name} className="ds-type-row">
-            <div className="ds-type-meta">
-              <span className="ds-type-name">{t.name}</span>
-              <span className="ds-type-spec">{t.size} · {t.weight} · {t.font === 'mono' ? 'JetBrains Mono' : 'Inter'}</span>
-            </div>
-            <div
-              className="ds-type-sample"
-              style={{
-                fontSize: t.size,
-                fontWeight: t.weight,
-                fontFamily: t.font === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif",
-                letterSpacing: t.font === 'mono' ? '0' : '-0.005em',
-              }}
-            >
-              {t.sample}
-            </div>
+    <div className="ds-type-table">
+      {TYPE_SCALE.map(t => (
+        <div key={t.name} className="ds-type-row">
+          <div className="ds-type-meta">
+            <span className="ds-type-name">{t.name}</span>
+            <span className="ds-type-spec">{t.size} · {t.weight} · {t.font === 'mono' ? 'JetBrains Mono' : 'Inter'}</span>
           </div>
-        ))}
-      </div>
-    </section>
+          <div
+            className="ds-type-sample"
+            style={{
+              fontSize: t.size,
+              fontWeight: t.weight,
+              fontFamily: t.font === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif",
+              letterSpacing: t.font === 'mono' ? '0' : '-0.005em',
+            }}
+          >
+            {t.sample}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
-function Spacing() {
+function SpacingVis() {
   return (
-    <section className="ds-section">
-      <SectionHeader title="Spacing Scale" desc="4px base unit. All layout uses multiples of this grid." />
+    <div className="ds-spacing-section">
       <div className="ds-spacing-list">
         {SPACING_SCALE.map(s => (
           <div key={s.token} className="ds-spacing-row">
@@ -191,56 +238,125 @@ function Spacing() {
           </div>
         ))}
       </div>
-    </section>
+    </div>
   )
 }
 
-function Buttons() {
+// ─── Component section components ─────────────────────────────────────────────
+
+function KpiCardsDemo() {
+  const cards = [
+    { label: 'Total Revenue', value: '$48,295', suffix: 'usd', delta: '+0.94%', deltaLabel: 'last year', positive: true },
+    { label: 'Active Customers', value: '2,841', suffix: '', delta: '+12.3%', deltaLabel: 'last month', positive: true },
+    { label: 'Avg Order Value', value: '$127', suffix: '', delta: '-2.1%', deltaLabel: 'last week', positive: false },
+    { label: 'Refund Rate', value: '1.4', suffix: '%', delta: '+0.2%', deltaLabel: 'last month', positive: false },
+  ]
+  const sparkHeights = [30, 55, 40, 70, 50, 80, 65, 90]
   return (
-    <section className="ds-section">
-      <SectionHeader title="Buttons" desc="Three variants: primary (orange fill), secondary (bg-3 + border), ghost (transparent)." />
-      <div className="ds-component-row">
-        <div className="ds-component-group">
-          <span className="ds-component-label">Primary</span>
-          <div className="ds-flex-row">
-            <button className="ds-btn ds-btn-primary">Save Changes</button>
-            <button className="ds-btn ds-btn-primary" disabled>Disabled</button>
+    <div className="ds-kpi-grid">
+      {cards.map(c => (
+        <div key={c.label} className="ds-kpi-card">
+          <div className="ds-kpi-inner">
+            <div className="ds-kpi-label-row">
+              <span className="ds-kpi-label">{c.label}</span>
+              <span className="ds-info-icon" title="More info">i</span>
+            </div>
+            <div className="ds-kpi-value-row">
+              <span className="ds-kpi-value">{c.value}</span>
+              {c.suffix && <span className="ds-kpi-suffix">{c.suffix}</span>}
+            </div>
+            <div className="ds-kpi-sparkline">
+              {sparkHeights.map((h, i) => (
+                <div key={i} className={`ds-spark-bar ${i === sparkHeights.length - 1 ? 'peak' : ''}`} style={{ height: h + '%' }} />
+              ))}
+            </div>
+          </div>
+          <div className="ds-kpi-footer">
+            <span className="ds-kpi-delta-label">{c.deltaLabel}</span>
+            <span className={`ds-kpi-delta ${c.positive ? 'up' : 'down'}`}>{c.delta}</span>
           </div>
         </div>
-        <div className="ds-component-group">
-          <span className="ds-component-label">Secondary</span>
-          <div className="ds-flex-row">
-            <button className="ds-btn ds-btn-secondary">Export</button>
-            <button className="ds-btn ds-btn-secondary">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Transaction
-            </button>
+      ))}
+    </div>
+  )
+}
+
+function PixelChartDemo() {
+  const COLS = 24
+  const ROWS = 12
+  const getHeight = (col) => Math.round(3 + Math.sin(col * 0.4) * 2 + (col * 7 % 4))
+  const cols = Array.from({ length: COLS }, (_, i) => ({
+    filled: Math.min(ROWS, getHeight(i)),
+    peak: i === 18,
+  }))
+  return (
+    <div className="ds-pixel-demo">
+      <div className="ds-pixel-grid" style={{ '--cols': COLS, '--rows': ROWS }}>
+        {cols.map((col, ci) => (
+          <div key={ci} className={`ds-pixel-col ${col.peak ? 'peak' : ''}`}>
+            {Array.from({ length: ROWS }, (_, ri) => {
+              const fromBottom = ROWS - 1 - ri
+              const filled = fromBottom < col.filled
+              const high = filled && fromBottom < Math.ceil(col.filled * 0.4)
+              return (
+                <div key={ri} className={`ds-pixel-cell ${filled ? (high ? 'high' : 'low') : ''}`} />
+              )
+            })}
           </div>
-        </div>
-        <div className="ds-component-group">
-          <span className="ds-component-label">Ghost</span>
-          <div className="ds-flex-row">
-            <button className="ds-btn ds-btn-ghost">Cancel</button>
-            <button className="ds-btn ds-btn-ghost">View All</button>
-          </div>
-        </div>
-        <div className="ds-component-group">
-          <span className="ds-component-label">Icon Button</span>
-          <div className="ds-flex-row">
-            <button className="ds-icon-btn" title="More options">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-            </button>
-            <button className="ds-icon-btn ds-icon-btn-active">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            </button>
-          </div>
+        ))}
+      </div>
+      <div className="ds-pixel-legend">
+        <span><span className="ds-swatch" style={{ background: '#f26b1f' }} /> Filled (high)</span>
+        <span><span className="ds-swatch" style={{ background: '#ff8844' }} /> Filled (low)</span>
+        <span><span className="ds-swatch" style={{ background: '#252525' }} /> Empty</span>
+      </div>
+    </div>
+  )
+}
+
+function ButtonsDemo() {
+  return (
+    <div className="ds-component-row">
+      <div className="ds-component-group">
+        <span className="ds-component-label">Primary</span>
+        <div className="ds-flex-row">
+          <button className="ds-btn ds-btn-primary">Save Changes</button>
+          <button className="ds-btn ds-btn-primary" disabled>Disabled</button>
         </div>
       </div>
-    </section>
+      <div className="ds-component-group">
+        <span className="ds-component-label">Secondary</span>
+        <div className="ds-flex-row">
+          <button className="ds-btn ds-btn-secondary">Export</button>
+          <button className="ds-btn ds-btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Transaction
+          </button>
+        </div>
+      </div>
+      <div className="ds-component-group">
+        <span className="ds-component-label">Ghost</span>
+        <div className="ds-flex-row">
+          <button className="ds-btn ds-btn-ghost">Cancel</button>
+          <button className="ds-btn ds-btn-ghost">View All</button>
+        </div>
+      </div>
+      <div className="ds-component-group">
+        <span className="ds-component-label">Icon Button</span>
+        <div className="ds-flex-row">
+          <button className="ds-icon-btn" title="More options">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+          </button>
+          <button className="ds-icon-btn ds-icon-btn-active">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
-function StatusPills() {
+function StatusPillsDemo() {
   const statuses = [
     { label: 'Completed', cls: 'success' },
     { label: 'Pending', cls: 'pending' },
@@ -250,141 +366,17 @@ function StatusPills() {
     { label: 'VIP', cls: 'vip' },
   ]
   return (
-    <section className="ds-section">
-      <SectionHeader title="Status Pills" desc="Colored dot + soft background tint. Used in tables and drawers." />
-      <div className="ds-flex-row ds-wrap">
-        {statuses.map(s => (
-          <span key={s.label} className={`ds-status-pill ${s.cls}`}>{s.label}</span>
-        ))}
-      </div>
-    </section>
+    <div className="ds-flex-row ds-wrap">
+      {statuses.map(s => (
+        <span key={s.label} className={`ds-status-pill ${s.cls}`}>{s.label}</span>
+      ))}
+    </div>
   )
 }
 
-function KpiCards() {
-  const cards = [
-    { label: 'Total Revenue', value: '$48,295', suffix: 'usd', delta: '+0.94%', deltaLabel: 'last year', positive: true },
-    { label: 'Active Customers', value: '2,841', suffix: '', delta: '+12.3%', deltaLabel: 'last month', positive: true },
-    { label: 'Avg Order Value', value: '$127', suffix: '', delta: '-2.1%', deltaLabel: 'last week', positive: false },
-    { label: 'Refund Rate', value: '1.4', suffix: '%', delta: '+0.2%', deltaLabel: 'last month', positive: false },
-  ]
-  const sparkHeights = [30, 55, 40, 70, 50, 80, 65, 90]
+function FormControlsDemo() {
   return (
-    <section className="ds-section">
-      <SectionHeader title="KPI Cards" desc="Double-box pattern: outer bg-1 frame, inner bg-3 card. Footer row always in the outer box, never clipped." />
-      <div className="ds-kpi-grid">
-        {cards.map(c => (
-          <div key={c.label} className="ds-kpi-card">
-            <div className="ds-kpi-inner">
-              <div className="ds-kpi-label-row">
-                <span className="ds-kpi-label">{c.label}</span>
-                <span className="ds-info-icon" title="More info">i</span>
-              </div>
-              <div className="ds-kpi-value-row">
-                <span className="ds-kpi-value">{c.value}</span>
-                {c.suffix && <span className="ds-kpi-suffix">{c.suffix}</span>}
-              </div>
-              <div className="ds-kpi-sparkline">
-                {sparkHeights.map((h, i) => (
-                  <div key={i} className={`ds-spark-bar ${i === sparkHeights.length - 1 ? 'peak' : ''}`} style={{ height: h + '%' }} />
-                ))}
-              </div>
-            </div>
-            <div className="ds-kpi-footer">
-              <span className="ds-kpi-delta-label">{c.deltaLabel}</span>
-              <span className={`ds-kpi-delta ${c.positive ? 'up' : 'down'}`}>{c.delta}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function TableExample() {
-  const rows = [
-    { id: 'TXN-00184', customer: 'Alex Chen', email: 'alex@example.com', amount: '$240.00', status: 'success', date: 'Apr 19, 2026' },
-    { id: 'TXN-00183', customer: 'Sarah Kim', email: 'sarah@example.com', amount: '$89.50', status: 'pending', date: 'Apr 18, 2026' },
-    { id: 'TXN-00182', customer: 'Marcus Webb', email: 'marcus@example.com', amount: '$312.00', status: 'refunded', date: 'Apr 17, 2026' },
-  ]
-  return (
-    <section className="ds-section">
-      <SectionHeader title="Tables" desc="Subtle header (same bg as rows). No heavy borders. Row hover lifts to bg-4." />
-      <div className="ds-table-card">
-        <div className="ds-table-topstrip">
-          <div className="ds-table-search">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input placeholder="Search transactions…" />
-          </div>
-          <div className="ds-table-tools">
-            <button className="ds-btn ds-btn-secondary" style={{ fontSize: '12px', padding: '6px 10px' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add
-            </button>
-            <button className="ds-icon-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-            </button>
-          </div>
-        </div>
-        <div className="ds-table-inner">
-          <table>
-            <thead>
-              <tr>
-                <th>Transaction ID</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(r => (
-                <tr key={r.id}>
-                  <td className="mono">{r.id}</td>
-                  <td>
-                    <div className="ds-customer-cell">
-                      <div className="ds-avatar" style={{ background: `hsl(${r.customer.charCodeAt(0) * 5 % 360}, 60%, 40%)` }}>
-                        {r.customer[0]}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13 }}>{r.customer}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ds-text-tertiary)' }}>{r.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="mono">{r.amount}</td>
-                  <td><span className={`ds-status-pill ${r.status}`}>{r.status}</span></td>
-                  <td style={{ color: 'var(--ds-text-secondary)', fontSize: 12 }}>{r.date}</td>
-                  <td>
-                    <button className="ds-row-actions">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="ds-pagination">
-            <span>Showing 1–3 of 184</span>
-            <div className="ds-pagination-btns">
-              <button className="ds-page-btn" disabled>‹</button>
-              <button className="ds-page-btn active">1</button>
-              <button className="ds-page-btn">2</button>
-              <button className="ds-page-btn">3</button>
-              <button className="ds-page-btn">›</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function FormControls() {
-  return (
-    <section className="ds-section">
-      <SectionHeader title="Form Controls" desc="Inputs share the same boxed style as the topbar search — bg-2 + border-subtle + r-md." />
+    <div>
       <div className="ds-form-row">
         <div className="ds-form-group">
           <label className="ds-label">Search</label>
@@ -439,24 +431,98 @@ function FormControls() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
-function AiInsightPill() {
+function AiInsightPillDemo() {
   return (
-    <section className="ds-section">
-      <SectionHeader title="AI Insight Pill" desc="Neutral-only. Gray sparkle icon + text + arrow circle. Glows on hover — never orange." />
-      <button className="ds-ai-pill">
-        <div className="ds-ai-pill-icon">✦</div>
-        <span>Get AI insights for better analysis</span>
-        <div className="ds-ai-pill-arrow">→</div>
-      </button>
-    </section>
+    <button className="ds-ai-pill">
+      <div className="ds-ai-pill-icon">✦</div>
+      <span>Get AI insights for better analysis</span>
+      <div className="ds-ai-pill-arrow">→</div>
+    </button>
   )
 }
 
-function SidebarExample() {
+function TableDemo() {
+  const rows = [
+    { id: 'TXN-00184', customer: 'Alex Chen', email: 'alex@example.com', amount: '$240.00', status: 'success', date: 'Apr 19, 2026' },
+    { id: 'TXN-00183', customer: 'Sarah Kim', email: 'sarah@example.com', amount: '$89.50', status: 'pending', date: 'Apr 18, 2026' },
+    { id: 'TXN-00182', customer: 'Marcus Webb', email: 'marcus@example.com', amount: '$312.00', status: 'refunded', date: 'Apr 17, 2026' },
+  ]
+  return (
+    <div className="ds-table-card">
+      <div className="ds-table-topstrip">
+        <div className="ds-table-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input placeholder="Search transactions…" />
+        </div>
+        <div className="ds-table-tools">
+          <button className="ds-btn ds-btn-secondary" style={{ fontSize: '12px', padding: '6px 10px' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+          <button className="ds-icon-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+          </button>
+        </div>
+      </div>
+      <div className="ds-table-inner">
+        <table>
+          <thead>
+            <tr>
+              <th>Transaction ID</th>
+              <th>Customer</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.id}>
+                <td className="mono">{r.id}</td>
+                <td>
+                  <div className="ds-customer-cell">
+                    <div className="ds-avatar" style={{ background: `hsl(${r.customer.charCodeAt(0) * 5 % 360}, 60%, 40%)` }}>
+                      {r.customer[0]}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13 }}>{r.customer}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ds-text-tertiary)' }}>{r.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="mono">{r.amount}</td>
+                <td><span className={`ds-status-pill ${r.status}`}>{r.status}</span></td>
+                <td style={{ color: 'var(--ds-text-secondary)', fontSize: 12 }}>{r.date}</td>
+                <td>
+                  <button className="ds-row-actions">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="ds-pagination">
+          <span>Showing 1–3 of 184</span>
+          <div className="ds-pagination-btns">
+            <button className="ds-page-btn" disabled>‹</button>
+            <button className="ds-page-btn active">1</button>
+            <button className="ds-page-btn">2</button>
+            <button className="ds-page-btn">3</button>
+            <button className="ds-page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SidebarDemo() {
   const [active, setActive] = useState('dashboard')
   const items = [
     { id: 'dashboard', label: 'Dashboard', icon: '▦' },
@@ -469,128 +535,103 @@ function SidebarExample() {
     { id: 'help', label: 'Help', icon: '?' },
   ]
   return (
-    <section className="ds-section">
-      <SectionHeader title="Sidebar Navigation" desc="Active item = bg-3 (light gray). Hover = orange. Horizontal dividers between sections." />
-      <div className="ds-sidebar-demo">
-        <div className="ds-sidebar">
-          <div className="ds-sidebar-brand">
-            <div className="ds-brand-logo">NS</div>
-            <div className="ds-brand-text">
-              <div className="ds-brand-label">Studio</div>
-              <div className="ds-brand-name">Northside</div>
-            </div>
-          </div>
-          <div className="ds-nav-section">
-            <div className="ds-nav-title">Main</div>
-            {items.map(i => (
-              <button
-                key={i.id}
-                className={`ds-nav-item ${active === i.id ? 'active' : ''}`}
-                onClick={() => setActive(i.id)}
-              >
-                <span className="ds-nav-icon">{i.icon}</span>
-                {i.label}
-                {i.badge && <span className="ds-badge-dot" />}
-              </button>
-            ))}
-          </div>
-          <div className="ds-nav-section">
-            <div className="ds-nav-title">System</div>
-            {bottom.map(i => (
-              <button key={i.id} className="ds-nav-item" onClick={() => setActive(i.id)}>
-                <span className="ds-nav-icon">{i.icon}</span>
-                {i.label}
-              </button>
-            ))}
-          </div>
-          <div className="ds-sidebar-user">
-            <div className="ds-user-avatar">AK</div>
-            <div>
-              <div className="ds-user-name">Alex Kim</div>
-              <div className="ds-user-plan">Pro Plan</div>
-            </div>
+    <div className="ds-sidebar-demo">
+      <div className="ds-sidebar">
+        <div className="ds-sidebar-brand">
+          <div className="ds-brand-logo">NS</div>
+          <div className="ds-brand-text">
+            <div className="ds-brand-label">Studio</div>
+            <div className="ds-brand-name">Northside</div>
           </div>
         </div>
-        <div className="ds-sidebar-demo-note">
-          Active item uses bg-3 (not orange). Hover turns orange. Sections separated by subtle horizontal dividers.
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function PixelChartExample() {
-  const COLS = 24
-  const ROWS = 12
-  const getHeight = (col) => Math.round(3 + Math.sin(col * 0.4) * 2 + Math.random() * 3)
-  const cols = Array.from({ length: COLS }, (_, i) => ({
-    filled: Math.min(ROWS, getHeight(i)),
-    peak: i === 18,
-  }))
-  return (
-    <section className="ds-section">
-      <SectionHeader title="Pixel / Mosaic Chart" desc="Signature visual element. Each column is a stack of square cells. Filled cells are orange; empty cells are near-black. Hover highlights the column." />
-      <div className="ds-pixel-demo">
-        <div className="ds-pixel-grid" style={{ '--cols': COLS, '--rows': ROWS }}>
-          {cols.map((col, ci) => (
-            <div key={ci} className={`ds-pixel-col ${col.peak ? 'peak' : ''}`}>
-              {Array.from({ length: ROWS }, (_, ri) => {
-                const fromBottom = ROWS - 1 - ri
-                const filled = fromBottom < col.filled
-                const high = filled && fromBottom < Math.ceil(col.filled * 0.4)
-                return (
-                  <div
-                    key={ri}
-                    className={`ds-pixel-cell ${filled ? (high ? 'high' : 'low') : ''}`}
-                  />
-                )
-              })}
-            </div>
+        <div className="ds-nav-section">
+          <div className="ds-nav-title">Main</div>
+          {items.map(i => (
+            <button
+              key={i.id}
+              className={`ds-nav-item ${active === i.id ? 'active' : ''}`}
+              onClick={() => setActive(i.id)}
+            >
+              <span className="ds-nav-icon">{i.icon}</span>
+              {i.label}
+              {i.badge && <span className="ds-badge-dot" />}
+            </button>
           ))}
         </div>
-        <div className="ds-pixel-legend">
-          <span><span className="ds-swatch" style={{ background: '#f26b1f' }} /> Filled (high)</span>
-          <span><span className="ds-swatch" style={{ background: '#ff8844' }} /> Filled (low)</span>
-          <span><span className="ds-swatch" style={{ background: '#252525' }} /> Empty</span>
+        <div className="ds-nav-section">
+          <div className="ds-nav-title">System</div>
+          {bottom.map(i => (
+            <button key={i.id} className="ds-nav-item" onClick={() => setActive(i.id)}>
+              <span className="ds-nav-icon">{i.icon}</span>
+              {i.label}
+            </button>
+          ))}
+        </div>
+        <div className="ds-sidebar-user">
+          <div className="ds-user-avatar">AK</div>
+          <div>
+            <div className="ds-user-name">Alex Kim</div>
+            <div className="ds-user-plan">Pro Plan</div>
+          </div>
         </div>
       </div>
-    </section>
+      <div className="ds-sidebar-demo-note">
+        Active item uses bg-3 (not orange). Hover turns orange. Sections separated by subtle horizontal dividers.
+      </div>
+    </div>
   )
 }
 
-function TopbarExample() {
+function TopbarDemo() {
   return (
-    <section className="ds-section">
-      <SectionHeader title="Topbar" desc="Sticky. Search + icon boxes all share the same style: bg-2, border-subtle, r-md. Avatar box has 3px padding with inner rounded avatar." />
-      <div className="ds-topbar-demo">
-        <div className="ds-topbar">
-          <div className="ds-breadcrumb">
-            <span className="ds-breadcrumb-muted">App</span>
-            <span className="ds-breadcrumb-sep">/</span>
-            <span>Dashboard</span>
+    <div className="ds-topbar-demo">
+      <div className="ds-topbar">
+        <div className="ds-breadcrumb">
+          <span className="ds-breadcrumb-muted">App</span>
+          <span className="ds-breadcrumb-sep">/</span>
+          <span>Dashboard</span>
+        </div>
+        <div className="ds-topbar-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input placeholder="Search…" />
+          <span className="ds-kbd">⌘K</span>
+        </div>
+        <div className="ds-topbar-icon-row">
+          <div className="ds-topbar-iconbox" title="Inbox">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <div className="ds-topbar-dot" />
           </div>
-          <div className="ds-topbar-search">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input placeholder="Search…" />
-            <span className="ds-kbd">⌘K</span>
+          <div className="ds-topbar-iconbox" title="Notifications">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </div>
-          <div className="ds-topbar-icon-row">
-            <div className="ds-topbar-iconbox" title="Inbox">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
-              <div className="ds-topbar-dot" />
-            </div>
-            <div className="ds-topbar-iconbox" title="Notifications">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            </div>
-            <div className="ds-topbar-avatarbox">
-              <div className="ds-topbar-av">AK</div>
-            </div>
+          <div className="ds-topbar-avatarbox">
+            <div className="ds-topbar-av">AK</div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
+
+// ─── Tab section configs ──────────────────────────────────────────────────────
+
+const TOKEN_SECTIONS = [
+  { id: 'ds-colors', label: 'Color Tokens' },
+  { id: 'ds-typography', label: 'Typography' },
+  { id: 'ds-spacing', label: 'Spacing & Radius' },
+]
+
+const COMPONENT_SECTIONS = [
+  { id: 'ds-kpi', label: 'KPI Cards' },
+  { id: 'ds-chart', label: 'Pixel Chart' },
+  { id: 'ds-buttons', label: 'Buttons' },
+  { id: 'ds-status', label: 'Status Pills' },
+  { id: 'ds-forms', label: 'Form Controls' },
+  { id: 'ds-ai-pill', label: 'AI Insight Pill' },
+  { id: 'ds-table', label: 'Tables' },
+  { id: 'ds-sidebar-nav', label: 'Sidebar Nav' },
+  { id: 'ds-topbar', label: 'Topbar' },
+]
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -628,25 +669,49 @@ export default function DesignSystemPage() {
       </div>
 
       {tab === 'tokens' && (
-        <div className="ds-content">
-          <ColorPalette />
-          <Typography />
-          <Spacing />
-        </div>
+        <TabWithSidebar sections={TOKEN_SECTIONS}>
+          <Canvas id="ds-colors" title="Color Tokens" desc="Warm-tinted dark neutrals with a single orange accent. Click any chip to copy the value.">
+            <ColorPalette />
+          </Canvas>
+          <Canvas id="ds-typography" title="Typography" desc="Inter for UI text. JetBrains Mono for numeric values, IDs, and code.">
+            <TypographyTable />
+          </Canvas>
+          <Canvas id="ds-spacing" title="Spacing & Radius" desc="4px base unit for spacing. Four border-radius steps from 6px to 16px.">
+            <SpacingVis />
+          </Canvas>
+        </TabWithSidebar>
       )}
 
       {tab === 'components' && (
-        <div className="ds-content">
-          <KpiCards />
-          <PixelChartExample />
-          <Buttons />
-          <StatusPills />
-          <FormControls />
-          <AiInsightPill />
-          <TableExample />
-          <SidebarExample />
-          <TopbarExample />
-        </div>
+        <TabWithSidebar sections={COMPONENT_SECTIONS}>
+          <Canvas id="ds-kpi" title="KPI Cards" desc="Double-box pattern: outer bg-1 frame, inner bg-3 card with inset shadow. Footer row always in the outer box. Negative deltas are red.">
+            <KpiCardsDemo />
+          </Canvas>
+          <Canvas id="ds-chart" title="Pixel / Mosaic Chart" desc="Signature visual element. Stacked square cells per column. Filled cells are orange; empty near-black. Hover highlights the column.">
+            <PixelChartDemo />
+          </Canvas>
+          <Canvas id="ds-buttons" title="Buttons" desc="Three variants: primary (orange fill), secondary (bg-3 + border), ghost (transparent). Icon buttons are 32×32.">
+            <ButtonsDemo />
+          </Canvas>
+          <Canvas id="ds-status" title="Status Pills" desc="Colored dot + soft background tint. Used in tables and drawers.">
+            <StatusPillsDemo />
+          </Canvas>
+          <Canvas id="ds-forms" title="Form Controls" desc="Inputs share the same boxed style as the topbar search: bg-2 + border-subtle + r-md.">
+            <FormControlsDemo />
+          </Canvas>
+          <Canvas id="ds-ai-pill" title="AI Insight Pill" desc="Neutral-only. Gray sparkle icon + text + arrow circle. Glows on hover — never orange.">
+            <AiInsightPillDemo />
+          </Canvas>
+          <Canvas id="ds-table" title="Tables" desc="Subtle header (same bg as rows). No heavy borders. Row hover lifts to bg-4.">
+            <TableDemo />
+          </Canvas>
+          <Canvas id="ds-sidebar-nav" title="Sidebar Navigation" desc="Active item = bg-3 (light gray). Hover = orange. Horizontal dividers between sections.">
+            <SidebarDemo />
+          </Canvas>
+          <Canvas id="ds-topbar" title="Topbar" desc="Sticky. Search + icon boxes all share the same style: bg-2, border-subtle, r-md. Avatar box has 3px padding.">
+            <TopbarDemo />
+          </Canvas>
+        </TabWithSidebar>
       )}
 
       {tab === 'preview' && (
