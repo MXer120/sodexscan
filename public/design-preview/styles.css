@@ -427,10 +427,7 @@ input { font-family: inherit; border: none; outline: none; background: none; col
   color: var(--text-primary);
 }
 .kpi-suffix {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  display: none;
 }
 .kpi-footer {
   display: flex;

@@ -274,7 +274,6 @@ function KpiCardsDemo() {
           <div className="ds-kpi-inner">
             <div className="ds-kpi-label-row">
               <span className="ds-kpi-label">{c.label}</span>
-              <span className="ds-info-icon" title={`About ${c.label}`}>i</span>
             </div>
             <div className="ds-kpi-value-row">
               <span className="ds-kpi-value">{c.value}</span>
