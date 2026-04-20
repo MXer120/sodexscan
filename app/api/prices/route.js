@@ -1,10 +1,10 @@
 /**
  * GET /api/prices
- * Lightweight price-only endpoint for live polling on the alerts page.
+ * Returns mark, bid, ask, mid per symbol.
  * 3 s server-side cache so rapid clients share one upstream fetch.
  */
 
-import { perpsMarkPrices } from '../../lib/sodexApi'
+import { perpsMarkPrices, perpsBookTickers } from '../../lib/sodexApi'
 
 let cache = null
 let cacheAt = 0
@@ -12,24 +12,42 @@ const TTL = 3_000
 
 export async function GET() {
   if (cache && Date.now() - cacheAt < TTL) {
-    return Response.json(cache, {
-      headers: { 'Cache-Control': 'no-store' },
-    })
+    return Response.json(cache, { headers: { 'Cache-Control': 'no-store' } })
   }
 
   try {
-    const raw = await perpsMarkPrices()
-    const list = Array.isArray(raw) ? raw : (raw?.data ?? raw?.list ?? [])
-    const prices = {}
-    for (const m of list) {
-      const sym = m.symbol ?? m.s
-      const price = parseFloat(m.markPrice ?? m.price ?? m.p ?? 0)
-      if (sym && price) prices[sym] = price
+    const [rawMark, rawBook] = await Promise.allSettled([
+      perpsMarkPrices(),
+      perpsBookTickers(),
+    ])
+
+    const mark = {}, bid = {}, ask = {}, mid = {}
+
+    if (rawMark.status === 'fulfilled') {
+      const list = Array.isArray(rawMark.value) ? rawMark.value : (rawMark.value?.data ?? rawMark.value?.list ?? [])
+      for (const m of list) {
+        const sym = m.symbol ?? m.s
+        const p = parseFloat(m.markPrice ?? m.price ?? m.p ?? 0)
+        if (sym && p) mark[sym] = p
+      }
     }
-    cache = { prices }
+
+    if (rawBook.status === 'fulfilled') {
+      const list = Array.isArray(rawBook.value) ? rawBook.value : (rawBook.value?.data ?? rawBook.value?.list ?? [])
+      for (const m of list) {
+        const sym = m.symbol ?? m.s
+        const b = parseFloat(m.bidPrice ?? m.bid ?? 0)
+        const a = parseFloat(m.askPrice ?? m.ask ?? 0)
+        if (sym && b) bid[sym] = b
+        if (sym && a) ask[sym] = a
+        if (sym && b && a) mid[sym] = (b + a) / 2
+      }
+    }
+
+    cache = { mark, bid, ask, mid }
     cacheAt = Date.now()
     return Response.json(cache, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    return Response.json({ prices: cache?.prices ?? {} }, { status: 200 })
+    return Response.json(cache ?? { mark: {}, bid: {}, ask: {}, mid: {} }, { status: 200 })
   }
 }

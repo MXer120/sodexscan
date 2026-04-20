@@ -266,6 +266,17 @@
   color: var(--ds-text-tertiary);
 }
 
+.alp-live-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--ds-text-muted);
+  background: var(--ds-bg-4);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
 @keyframes alp-pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }

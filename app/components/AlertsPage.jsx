@@ -120,8 +120,9 @@ function fmtPrice(p) {
 
 const PRICE_TYPES = new Set(['price_movement', 'price_level'])
 
+// priceData = { mark: {sym: price}, bid: {...}, ask: {...}, mid: {...} }
 function useLivePrices(alerts) {
-  const [prices, setPrices] = useState({})
+  const [priceData, setPriceData] = useState({ mark: {}, bid: {}, ask: {}, mid: {} })
   const hasPriceAlerts = useMemo(() => alerts.some(a => PRICE_TYPES.has(a.type)), [alerts])
 
   useEffect(() => {
@@ -131,7 +132,7 @@ function useLivePrices(alerts) {
       try {
         const r = await fetch('/api/prices')
         const d = await r.json()
-        if (alive) setPrices(d.prices ?? {})
+        if (alive) setPriceData({ mark: d.mark ?? {}, bid: d.bid ?? {}, ask: d.ask ?? {}, mid: d.mid ?? {} })
       } catch { /* keep last value */ }
     }
     poll()
@@ -139,7 +140,11 @@ function useLivePrices(alerts) {
     return () => { alive = false; clearInterval(id) }
   }, [hasPriceAlerts])
 
-  return prices
+  return priceData
+}
+
+function getPrice(priceData, symbol, priceType = 'mark') {
+  return priceData[priceType]?.[symbol] ?? priceData.mark?.[symbol] ?? null
 }
 
 // ─── Realtime alerts sync ────────────────────────────────────────────────────
@@ -375,6 +380,19 @@ function DrawerFields({ draft, onChange, symbols }) {
             </>
           )}
 
+          <div className="alp-field">
+            <label className="alp-field-label">Price type</label>
+            <div className="alp-seg">
+              {[['mark','Mark'],['mid','Mid'],['bid','Bid'],['ask','Ask']].map(([v,lbl]) => (
+                <button
+                  key={v}
+                  className={`alp-seg-btn ${(draft.thresholds.priceType ?? 'mark') === v ? 'active' : ''}`}
+                  onClick={() => setT('priceType', v)}
+                >{lbl}</button>
+              ))}
+            </div>
+          </div>
+
           <LivePriceBar type={draft.type} target={draft.target} thresholds={draft.thresholds} symbols={symbols} />
         </>
       )}
@@ -502,17 +520,21 @@ function DrawerFields({ draft, onChange, symbols }) {
 
 // ─── Alert card ───────────────────────────────────────────────────────────────
 
-function CardLivePrice({ alert, price }) {
+const PRICE_TYPE_LABELS = { mark: 'Mark', mid: 'Mid', bid: 'Bid', ask: 'Ask' }
+
+function CardLivePrice({ alert, priceData }) {
   if (!PRICE_TYPES.has(alert.type) || !alert.target) return null
 
   const { type, thresholds } = alert
-  const current = price ?? null
+  const priceType = thresholds?.priceType ?? 'mark'
+  const current = getPrice(priceData, alert.target, priceType)
 
   if (type === 'price_movement') {
     return (
       <div className="alp-card-live">
+        <span className="alp-live-type">{PRICE_TYPE_LABELS[priceType]}</span>
         {current
-          ? <><span className="alp-live-price">${fmtPrice(current)}</span><span className="alp-live-label">current · fires on ±{thresholds.pct ?? '?'}%</span></>
+          ? <><span className="alp-live-price">${fmtPrice(current)}</span><span className="alp-live-label">· fires on ±{thresholds.pct ?? '?'}%</span></>
           : <span className="alp-live-label alp-live-loading">fetching price…</span>
         }
       </div>
@@ -529,6 +551,7 @@ function CardLivePrice({ alert, price }) {
 
     return (
       <div className="alp-card-live">
+        <span className="alp-live-type">{PRICE_TYPE_LABELS[priceType]}</span>
         {current && <span className="alp-live-price">${fmtPrice(current)}</span>}
         <span className={`alp-live-target ${hit ? 'alp-live-target--hit' : ''}`}>
           {dir === 'above' ? '↑' : '↓'} ${Number(target).toLocaleString()}
@@ -538,7 +561,7 @@ function CardLivePrice({ alert, price }) {
             ? <span className="alp-live-hit">triggered zone</span>
             : away && <span className="alp-live-away">${fmtPrice(dist)} away · {pct}%</span>
         )}
-        {!current && <span className="alp-live-label alp-live-loading">fetching price…</span>}
+        {!current && <span className="alp-live-label alp-live-loading">fetching…</span>}
       </div>
     )
   }
@@ -546,7 +569,7 @@ function CardLivePrice({ alert, price }) {
   return null
 }
 
-function AlertCard({ alert, price, onEdit, onDuplicate, onDelete, onToggle }) {
+function AlertCard({ alert, priceData, onEdit, onDuplicate, onDelete, onToggle }) {
   const meta   = TYPE_META[alert.type] ?? { cat: 'all', label: alert.type, desc: '' }
   const catCfg = CATEGORIES.find(c => c.id === meta.cat)
   const color  = catCfg?.color ?? '#888'
@@ -575,7 +598,7 @@ function AlertCard({ alert, price, onEdit, onDuplicate, onDelete, onToggle }) {
           {alert.channels?.telegram && <span className="alp-chip alp-chip--ch">TG</span>}
           {alert.channels?.discord  && <span className="alp-chip alp-chip--ch">Discord</span>}
         </div>
-        <CardLivePrice alert={alert} price={price} />
+        <CardLivePrice alert={alert} priceData={priceData} />
       </div>
       <div className="alp-card-actions">
         <button className="alp-action-btn" onClick={() => onEdit(alert)} title="Edit">
@@ -781,7 +804,7 @@ export default function AlertsPage() {
               {visible.map(a => (
                 <AlertCard
                   key={a.id} alert={a}
-                  price={prices[a.target] ?? null}
+                  priceData={prices}
                   onEdit={openEdit} onDuplicate={openDuplicate}
                   onDelete={handleDelete} onToggle={handleToggle}
                 />
