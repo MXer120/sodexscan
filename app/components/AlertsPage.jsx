@@ -1,7 +1,17 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import '../styles/AlertsPage.css'
+
+async function authFetch(url, options = {}) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token ?? ''
+  return fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers ?? {}) },
+  })
+}
 
 // ─── Alert type catalogue ────────────────────────────────────────────────────
 
@@ -272,7 +282,7 @@ export default function AlertsPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/alerts')
+      const res = await authFetch('/api/alerts')
       const json = await res.json()
       setAlerts(json.alerts ?? [])
     } catch { setAlerts([]) }
@@ -310,7 +320,7 @@ export default function AlertsPage() {
     try {
       const url = editing ? `/api/alerts/${editing.id}` : '/api/alerts'
       const method = editing ? 'PATCH' : 'POST'
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...draft, target }) })
+      const res = await authFetch(url, { method, body: JSON.stringify({ ...draft, target }) })
       const json = await res.json()
       if (!res.ok) { setError(json.error ?? 'Save failed'); setSaving(false); return }
       setDrawerOpen(false)
@@ -321,12 +331,12 @@ export default function AlertsPage() {
 
   const handleDelete = async (alert) => {
     if (!confirm(`Delete alert "${alert.label || TYPE_META[alert.type]?.label}"?`)) return
-    await fetch(`/api/alerts/${alert.id}`, { method: 'DELETE' })
+    await authFetch(`/api/alerts/${alert.id}`, { method: 'DELETE' })
     setAlerts(prev => prev.filter(a => a.id !== alert.id))
   }
 
   const handleToggle = async (alert) => {
-    await fetch(`/api/alerts/${alert.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: !alert.enabled }) })
+    await authFetch(`/api/alerts/${alert.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: !alert.enabled }) })
     setAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, enabled: !a.enabled } : a))
   }
 

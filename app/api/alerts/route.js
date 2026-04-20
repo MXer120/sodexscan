@@ -1,12 +1,18 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { supabaseAdmin } from '../../lib/supabaseServer'
 
-export async function GET() {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+async function getUser(request) {
+  const auth = request.headers.get('authorization') ?? ''
+  const token = auth.replace('Bearer ', '').trim()
+  if (!token) return null
+  const { data: { user } } = await supabaseAdmin.auth.getUser(token)
+  return user ?? null
+}
+
+export async function GET(request) {
+  const user = await getUser(request)
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('user_alert_settings')
     .select('*')
     .eq('user_id', user.id)
@@ -17,18 +23,14 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser(request)
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
   const { type, target, thresholds, channels, label } = body
+  if (!type || !target) return Response.json({ error: 'type and target are required' }, { status: 400 })
 
-  if (!type || !target) {
-    return Response.json({ error: 'type and target are required' }, { status: 400 })
-  }
-
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('user_alert_settings')
     .insert({ user_id: user.id, type, target, thresholds: thresholds ?? {}, channels: channels ?? { telegram: true }, label: label ?? null, enabled: true })
     .select()

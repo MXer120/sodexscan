@@ -1,20 +1,25 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { supabaseAdmin } from '../../../lib/supabaseServer'
+
+async function getUser(request) {
+  const auth = request.headers.get('authorization') ?? ''
+  const token = auth.replace('Bearer ', '').trim()
+  if (!token) return null
+  const { data: { user } } = await supabaseAdmin.auth.getUser(token)
+  return user ?? null
+}
 
 export async function PATCH(request, { params }) {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser(request)
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const id = params.id
   const body = await request.json()
   const allowed = ['label', 'type', 'target', 'thresholds', 'channels', 'enabled']
   const update = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('user_alert_settings')
     .update(update)
-    .eq('id', id)
+    .eq('id', params.id)
     .eq('user_id', user.id)
     .select()
     .single()
@@ -25,15 +30,13 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser(request)
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const id = params.id
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('user_alert_settings')
     .delete()
-    .eq('id', id)
+    .eq('id', params.id)
     .eq('user_id', user.id)
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
