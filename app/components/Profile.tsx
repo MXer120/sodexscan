@@ -887,7 +887,7 @@ function AlertsSection({ userId }: { userId?: string }) {
     setMsg('Discord disconnected.')
   }
 
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'CommunityDexBot'
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'communityscan_bot'
 
   return (
     <>
