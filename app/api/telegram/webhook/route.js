@@ -280,3 +280,8 @@ async function answerCallback(callbackQueryId) {
     body: JSON.stringify({ callback_query_id: callbackQueryId }),
   })
 }
+
+// Keep-warm endpoint — pinged by cron-job.org every 5 min
+export function GET() {
+  return new Response('ok')
+}
