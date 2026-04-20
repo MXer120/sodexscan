@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import {
   TrendingUp, Tag, Eye, BarChart2, Bell, Layers, Plus, Pencil, Copy,
@@ -114,6 +114,56 @@ function fmtPrice(p) {
   if (!p) return null
   return p >= 1 ? p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 : p.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 6 })
+}
+
+// ─── Live prices hook ────────────────────────────────────────────────────────
+
+const PRICE_TYPES = new Set(['price_movement', 'price_level'])
+
+function useLivePrices(alerts) {
+  const [prices, setPrices] = useState({})
+  const hasPriceAlerts = useMemo(() => alerts.some(a => PRICE_TYPES.has(a.type)), [alerts])
+
+  useEffect(() => {
+    if (!hasPriceAlerts) return
+    let alive = true
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/prices')
+        const d = await r.json()
+        if (alive) setPrices(d.prices ?? {})
+      } catch { /* keep last value */ }
+    }
+    poll()
+    const id = setInterval(poll, 3000)
+    return () => { alive = false; clearInterval(id) }
+  }, [hasPriceAlerts])
+
+  return prices
+}
+
+// ─── Realtime alerts sync ────────────────────────────────────────────────────
+
+function useRealtimeAlerts(setAlerts) {
+  useEffect(() => {
+    const channel = supabase
+      .channel('alert-settings')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'user_alert_settings',
+      }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          setAlerts(prev => prev.filter(a => a.id !== payload.old.id))
+        } else if (payload.eventType === 'INSERT') {
+          setAlerts(prev => [payload.new, ...prev])
+        } else if (payload.eventType === 'UPDATE') {
+          setAlerts(prev => prev.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a))
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [setAlerts])
 }
 
 // ─── Symbol Combobox ─────────────────────────────────────────────────────────
@@ -452,10 +502,54 @@ function DrawerFields({ draft, onChange, symbols }) {
 
 // ─── Alert card ───────────────────────────────────────────────────────────────
 
-function AlertCard({ alert, onEdit, onDuplicate, onDelete, onToggle }) {
-  const meta  = TYPE_META[alert.type] ?? { cat: 'all', label: alert.type, desc: '' }
+function CardLivePrice({ alert, price }) {
+  if (!PRICE_TYPES.has(alert.type) || !alert.target) return null
+
+  const { type, thresholds } = alert
+  const current = price ?? null
+
+  if (type === 'price_movement') {
+    return (
+      <div className="alp-card-live">
+        {current
+          ? <><span className="alp-live-price">${fmtPrice(current)}</span><span className="alp-live-label">current · fires on ±{thresholds.pct ?? '?'}%</span></>
+          : <span className="alp-live-label alp-live-loading">fetching price…</span>
+        }
+      </div>
+    )
+  }
+
+  if (type === 'price_level' && thresholds.price) {
+    const target = Number(thresholds.price)
+    const dir = thresholds.direction ?? 'above'
+    const dist = current ? Math.abs(current - target) : null
+    const pct  = current ? ((dist / current) * 100).toFixed(2) : null
+    const hit  = current ? (dir === 'above' ? current >= target : current <= target) : false
+    const away = dir === 'above' ? current < target : current > target
+
+    return (
+      <div className="alp-card-live">
+        {current && <span className="alp-live-price">${fmtPrice(current)}</span>}
+        <span className={`alp-live-target ${hit ? 'alp-live-target--hit' : ''}`}>
+          {dir === 'above' ? '↑' : '↓'} ${Number(target).toLocaleString()}
+        </span>
+        {current && (
+          hit
+            ? <span className="alp-live-hit">triggered zone</span>
+            : away && <span className="alp-live-away">${fmtPrice(dist)} away · {pct}%</span>
+        )}
+        {!current && <span className="alp-live-label alp-live-loading">fetching price…</span>}
+      </div>
+    )
+  }
+
+  return null
+}
+
+function AlertCard({ alert, price, onEdit, onDuplicate, onDelete, onToggle }) {
+  const meta   = TYPE_META[alert.type] ?? { cat: 'all', label: alert.type, desc: '' }
   const catCfg = CATEGORIES.find(c => c.id === meta.cat)
-  const color = catCfg?.color ?? '#888'
+  const color  = catCfg?.color ?? '#888'
   const summary = thresholdSummary(alert.type, alert.thresholds)
 
   return (
@@ -481,7 +575,7 @@ function AlertCard({ alert, onEdit, onDuplicate, onDelete, onToggle }) {
           {alert.channels?.telegram && <span className="alp-chip alp-chip--ch">TG</span>}
           {alert.channels?.discord  && <span className="alp-chip alp-chip--ch">Discord</span>}
         </div>
-        <div className="alp-card-desc">{meta.desc}</div>
+        <CardLivePrice alert={alert} price={price} />
       </div>
       <div className="alp-card-actions">
         <button className="alp-action-btn" onClick={() => onEdit(alert)} title="Edit">
@@ -503,6 +597,7 @@ function AlertCard({ alert, onEdit, onDuplicate, onDelete, onToggle }) {
 export default function AlertsPage() {
   const [alerts, setAlerts]       = useState([])
   const [loading, setLoading]     = useState(true)
+  const prices                    = useLivePrices(alerts)
   const [cat, setCat]             = useState('all')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing]     = useState(null)
@@ -531,6 +626,7 @@ export default function AlertsPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  useRealtimeAlerts(setAlerts)
 
   const openNew = () => {
     setEditing(null)
@@ -685,6 +781,7 @@ export default function AlertsPage() {
               {visible.map(a => (
                 <AlertCard
                   key={a.id} alert={a}
+                  price={prices[a.target] ?? null}
                   onEdit={openEdit} onDuplicate={openDuplicate}
                   onDelete={handleDelete} onToggle={handleToggle}
                 />

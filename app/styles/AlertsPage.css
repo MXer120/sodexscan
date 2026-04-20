@@ -224,6 +224,57 @@
 
 .alp-card-desc { font-size: 12px; color: var(--ds-text-tertiary); }
 
+/* ── Live price row on card ────────────────────────────────── */
+.alp-card-live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--ds-bg-3);
+  border-radius: var(--ds-r-sm);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+
+.alp-live-price {
+  font-weight: 700;
+  color: var(--ds-text-primary);
+}
+
+.alp-live-target {
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+.alp-live-target--hit {
+  color: var(--ds-success);
+}
+
+.alp-live-away {
+  color: var(--ds-text-tertiary);
+  margin-left: auto;
+}
+
+.alp-live-hit {
+  color: var(--ds-success);
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.alp-live-label {
+  color: var(--ds-text-tertiary);
+}
+
+@keyframes alp-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.alp-live-loading {
+  animation: alp-pulse 1.4s ease infinite;
+}
+
 /* Card hover actions */
 .alp-card-actions {
   display: flex;
