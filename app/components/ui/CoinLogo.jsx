@@ -58,11 +58,11 @@ export default function CoinLogo({ symbol, size = 20, style = {} }) {
     return (
       <div style={{
         width: size, height: size, borderRadius: '50%',
-        background: 'rgba(var(--color-primary-rgb, 72, 203, 255), 0.15)',
-        border: '1px solid rgba(var(--color-primary-rgb, 72, 203, 255), 0.3)',
+        background: 'var(--ds-accent-soft)',
+        border: '1px solid rgba(242,107,31,0.3)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: size * 0.45, fontWeight: 700,
-        color: 'var(--color-primary)', flexShrink: 0, ...style
+        color: 'var(--ds-accent)', flexShrink: 0, ...style
       }}>
         {(base || '?').charAt(0).toUpperCase()}
       </div>

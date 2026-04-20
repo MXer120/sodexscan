@@ -3,8 +3,8 @@
 
 :root {
   /* =========================================
-     DESIGN SYSTEM TOKENS — global scope
-     Used by Alerts, Tracker, Maintenance, and all DS-migrated pages
+     DESIGN SYSTEM TOKENS — single source of truth
+     Dark mode, orange accent. Used everywhere.
      ========================================= */
 
   --ds-bg-0: #141414;
@@ -43,55 +43,48 @@
   --ds-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
 
   /* =========================================
-     THEME CONFIGURATION
-     These are default values - overridden by ThemeContext at runtime
+     LEGACY ALIASES → DS tokens
+     Keeps unmigrated CSS files working with the DS palette.
      ========================================= */
 
-  /* Primary Brand Colors */
-  --color-primary: #48cbff;
-  --color-primary-dark: #149cd2;
-  --color-primary-light: #7bd5ff;
-  --color-primary-rgb: 72, 203, 255;
+  --color-primary: var(--ds-accent);
+  --color-primary-dark: var(--ds-accent-hover);
+  --color-primary-light: var(--ds-accent-hover);
+  --color-primary-rgb: 242, 107, 31;
 
-  /* Background Colors */
-  --color-bg-main: #0A0A0A;
-  --color-bg-secondary: #0f0f0f;
-  --color-bg-tertiary: #141414;
-  --color-bg-card: rgba(20, 20, 20, 0.6);
-  --color-bg-modal: rgba(25, 25, 25, 0.98);
-  --color-bg-input: rgba(30, 30, 30, 0.6);
+  --color-bg-main: var(--ds-bg-0);
+  --color-bg-secondary: var(--ds-bg-1);
+  --color-bg-tertiary: var(--ds-bg-2);
+  --color-bg-card: var(--ds-bg-3);
+  --color-bg-modal: var(--ds-bg-2);
+  --color-bg-input: var(--ds-bg-3);
 
-  /* Text Colors */
-  --color-text-main: #ffffff;
-  --color-text-secondary: rgba(255, 255, 255, 0.6);
-  --color-text-muted: rgba(255, 255, 255, 0.4);
-  --color-text-disabled: rgba(255, 255, 255, 0.3);
-  --color-text-subtle: #888;
-  --color-text-dark: #666;
-  --color-text-darker: #444;
-  --color-text-light-gray: #aaa;
-  --color-text-medium-gray: #999;
+  --color-text-main: var(--ds-text-primary);
+  --color-text-secondary: var(--ds-text-secondary);
+  --color-text-muted: var(--ds-text-tertiary);
+  --color-text-disabled: var(--ds-text-muted);
+  --color-text-subtle: var(--ds-text-tertiary);
+  --color-text-dark: var(--ds-text-muted);
+  --color-text-darker: #444444;
+  --color-text-light-gray: var(--ds-text-secondary);
+  --color-text-medium-gray: var(--ds-text-tertiary);
 
-  /* Border Colors */
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-border-visible: rgba(255, 255, 255, 0.2);
-  --color-border-strong: rgba(255, 255, 255, 0.3);
-  --color-border-dark: #333;
+  --color-border-subtle: var(--ds-border-subtle);
+  --color-border-visible: var(--ds-border-default);
+  --color-border-strong: var(--ds-border-strong);
+  --color-border-dark: var(--ds-border-default);
 
-  /* Feature Specific Colors */
   --color-spot: #31b3da;
   --color-spot-bg: rgba(49, 179, 218, 0.25);
   --color-volume: #31b3da;
 
-  /* Status Colors (bullish/bearish) */
-  --color-success: #22c55e;
+  --color-success: var(--ds-success);
   --color-success-rgb: 34, 197, 94;
-  --color-error: #ef4444;
+  --color-error: var(--ds-danger-red);
   --color-error-rgb: 239, 68, 68;
-  --color-warning: #f59e0b;
+  --color-warning: var(--ds-warning);
   --color-warning-rgb: 245, 158, 11;
 
-  /* Accent Colors */
   --color-blue: #3b82f6;
   --color-blue-rgb: 59, 130, 246;
   --color-cyan: #06b6d4;
@@ -102,11 +95,10 @@
   --color-lime: #84cc16;
   --color-info: #0081A6;
   --color-telegram: #00aaff;
-  --color-discord: var(--color-accent);
-  --color-accent: #1230B7;
-  --color-accent-rgb: 18, 48, 183;
+  --color-discord: var(--ds-accent);
+  --color-accent: var(--ds-accent);
+  --color-accent-rgb: 242, 107, 31;
 
-  /* Chart Colors */
   --color-chart-1: #0081A6;
   --color-chart-2: #4ade80;
   --color-chart-3: #3b82f6;
@@ -118,549 +110,30 @@
   --color-chart-9: #06b6d4;
   --color-chart-10: #84cc16;
 
-  /* Gradient Colors */
   --gradient-text: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
 
-  /* Overlay colors (faint white tints for borders/backgrounds) */
   --color-overlay-faint: rgba(255, 255, 255, 0.03);
   --color-overlay-subtle: rgba(255, 255, 255, 0.06);
   --color-overlay-light: rgba(255, 255, 255, 0.08);
   --color-overlay-medium: rgba(255, 255, 255, 0.15);
 
-  /* Scrollbar (theme-aware) */
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
 
-/* Light mode gradient adjustment */
-[data-theme="light"] {
-  --gradient-text: linear-gradient(180deg, #1f2937 0%, rgba(31, 41, 55, 0.8) 100%);
-  --color-overlay-faint: rgba(0, 0, 0, 0.02);
-  --color-overlay-subtle: rgba(0, 0, 0, 0.04);
-  --color-overlay-light: rgba(0, 0, 0, 0.06);
-  --color-overlay-medium: rgba(0, 0, 0, 0.1);
-}
-
-/* =========================================
-   LIGHT MODE GLOBAL OVERRIDES
-   Fix hardcoded dark-mode colors across components
-   ========================================= */
-
-/* --- Selects & Dropdowns --- */
-[data-theme="light"] select,
-[data-theme="light"] .admin-select,
-[data-theme="light"] .agg-select,
-[data-theme="light"] .bulk-assign-select {
-  background: var(--color-bg-card) !important;
-  color: var(--color-text-main) !important;
-  border-color: var(--color-border-visible) !important;
-}
-
-/* --- Leaderboard toggle (Total/Futures/Spot) --- */
-[data-theme="light"] .leaderboard-toggle {
-  background: var(--color-overlay-subtle);
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .leaderboard-toggle button {
-  color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .leaderboard-toggle button:hover:not(.active) {
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .tab-switch {
-  background: var(--color-overlay-subtle);
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .tab-switch-btn {
-  color: var(--color-text-muted);
-}
-
-[data-theme="light"] .tab-switch-btn:hover:not(.active) {
-  color: var(--color-text-main);
-}
-
-/* --- Search input --- */
-[data-theme="light"] .leaderboard-search {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-visible);
-  color: var(--color-text-main);
-}
-
-/* --- Top 10 cards --- */
-[data-theme="light"] .top-10-card {
-  background: var(--color-bg-card);
-}
-
-/* --- Leaderboard card --- */
-[data-theme="light"] .mainnet-leaderboard {
-  background: var(--color-bg-card);
-  border-color: var(--color-overlay-medium);
-}
-
-/* --- Top pairs card --- */
-[data-theme="light"] .top-pairs-card {
-  background: var(--color-bg-card);
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .top-pairs-header h2 {
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .top-pairs-table td {
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .top-pairs-table td.pair-symbol {
-  color: var(--color-text-main);
-}
-
-/* --- Stat values with hardcoded #fff --- */
-[data-theme="light"] .stat-value {
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .stat-label {
-  color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .mini-value {
-  color: var(--color-text-main);
-}
-
-/* --- Leaderboard checkbox --- */
-[data-theme="light"] .leaderboard-checkbox {
-  color: var(--color-text-main);
-  background: var(--color-overlay-subtle);
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .leaderboard-checkbox .custom-check {
-  background: var(--color-bg-card);
-}
-
-/* --- Timeframe buttons --- */
-[data-theme="light"] .timeframe-btn {
-  border-color: var(--color-overlay-medium);
-  color: var(--color-text-muted);
-}
-
-[data-theme="light"] .timeframe-btn:hover {
-  border-color: var(--color-overlay-medium);
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .timeframe-btn.active {
-  background: var(--color-overlay-subtle);
-  border-color: var(--color-overlay-medium);
-  color: var(--color-text-main);
-}
-
-/* --- Selector/Dropdown menus --- */
-[data-theme="light"] .selector-btn {
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .selector-btn:hover {
-  border-color: var(--color-border-visible);
-}
-
-[data-theme="light"] .dropdown-menu {
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .dropdown-header {
-  border-bottom-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .dropdown-header button {
-  background: var(--color-overlay-subtle);
-  border-color: var(--color-overlay-medium);
-  color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .dropdown-item:hover {
-  background: var(--color-overlay-subtle);
-}
-
-[data-theme="light"] .dropdown-item label {
-  color: var(--color-text-main);
-}
-
-/* --- Legend items --- */
-[data-theme="light"] .legend-item {
-  color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .legend-expand-btn {
-  border-color: var(--color-overlay-medium);
-  color: var(--color-text-muted);
-}
-
-[data-theme="light"] .legend-expand-btn:hover {
-  border-color: var(--color-border-visible);
-  color: var(--color-text-main);
-}
-
-/* --- Loading states --- */
-[data-theme="light"] .loading {
-  color: var(--color-text-muted);
-}
-
-/* --- Filter inputs (calculator) --- */
-[data-theme="light"] .filter-inputs {
-  background: var(--color-overlay-subtle);
-  border-color: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .filter-input {
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .filter-input::placeholder {
-  color: var(--color-text-disabled);
-}
-
-[data-theme="light"] .op-btn {
-  color: var(--color-text-muted);
-}
-
-[data-theme="light"] .op-btn:hover {
-  color: var(--color-text-main);
-  background: var(--color-overlay-subtle);
-}
-
-/* --- Page buttons --- */
-[data-theme="light"] .page-btn {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-visible);
-}
-
-/* --- Signup CTA --- */
-[data-theme="light"] .signup-cta-title {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-[data-theme="light"] .signup-cta-subtitle {
-  color: var(--color-text-secondary);
-}
-
-[data-theme="light"] .feature-title {
-  color: var(--color-text-main);
-}
-
-[data-theme="light"] .feature-description {
-  color: var(--color-text-secondary);
-}
-
-/* --- Combined result section --- */
-[data-theme="light"] .combined-value {
-  color: var(--color-text-main);
-}
-
-/* --- Modal header gradient --- */
-[data-theme="light"] .modal-header h2 {
-  background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-/* --- Platform custom filters --- */
-[data-theme="light"] .platform-custom-filters-card {
-  background: var(--color-bg-card);
-}
-
-/* --- Skeleton shimmer for light mode --- */
-[data-theme="light"] .skeleton-bar {
-  background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%);
-  background-size: 200px 100%;
-}
-
-/* --- Scrollbar in light mode --- */
-[data-theme="light"] .dropdown-menu::-webkit-scrollbar-track {
-  background: var(--color-overlay-subtle);
-}
-
-[data-theme="light"] .dropdown-menu::-webkit-scrollbar-thumb {
-  background: var(--color-overlay-medium);
-}
-
-[data-theme="light"] .dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* --- Inline style overrides for components with hardcoded dark colors --- */
-
-/* MainnetTracker: wallet detail panel inline styles */
-[data-theme="light"] .wallet-detail-panel,
-[data-theme="light"] .wallet-stats-card {
-  background: var(--color-bg-card) !important;
-  border-color: var(--color-border-visible) !important;
-}
-
-[data-theme="light"] .wallet-detail-panel h2,
-[data-theme="light"] .wallet-detail-panel h3,
-[data-theme="light"] .wallet-detail-panel h4,
-[data-theme="light"] .wallet-stats-card h4 {
-  color: var(--color-text-main) !important;
-}
-
-/* Generic: any inline color:#fff or rgba(255,255,255,...) in tables */
-[data-theme="light"] td[style*="color: rgba(255"],
-[data-theme="light"] td[style*="color: #fff"],
-[data-theme="light"] span[style*="color: rgba(255"],
-[data-theme="light"] span[style*="color: '#fff"],
-[data-theme="light"] div[style*="color: rgba(255"],
-[data-theme="light"] div[style*="color: '#fff"] {
-  color: var(--color-text-main) !important;
-}
-
-/* Timeline elements */
-[data-theme="light"] .timeline-date,
-[data-theme="light"] .timeline-desc {
-  color: var(--color-text-muted) !important;
-}
-
-/* SoPoints unlock section */
-[data-theme="light"] .unlock-section,
-[data-theme="light"] .feature-locked {
-  background: var(--color-bg-card) !important;
-}
-
-/* Chart tooltips */
-[data-theme="light"] .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: var(--color-bg-modal) !important;
-  border-color: var(--color-border-visible) !important;
-  color: var(--color-text-main) !important;
-}
-
-/* Announcements */
-[data-theme="light"] .announcement-bar {
-  border-bottom-color: var(--color-border-subtle) !important;
-}
-
-/* Generic cards and sections */
-[data-theme="light"] .card,
-[data-theme="light"] .section-card,
-[data-theme="light"] .info-card {
-  background: var(--color-bg-card) !important;
-  border-color: var(--color-border-subtle) !important;
-}
-
-/* Paper theme light mode overlay overrides */
-html[data-color-scheme="paper"][data-theme="light"] {
-  --color-border-subtle: rgba(0, 0, 0, 0.08);
-  --color-overlay-faint: rgba(0, 0, 0, 0.02);
-  --color-overlay-subtle: rgba(0, 0, 0, 0.04);
-  --color-overlay-light: rgba(0, 0, 0, 0.06);
-  --color-overlay-medium: rgba(0, 0, 0, 0.1);
-  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
-}
-
-/* CLI theme light mode overlay overrides */
-html[data-color-scheme="cli"][data-theme="light"] {
-  --color-border-subtle: rgba(139, 105, 20, 0.12);
-  --color-overlay-faint: rgba(139, 105, 20, 0.02);
-  --color-overlay-subtle: rgba(139, 105, 20, 0.04);
-  --color-overlay-light: rgba(139, 105, 20, 0.06);
-  --color-overlay-medium: rgba(139, 105, 20, 0.1);
-  --scrollbar-thumb: rgba(139, 105, 20, 0.15);
-  --scrollbar-thumb-hover: rgba(139, 105, 20, 0.25);
-}
-
-/* NSA theme light mode overlay overrides */
-html[data-color-scheme="nsa"][data-theme="light"] {
-  --color-border-subtle: rgba(10, 107, 29, 0.1);
-  --color-overlay-faint: rgba(10, 107, 29, 0.02);
-  --color-overlay-subtle: rgba(10, 107, 29, 0.04);
-  --color-overlay-light: rgba(10, 107, 29, 0.06);
-  --color-overlay-medium: rgba(10, 107, 29, 0.1);
-  --scrollbar-thumb: rgba(10, 107, 29, 0.15);
-  --scrollbar-thumb-hover: rgba(10, 107, 29, 0.25);
-}
-
-/* =========================================
-   TERMINAL DESIGN LANGUAGE (CLI + NSA)
-   Overrides fonts, corners, shadows globally
-   ========================================= */
-
-/* Force monospace font on terminal themes */
-html[data-color-scheme="cli"] body,
-html[data-color-scheme="cli"] input,
-html[data-color-scheme="cli"] select,
-html[data-color-scheme="cli"] textarea,
-html[data-color-scheme="cli"] button,
-html[data-color-scheme="cli"] a,
-html[data-color-scheme="cli"] span,
-html[data-color-scheme="cli"] p,
-html[data-color-scheme="cli"] h1,
-html[data-color-scheme="cli"] h2,
-html[data-color-scheme="cli"] h3,
-html[data-color-scheme="cli"] h4,
-html[data-color-scheme="cli"] td,
-html[data-color-scheme="cli"] th,
-html[data-color-scheme="cli"] label,
-html[data-color-scheme="cli"] div,
-html[data-color-scheme="nsa"] body,
-html[data-color-scheme="nsa"] input,
-html[data-color-scheme="nsa"] select,
-html[data-color-scheme="nsa"] textarea,
-html[data-color-scheme="nsa"] button,
-html[data-color-scheme="nsa"] a,
-html[data-color-scheme="nsa"] span,
-html[data-color-scheme="nsa"] p,
-html[data-color-scheme="nsa"] h1,
-html[data-color-scheme="nsa"] h2,
-html[data-color-scheme="nsa"] h3,
-html[data-color-scheme="nsa"] h4,
-html[data-color-scheme="nsa"] td,
-html[data-color-scheme="nsa"] th,
-html[data-color-scheme="nsa"] label,
-html[data-color-scheme="nsa"] div {
-  font-family: 'Courier New', 'Fira Mono', 'Consolas', monospace !important;
-}
-
-/* Paper theme different font */
-html[data-color-scheme="paper"] body,
-html[data-color-scheme="paper"] input,
-html[data-color-scheme="paper"] select,
-html[data-color-scheme="paper"] textarea,
-html[data-color-scheme="paper"] button,
-html[data-color-scheme="paper"] a,
-html[data-color-scheme="paper"] span,
-html[data-color-scheme="paper"] p,
-html[data-color-scheme="paper"] h1,
-html[data-color-scheme="paper"] h2,
-html[data-color-scheme="paper"] h3,
-html[data-color-scheme="paper"] h4,
-html[data-color-scheme="paper"] td,
-html[data-color-scheme="paper"] th,
-html[data-color-scheme="paper"] label,
-html[data-color-scheme="paper"] div {
-  font-family: 'JetBrains Mono', 'Andale Mono', 'Lucida Console', monospace !important;
-}
-
-/* Kill all border-radius on terminal themes (skip larp frame + design system page) */
-html[data-color-scheme="cli"] :where(:not(.larp-frame, .larp-frame *, .ds-page, .ds-page *)),
-html[data-color-scheme="nsa"] :where(:not(.larp-frame, .larp-frame *, .ds-page, .ds-page *)),
-html[data-color-scheme="paper"] :where(:not(.larp-frame, .larp-frame *, .ds-page, .ds-page *)) {
-  border-radius: 0px !important;
-}
-
-/* Keep circle previews for non-terminal theme cards */
-html[data-color-scheme="cli"] .theme-preview:not(.terminal-preview),
-html[data-color-scheme="nsa"] .theme-preview:not(.terminal-preview),
-html[data-color-scheme="paper"] .theme-preview:not(.terminal-preview) {
-  border-radius: 50% !important;
-}
-
-/* Kill box-shadows and backdrop-filters (skip larp frame + design system page) */
-html[data-color-scheme="cli"] :where(:not(.larp-frame, .larp-frame *, .ds-page, .ds-page *)),
-html[data-color-scheme="nsa"] :where(:not(.larp-frame, .larp-frame *, .ds-page, .ds-page *)),
-html[data-color-scheme="paper"] :where(:not(.larp-frame, .larp-frame *, .ds-page, .ds-page *)) {
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-
-/* Force Inter font exemption — LARP + design system page use their own Inter branding */
-html[data-color-scheme="cli"] .larp-frame,
-html[data-color-scheme="cli"] .larp-frame *,
-html[data-color-scheme="nsa"] .larp-frame,
-html[data-color-scheme="nsa"] .larp-frame *,
-html[data-color-scheme="paper"] .larp-frame,
-html[data-color-scheme="paper"] .larp-frame * {
-  font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
-}
-
-html[data-color-scheme="cli"] .ds-page,
-html[data-color-scheme="cli"] .ds-page *,
-html[data-color-scheme="nsa"] .ds-page,
-html[data-color-scheme="nsa"] .ds-page *,
-html[data-color-scheme="paper"] .ds-page,
-html[data-color-scheme="paper"] .ds-page * {
-  font-family: 'Inter', system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
-}
-
-/* Hard 1px solid borders instead of subtle transparency */
-html[data-color-scheme="cli"] {
-  --color-border-subtle: rgba(212, 165, 90, 0.2);
-  --color-overlay-faint: rgba(212, 165, 90, 0.02);
-  --color-overlay-subtle: rgba(212, 165, 90, 0.05);
-  --color-overlay-light: rgba(212, 165, 90, 0.07);
-  --color-overlay-medium: rgba(212, 165, 90, 0.12);
-  --scrollbar-thumb: rgba(212, 165, 90, 0.25);
-  --scrollbar-thumb-hover: rgba(212, 165, 90, 0.4);
-}
-
-html[data-color-scheme="nsa"] {
-  --color-border-subtle: rgba(0, 255, 65, 0.15);
-  --color-overlay-faint: rgba(0, 255, 65, 0.02);
-  --color-overlay-subtle: rgba(0, 255, 65, 0.04);
-  --color-overlay-light: rgba(0, 255, 65, 0.06);
-  --color-overlay-medium: rgba(0, 255, 65, 0.1);
-  --scrollbar-thumb: rgba(0, 255, 65, 0.2);
-  --scrollbar-thumb-hover: rgba(0, 255, 65, 0.35);
-}
-
-html[data-color-scheme="paper"] {
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-overlay-faint: rgba(255, 255, 255, 0.02);
-  --color-overlay-subtle: rgba(255, 255, 255, 0.04);
-  --color-overlay-light: rgba(255, 255, 255, 0.06);
-  --color-overlay-medium: rgba(255, 255, 255, 0.1);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
-}
-
-/* Scanline effect for NSA */
-html[data-color-scheme="nsa"] body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 99999;
-  background: repeating-linear-gradient(0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 255, 65, 0.015) 2px,
-      rgba(0, 255, 65, 0.015) 4px);
-}
-
-/* Slight text glow for NSA (re-enable after global kill) */
-html[data-color-scheme="nsa"] body {
-  text-shadow: 0 0 1px rgba(0, 255, 65, 0.2) !important;
-}
-
-
-/* CLI prompt-style cursor blink (optional, adds to feel) */
-html[data-color-scheme="cli"] input:focus,
-html[data-color-scheme="nsa"] input:focus,
-html[data-color-scheme="paper"] input:focus {
-  outline: 1px solid var(--color-primary) !important;
-  outline-offset: 0;
-}
-
-* {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Ring offset color — must match dark background so focus rings don't show a white gap */
+  --tw-ring-offset-color: var(--ds-bg-0);
 }
 
 body {
-  font-family: 'Lato', sans-serif;
-  background: var(--color-bg-main);
+  font-family: 'Inter', 'Lato', sans-serif;
+  background: var(--ds-bg-0);
   background-attachment: fixed;
-  color: var(--color-text-main);
+  color: var(--ds-text-primary);
   min-height: 100vh;
 }
 
@@ -668,14 +141,14 @@ body {
   min-height: 100vh;
 }
 
-/* Custom scrollbar - theme aware */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
+  background: var(--ds-bg-1);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -687,19 +160,43 @@ body {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* Selection color */
 ::selection {
-  background: rgba(var(--color-primary-rgb), 0.3);
+  background: var(--ds-accent-soft);
   color: #fff;
 }
 
-/* Global link styles */
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* Global button reset */
 button {
   font-family: inherit;
 }
+
+/* ── Global UI polish (make-interfaces-feel-better) ── */
+h1, h2, h3 { text-wrap: balance; }
+p, li, blockquote { text-wrap: pretty; }
+
+img { outline: 1px solid rgba(0, 0, 0, 0.08); outline-offset: -1px; }
+img[data-no-outline] { outline: none; }
+
+/* Interruptible transitions on interactive elements — never use keyframes for hover/focus states */
+a, button, [role="button"] {
+  transition-property: color, background, border-color, opacity, box-shadow;
+  transition-duration: 0.12s;
+  transition-timing-function: ease;
+}
+
+/* Layered shadow border for elevated surfaces (use instead of solid border where possible) */
+.surface-raised {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 1px 2px -1px rgba(0, 0, 0, 0.06),
+    0 2px 4px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Concentric radius helper: outer element gets extra padding-worth of radius */
+.radius-outer-sm  { border-radius: calc(var(--ds-r-sm)  + 4px); }
+.radius-outer-md  { border-radius: calc(var(--ds-r-md)  + 8px); }
+.radius-outer-lg  { border-radius: calc(var(--ds-r-lg)  + 12px); }

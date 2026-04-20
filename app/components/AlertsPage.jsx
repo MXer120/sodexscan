@@ -1,8 +1,22 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import {
+  TrendingUp, Tag, Eye, BarChart2, Bell, Layers, Plus, Pencil, Copy,
+  Trash2, X, ChevronLeft, Search, Info, ArrowUp, ArrowDown, Settings,
+  Wallet, Activity, Zap, AlertCircle,
+} from 'lucide-react'
+import CoinLogo from './ui/CoinLogo'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Switch } from './ui/switch'
+import { Badge } from './ui/badge'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from './ui/sheet'
+import { ScrollArea } from './ui/scroll-area'
 import '../styles/AlertsPage.css'
+
+// ─── Auth fetch ──────────────────────────────────────────────────────────────
 
 async function authFetch(url, options = {}) {
   const { data: { session } } = await supabase.auth.getSession()
@@ -13,38 +27,62 @@ async function authFetch(url, options = {}) {
   })
 }
 
-// ─── Alert type catalogue ────────────────────────────────────────────────────
+// ─── Data catalogue ──────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { id: 'all',           label: 'All Alerts',     icon: '◈' },
-  { id: 'price',         label: 'Price',          icon: '📈' },
-  { id: 'listings',      label: 'Listings',       icon: '✦' },
-  { id: 'wallet',        label: 'Wallet Activity',icon: '👁' },
-  { id: 'pnl',           label: 'PnL',            icon: '💰' },
-  { id: 'announcements', label: 'Announcements',  icon: '📢' },
+  {
+    id: 'price',
+    label: 'Price Alerts',
+    desc: 'Get notified on price moves and level crossings',
+    Icon: TrendingUp,
+    color: '#f59e0b',
+  },
+  {
+    id: 'listings',
+    label: 'Listings',
+    desc: 'New coins listed or entering the incoming queue',
+    Icon: Tag,
+    color: '#6366f1',
+  },
+  {
+    id: 'wallet',
+    label: 'Wallet Activity',
+    desc: 'Deposits, withdrawals, fills and order events',
+    Icon: Activity,
+    color: '#22c55e',
+  },
+  {
+    id: 'pnl',
+    label: 'PnL',
+    desc: 'Profit & loss thresholds for any wallet',
+    Icon: BarChart2,
+    color: '#f26b1f',
+  },
+  {
+    id: 'announcements',
+    label: 'Announcements',
+    desc: 'Official SoDEX updates and maintenance alerts',
+    Icon: Bell,
+    color: '#a78bfa',
+  },
 ]
 
 const TYPE_META = {
-  price_movement:    { cat: 'price',         label: 'Price Movement',     desc: '% change threshold' },
-  price_level:       { cat: 'price',         label: 'Price Level',        desc: 'Crosses above / below value' },
-  new_listing:       { cat: 'listings',      label: 'New Listing',        desc: 'New coin listed on SoDEX' },
-  new_incoming:      { cat: 'listings',      label: 'New Incoming',       desc: 'New coin in Incoming' },
-  wallet_deposit:    { cat: 'wallet',        label: 'Deposit',            desc: 'Funds received by wallet' },
-  wallet_withdrawal: { cat: 'wallet',        label: 'Withdrawal',         desc: 'Funds sent from wallet' },
-  wallet_fill:       { cat: 'wallet',        label: 'Trade Fill',         desc: 'Position opened or closed' },
-  position_open:     { cat: 'wallet',        label: 'Position Opened',    desc: 'New perp position' },
-  position_close:    { cat: 'wallet',        label: 'Position Closed',    desc: 'Position fully closed' },
-  order_placed:      { cat: 'wallet',        label: 'Order Placed',       desc: 'New order created' },
-  order_cancelled:   { cat: 'wallet',        label: 'Order Cancelled',    desc: 'Order removed' },
-  daily_pnl:         { cat: 'pnl',           label: 'Daily PnL',          desc: 'Daily P&L threshold' },
-  weekly_pnl:        { cat: 'pnl',           label: 'Weekly PnL',         desc: 'Weekly P&L threshold' },
-  total_pnl:         { cat: 'pnl',           label: 'Total PnL',          desc: 'Cumulative P&L threshold' },
-  sodex_announcement:{ cat: 'announcements', label: 'SoDEX Announcement', desc: 'Official updates (coming soon)' },
-}
-
-const CAT_COLORS = {
-  price: '#f59e0b', listings: '#6366f1', wallet: '#22c55e',
-  pnl: '#f26b1f', announcements: '#a78bfa',
+  price_movement:    { cat: 'price',         label: 'Price Movement',   desc: 'Fires when price moves ± a % threshold',        Icon: TrendingUp },
+  price_level:       { cat: 'price',         label: 'Price Level',      desc: 'Fires when price crosses above or below a value', Icon: Zap },
+  new_listing:       { cat: 'listings',      label: 'New Listing',      desc: 'New coin listed on SoDEX',                       Icon: Tag },
+  new_incoming:      { cat: 'listings',      label: 'New Incoming',     desc: 'New coin appears in the Incoming queue',         Icon: Tag },
+  wallet_deposit:    { cat: 'wallet',        label: 'Deposit',          desc: 'Wallet receives funds above a threshold',        Icon: ArrowDown },
+  wallet_withdrawal: { cat: 'wallet',        label: 'Withdrawal',       desc: 'Wallet sends funds above a threshold',           Icon: ArrowUp },
+  wallet_fill:       { cat: 'wallet',        label: 'Trade Fill',       desc: 'A position is opened or closed',                 Icon: Activity },
+  position_open:     { cat: 'wallet',        label: 'Position Opened',  desc: 'A new perp position is created',                 Icon: Activity },
+  position_close:    { cat: 'wallet',        label: 'Position Closed',  desc: 'A perp position is fully closed',               Icon: Activity },
+  order_placed:      { cat: 'wallet',        label: 'Order Placed',     desc: 'A new order is submitted',                      Icon: Activity },
+  order_cancelled:   { cat: 'wallet',        label: 'Order Cancelled',  desc: 'An order is removed from the book',             Icon: Activity },
+  daily_pnl:         { cat: 'pnl',           label: 'Daily PnL',        desc: 'Daily profit or loss exceeds a threshold',       Icon: BarChart2 },
+  weekly_pnl:        { cat: 'pnl',           label: 'Weekly PnL',       desc: 'Weekly profit or loss exceeds a threshold',      Icon: BarChart2 },
+  total_pnl:         { cat: 'pnl',           label: 'Total PnL',        desc: 'Cumulative P&L exceeds a threshold',             Icon: BarChart2 },
+  sodex_announcement:{ cat: 'announcements', label: 'SoDEX Announcement', desc: 'Official updates (coming soon)',             Icon: Bell },
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -57,7 +95,7 @@ function thresholdSummary(type, thresholds) {
     return thresholds.price ? `${dir} $${Number(thresholds.price).toLocaleString()}` : ''
   }
   if (['wallet_deposit','wallet_withdrawal'].includes(type)) {
-    if (thresholds.min && thresholds.max) return `$${thresholds.min} – $${thresholds.max}`
+    if (thresholds.min && thresholds.max) return `$${thresholds.min}–$${thresholds.max}`
     if (thresholds.min) return `≥ $${thresholds.min}`
     return ''
   }
@@ -72,11 +110,352 @@ function defaultDraft(type) {
   return { type, target: '', thresholds: {}, channels: { telegram: true }, label: '' }
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function fmtPrice(p) {
+  if (!p) return null
+  return p >= 1 ? p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : p.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 6 })
+}
+
+// ─── Symbol Combobox ─────────────────────────────────────────────────────────
+
+function SymbolCombobox({ value, onChange, placeholder = 'Search symbol…' }) {
+  const [query, setQuery] = useState(value ?? '')
+  const [open, setOpen] = useState(false)
+  const [symbols, setSymbols] = useState([])
+  const [loading, setLoading] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/symbols')
+      .then(r => r.json())
+      .then(d => setSymbols(d.symbols ?? []))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // Sync external value → local query
+  useEffect(() => { setQuery(value ?? '') }, [value])
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const q = query.toLowerCase()
+  const filtered = q
+    ? symbols.filter(s => s.symbol.toLowerCase().includes(q) || s.base.toLowerCase().includes(q)).slice(0, 30)
+    : symbols.slice(0, 20)
+
+  const select = (sym) => {
+    onChange(sym.symbol)
+    setQuery(sym.symbol)
+    setOpen(false)
+  }
+
+  return (
+    <div className="alp-symbol-wrap" ref={ref}>
+      <div className="alp-symbol-input-row">
+        <Search size={14} className="alp-symbol-icon" />
+        <input
+          className="alp-input alp-input--symbol"
+          value={query}
+          placeholder={placeholder}
+          onChange={e => { setQuery(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {value && (
+          <button className="alp-symbol-clear" onClick={() => { onChange(''); setQuery(''); }}>
+            <X size={12} />
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="alp-symbol-dropdown">
+          {loading && <div className="alp-symbol-loading">Loading symbols…</div>}
+          {!loading && filtered.length === 0 && <div className="alp-symbol-empty">No matches</div>}
+          {filtered.map(sym => (
+            <button key={sym.symbol} className="alp-symbol-row" onMouseDown={() => select(sym)}>
+              <CoinLogo symbol={sym.symbol} size={22} />
+              <div className="alp-symbol-info">
+                <span className="alp-symbol-name">{sym.symbol}</span>
+                <span className="alp-symbol-base">{sym.base}</span>
+              </div>
+              <Badge variant="outline" className="alp-symbol-badge">PERPS</Badge>
+              {sym.price && (
+                <span className="alp-symbol-price">${fmtPrice(sym.price)}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Live price + condition preview ──────────────────────────────────────────
+
+function LivePriceBar({ type, target, thresholds, symbols }) {
+  if (!target || !symbols.length) return null
+  const data = symbols.find(s => s.symbol === target)
+  const price = data?.price
+
+  if (type === 'price_movement' && thresholds.pct) {
+    return (
+      <div className="alp-price-bar">
+        <span className="alp-price-current">{price ? `$${fmtPrice(price)}` : target}</span>
+        <span className="alp-price-rule">
+          Alert fires on <strong>±{thresholds.pct}%</strong> move from any point
+        </span>
+      </div>
+    )
+  }
+
+  if (type === 'price_level' && thresholds.price && thresholds.direction) {
+    const trigger = Number(thresholds.price)
+    const dir = thresholds.direction === 'above' ? 'above' : 'below'
+    const status = price
+      ? (dir === 'above' ? (price > trigger ? '— already above' : `→ $${fmtPrice(trigger - price)} away`) : (price < trigger ? '— already below' : `→ $${fmtPrice(price - trigger)} away`))
+      : null
+    return (
+      <div className="alp-price-bar">
+        {price && <span className="alp-price-current">${fmtPrice(price)}</span>}
+        <span className="alp-price-rule">
+          Fires when price crosses <strong>{dir} ${Number(thresholds.price).toLocaleString()}</strong>
+          {status && <span className="alp-price-status"> {status}</span>}
+        </span>
+      </div>
+    )
+  }
+
+  if (price) {
+    return (
+      <div className="alp-price-bar">
+        <span className="alp-price-current">${fmtPrice(price)}</span>
+        <span className="alp-price-label">current mark price</span>
+      </div>
+    )
+  }
+
+  return null
+}
+
+// ─── Drawer fields ────────────────────────────────────────────────────────────
+
+function DrawerFields({ draft, onChange, symbols }) {
+  const set  = (key, val) => onChange({ ...draft, [key]: val })
+  const setT = (key, val) => onChange({ ...draft, thresholds: { ...draft.thresholds, [key]: val } })
+  const setC = (key, val) => onChange({ ...draft, channels: { ...draft.channels, [key]: val } })
+
+  const isPrice    = ['price_movement','price_level'].includes(draft.type)
+  const isWallet   = ['wallet_deposit','wallet_withdrawal','wallet_fill','position_open','position_close','order_placed','order_cancelled'].includes(draft.type)
+  const isPnl      = ['daily_pnl','weekly_pnl','total_pnl'].includes(draft.type)
+  const isListings = ['new_listing','new_incoming'].includes(draft.type)
+  const isAnn      = draft.type === 'sodex_announcement'
+
+  return (
+    <div className="alp-fields">
+
+      <div className="alp-field">
+        <label className="alp-field-label">Name <span className="alp-field-opt">optional</span></label>
+        <Input
+          className="alp-input-sh"
+          placeholder="e.g. BTC breakout watch"
+          value={draft.label}
+          onChange={e => set('label', e.target.value)}
+        />
+      </div>
+
+      {/* Price fields */}
+      {isPrice && (
+        <>
+          <div className="alp-field">
+            <label className="alp-field-label">Symbol</label>
+            <SymbolCombobox value={draft.target} onChange={v => set('target', v)} />
+          </div>
+
+          {draft.type === 'price_movement' && (
+            <div className="alp-field">
+              <label className="alp-field-label">Movement threshold</label>
+              <div className="alp-input-row">
+                <span className="alp-input-pre">±</span>
+                <Input
+                  className="alp-input-sh alp-input--no-left"
+                  type="number" min="0.1" step="0.1" placeholder="5"
+                  value={draft.thresholds.pct ?? ''}
+                  onChange={e => setT('pct', e.target.value)}
+                />
+                <span className="alp-input-suf">%</span>
+              </div>
+            </div>
+          )}
+
+          {draft.type === 'price_level' && (
+            <>
+              <div className="alp-field">
+                <label className="alp-field-label">Direction</label>
+                <div className="alp-seg">
+                  {[['above', 'Crosses above', ArrowUp], ['below', 'Crosses below', ArrowDown]].map(([d, lbl, Icon]) => (
+                    <button
+                      key={d}
+                      className={`alp-seg-btn ${draft.thresholds.direction === d ? 'active' : ''}`}
+                      onClick={() => setT('direction', d)}
+                    >
+                      <Icon size={12} />
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="alp-field">
+                <label className="alp-field-label">Target price (USD)</label>
+                <div className="alp-input-row">
+                  <span className="alp-input-pre">$</span>
+                  <Input
+                    className="alp-input-sh alp-input--no-left"
+                    type="number" min="0" step="any" placeholder="50000"
+                    value={draft.thresholds.price ?? ''}
+                    onChange={e => setT('price', e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <LivePriceBar type={draft.type} target={draft.target} thresholds={draft.thresholds} symbols={symbols} />
+        </>
+      )}
+
+      {/* Wallet fields */}
+      {isWallet && (
+        <>
+          <div className="alp-field">
+            <label className="alp-field-label">Wallet address</label>
+            <div className="alp-input-row">
+              <Wallet size={14} className="alp-input-icon" />
+              <Input
+                className="alp-input-sh alp-input--mono alp-input--icon-l"
+                placeholder="0x…"
+                value={draft.target}
+                onChange={e => set('target', e.target.value)}
+              />
+            </div>
+            <p className="alp-field-hint">Watch any tracked wallet or your own address.</p>
+          </div>
+
+          {['wallet_deposit','wallet_withdrawal'].includes(draft.type) && (
+            <div className="alp-field">
+              <label className="alp-field-label">Amount range (USD) <span className="alp-field-opt">optional</span></label>
+              <div className="alp-input-row alp-input-row--range">
+                <span className="alp-input-pre">Min $</span>
+                <Input className="alp-input-sh alp-input--no-left" type="number" min="0" placeholder="0"
+                  value={draft.thresholds.min ?? ''} onChange={e => setT('min', e.target.value)} />
+                <span className="alp-input-sep">–</span>
+                <span className="alp-input-pre">Max $</span>
+                <Input className="alp-input-sh alp-input--no-left" type="number" min="0" placeholder="any"
+                  value={draft.thresholds.max ?? ''} onChange={e => setT('max', e.target.value)} />
+              </div>
+              <p className="alp-field-hint">Leave Max blank to alert on any amount above Min.</p>
+            </div>
+          )}
+
+          {['wallet_fill','position_open','position_close','order_placed','order_cancelled'].includes(draft.type) && (
+            <div className="alp-field">
+              <label className="alp-field-label">Symbol filter <span className="alp-field-opt">optional</span></label>
+              <SymbolCombobox
+                value={draft.thresholds.symbol ?? ''}
+                onChange={v => setT('symbol', v)}
+                placeholder="All symbols or pick one…"
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* PnL fields */}
+      {isPnl && (
+        <>
+          <div className="alp-field">
+            <label className="alp-field-label">Wallet address</label>
+            <div className="alp-input-row">
+              <Wallet size={14} className="alp-input-icon" />
+              <Input
+                className="alp-input-sh alp-input--mono alp-input--icon-l"
+                placeholder="0x…"
+                value={draft.target}
+                onChange={e => set('target', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="alp-field">
+            <label className="alp-field-label">Direction</label>
+            <div className="alp-seg">
+              {[['above', 'Profit above', ArrowUp], ['below', 'Loss below', ArrowDown]].map(([d, lbl, Icon]) => (
+                <button key={d} className={`alp-seg-btn ${draft.thresholds.direction === d ? 'active' : ''}`} onClick={() => setT('direction', d)}>
+                  <Icon size={12} />{lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="alp-field">
+            <label className="alp-field-label">PnL threshold (USD)</label>
+            <div className="alp-input-row">
+              <span className="alp-input-pre">$</span>
+              <Input className="alp-input-sh alp-input--no-left" type="number" step="any" placeholder="1000"
+                value={draft.thresholds.value ?? ''} onChange={e => setT('value', e.target.value)} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Listings field */}
+      {isListings && (
+        <div className="alp-field">
+          <label className="alp-field-label">Keyword filter <span className="alp-field-opt">optional</span></label>
+          <Input
+            className="alp-input-sh"
+            placeholder="e.g. SOL, MEME — blank = any new coin"
+            value={draft.target === '__any__' ? '' : draft.target}
+            onChange={e => set('target', e.target.value || '__any__')}
+          />
+          <p className="alp-field-hint">Alert on any new coin, or only if the ticker contains this keyword.</p>
+        </div>
+      )}
+
+      {/* Announcements */}
+      {isAnn && (
+        <div className="alp-banner alp-banner--info">
+          <AlertCircle size={15} />
+          <span>The SoDEX announcement data stream is not yet live. This alert type will activate once the feed is available.</span>
+        </div>
+      )}
+
+      {/* Delivery channels */}
+      <div className="alp-field">
+        <label className="alp-field-label">Delivery channels</label>
+        <div className="alp-channels">
+          {[['telegram', 'Telegram'], ['discord', 'Discord']].map(([ch, lbl]) => (
+            <label key={ch} className={`alp-ch-item ${draft.channels[ch] ? 'active' : ''}`}>
+              <input type="checkbox" checked={!!draft.channels[ch]} onChange={e => setC(ch, e.target.checked)} />
+              <span>{lbl}</span>
+            </label>
+          ))}
+        </div>
+        <p className="alp-field-hint">Connect channels in Profile → Alert settings.</p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Alert card ───────────────────────────────────────────────────────────────
 
 function AlertCard({ alert, onEdit, onDuplicate, onDelete, onToggle }) {
-  const meta = TYPE_META[alert.type] ?? { cat: 'all', label: alert.type, desc: '' }
-  const color = CAT_COLORS[meta.cat] ?? '#888'
+  const meta  = TYPE_META[alert.type] ?? { cat: 'all', label: alert.type, desc: '' }
+  const catCfg = CATEGORIES.find(c => c.id === meta.cat)
+  const color = catCfg?.color ?? '#888'
   const summary = thresholdSummary(alert.type, alert.thresholds)
 
   return (
@@ -88,10 +467,11 @@ function AlertCard({ alert, onEdit, onDuplicate, onDelete, onToggle }) {
             <span className="alp-card-type" style={{ color }}>{meta.label}</span>
             {alert.label && <span className="alp-card-label">{alert.label}</span>}
           </div>
-          <label className="alp-toggle" title={alert.enabled ? 'Disable' : 'Enable'}>
-            <input type="checkbox" checked={alert.enabled} onChange={() => onToggle(alert)} />
-            <span className="alp-toggle-track" />
-          </label>
+          <Switch
+            checked={alert.enabled}
+            onCheckedChange={() => onToggle(alert)}
+            aria-label={alert.enabled ? 'Disable alert' : 'Enable alert'}
+          />
         </div>
         <div className="alp-card-mid">
           {alert.target && alert.target !== '__any__' && (
@@ -99,167 +479,20 @@ function AlertCard({ alert, onEdit, onDuplicate, onDelete, onToggle }) {
           )}
           {summary && <span className="alp-chip alp-chip--threshold">{summary}</span>}
           {alert.channels?.telegram && <span className="alp-chip alp-chip--ch">TG</span>}
-          {alert.channels?.discord && <span className="alp-chip alp-chip--ch">Discord</span>}
+          {alert.channels?.discord  && <span className="alp-chip alp-chip--ch">Discord</span>}
         </div>
         <div className="alp-card-desc">{meta.desc}</div>
       </div>
       <div className="alp-card-actions">
         <button className="alp-action-btn" onClick={() => onEdit(alert)} title="Edit">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <Pencil size={13} />
         </button>
         <button className="alp-action-btn" onClick={() => onDuplicate(alert)} title="Duplicate">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <Copy size={13} />
         </button>
         <button className="alp-action-btn alp-action-btn--danger" onClick={() => onDelete(alert)} title="Delete">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          <Trash2 size={13} />
         </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Drawer form fields ───────────────────────────────────────────────────────
-
-function DrawerFields({ draft, onChange }) {
-  const set = (key, val) => onChange({ ...draft, [key]: val })
-  const setT = (key, val) => onChange({ ...draft, thresholds: { ...draft.thresholds, [key]: val } })
-  const setC = (key, val) => onChange({ ...draft, channels: { ...draft.channels, [key]: val } })
-
-  const isPriceType    = ['price_movement', 'price_level'].includes(draft.type)
-  const isWalletType   = ['wallet_deposit','wallet_withdrawal','wallet_fill','position_open','position_close','order_placed','order_cancelled'].includes(draft.type)
-  const isPnlType      = ['daily_pnl','weekly_pnl','total_pnl'].includes(draft.type)
-  const isListingsType = ['new_listing','new_incoming'].includes(draft.type)
-  const isAnnouncement = draft.type === 'sodex_announcement'
-
-  return (
-    <div className="alp-drawer-fields">
-      <div className="alp-field">
-        <label className="alp-field-label">Name <span className="alp-field-opt">(optional)</span></label>
-        <input className="alp-input" placeholder="My BTC alert…" value={draft.label} onChange={e => set('label', e.target.value)} />
-      </div>
-
-      {isPriceType && (
-        <>
-          <div className="alp-field">
-            <label className="alp-field-label">Symbol</label>
-            <input className="alp-input" placeholder="BTC-USDT" value={draft.target} onChange={e => set('target', e.target.value.toUpperCase())} />
-          </div>
-          {draft.type === 'price_movement' && (
-            <div className="alp-field">
-              <label className="alp-field-label">Threshold (%)</label>
-              <div className="alp-input-row">
-                <span className="alp-input-pre">±</span>
-                <input className="alp-input alp-input--no-left" type="number" min="0.1" step="0.1" placeholder="5" value={draft.thresholds.pct ?? ''} onChange={e => setT('pct', e.target.value)} />
-                <span className="alp-input-suf">%</span>
-              </div>
-              <p className="alp-field-hint">Alert fires when price moves by this % in either direction.</p>
-            </div>
-          )}
-          {draft.type === 'price_level' && (
-            <>
-              <div className="alp-field">
-                <label className="alp-field-label">Direction</label>
-                <div className="alp-seg">
-                  {['above','below'].map(d => (
-                    <button key={d} className={`alp-seg-btn ${draft.thresholds.direction === d ? 'active' : ''}`} onClick={() => setT('direction', d)}>
-                      {d === 'above' ? '↑ Above' : '↓ Below'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="alp-field">
-                <label className="alp-field-label">Target Price (USD)</label>
-                <div className="alp-input-row">
-                  <span className="alp-input-pre">$</span>
-                  <input className="alp-input alp-input--no-left" type="number" min="0" step="any" placeholder="50000" value={draft.thresholds.price ?? ''} onChange={e => setT('price', e.target.value)} />
-                </div>
-              </div>
-            </>
-          )}
-        </>
-      )}
-
-      {isWalletType && (
-        <>
-          <div className="alp-field">
-            <label className="alp-field-label">Wallet Address</label>
-            <input className="alp-input alp-input--mono" placeholder="0x…" value={draft.target} onChange={e => set('target', e.target.value)} />
-            <p className="alp-field-hint">Watch any tracked wallet or your own.</p>
-          </div>
-          {['wallet_deposit','wallet_withdrawal'].includes(draft.type) && (
-            <div className="alp-field">
-              <label className="alp-field-label">Amount Range (USD)</label>
-              <div className="alp-input-row">
-                <span className="alp-input-pre">Min $</span>
-                <input className="alp-input alp-input--no-left" type="number" min="0" placeholder="0" value={draft.thresholds.min ?? ''} onChange={e => setT('min', e.target.value)} />
-                <span className="alp-input-sep">–</span>
-                <span className="alp-input-pre">Max $</span>
-                <input className="alp-input alp-input--no-left" type="number" min="0" placeholder="any" value={draft.thresholds.max ?? ''} onChange={e => setT('max', e.target.value)} />
-              </div>
-              <p className="alp-field-hint">Leave Max blank to alert on all amounts above Min.</p>
-            </div>
-          )}
-          {['wallet_fill','position_open','position_close','order_placed','order_cancelled'].includes(draft.type) && (
-            <div className="alp-field">
-              <label className="alp-field-label">Symbol Filter <span className="alp-field-opt">(optional)</span></label>
-              <input className="alp-input" placeholder="BTC-USDT or leave blank for all" value={draft.thresholds.symbol ?? ''} onChange={e => setT('symbol', e.target.value.toUpperCase())} />
-            </div>
-          )}
-        </>
-      )}
-
-      {isPnlType && (
-        <>
-          <div className="alp-field">
-            <label className="alp-field-label">Wallet Address</label>
-            <input className="alp-input alp-input--mono" placeholder="0x… or your own wallet" value={draft.target} onChange={e => set('target', e.target.value)} />
-          </div>
-          <div className="alp-field">
-            <label className="alp-field-label">Direction</label>
-            <div className="alp-seg">
-              {['above','below'].map(d => (
-                <button key={d} className={`alp-seg-btn ${draft.thresholds.direction === d ? 'active' : ''}`} onClick={() => setT('direction', d)}>
-                  {d === 'above' ? '↑ Profit above' : '↓ Loss below'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="alp-field">
-            <label className="alp-field-label">PnL Threshold (USD)</label>
-            <div className="alp-input-row">
-              <span className="alp-input-pre">$</span>
-              <input className="alp-input alp-input--no-left" type="number" step="any" placeholder="1000" value={draft.thresholds.value ?? ''} onChange={e => setT('value', e.target.value)} />
-            </div>
-          </div>
-        </>
-      )}
-
-      {isListingsType && (
-        <div className="alp-field">
-          <label className="alp-field-label">Keyword Filter <span className="alp-field-opt">(optional)</span></label>
-          <input className="alp-input" placeholder="e.g. SOL, MEME…" value={draft.target === '__any__' ? '' : draft.target} onChange={e => set('target', e.target.value || '__any__')} />
-          <p className="alp-field-hint">Alert on any new coin, or only if the name contains this keyword.</p>
-        </div>
-      )}
-
-      {isAnnouncement && (
-        <div className="alp-banner alp-banner--info">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          SoDEX announcement data stream is not yet available. This alert type will activate once the feed is live.
-        </div>
-      )}
-
-      <div className="alp-field">
-        <label className="alp-field-label">Delivery Channels</label>
-        <div className="alp-channels">
-          {[['telegram','Telegram'],['discord','Discord']].map(([ch, lbl]) => (
-            <label key={ch} className={`alp-ch-item ${draft.channels[ch] ? 'active' : ''}`}>
-              <input type="checkbox" checked={!!draft.channels[ch]} onChange={e => setC(ch, e.target.checked)} />
-              <span>{lbl}</span>
-            </label>
-          ))}
-        </div>
-        <p className="alp-field-hint">Connect channels in Profile → Alerts settings.</p>
       </div>
     </div>
   )
@@ -268,16 +501,24 @@ function DrawerFields({ draft, onChange }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
-  const [alerts, setAlerts]     = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [cat, setCat]           = useState('all')
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editing, setEditing]   = useState(null)   // null = new, object = existing
-  const [draft, setDraft]       = useState(defaultDraft('price_movement'))
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState(null)
+  const [alerts, setAlerts]       = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [cat, setCat]             = useState('all')
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editing, setEditing]     = useState(null)
+  const [step, setStep]           = useState('category') // 'category' | 'type' | 'configure'
+  const [selCat, setSelCat]       = useState(null)
+  const [draft, setDraft]         = useState(defaultDraft('price_movement'))
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState(null)
+  const [symbols, setSymbols]     = useState([])
 
   useEffect(() => { document.title = 'Alerts | CommunityScan SoDEX' }, [])
+
+  // Preload symbols for live price display
+  useEffect(() => {
+    fetch('/api/symbols').then(r => r.json()).then(d => setSymbols(d.symbols ?? []))
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -294,22 +535,28 @@ export default function AlertsPage() {
   const openNew = () => {
     setEditing(null)
     setDraft(defaultDraft('price_movement'))
+    setSelCat(null)
+    setStep('category')
     setError(null)
-    setDrawerOpen(true)
+    setSheetOpen(true)
   }
 
   const openEdit = (alert) => {
     setEditing(alert)
     setDraft({ type: alert.type, target: alert.target, thresholds: alert.thresholds ?? {}, channels: alert.channels ?? { telegram: true }, label: alert.label ?? '' })
+    setSelCat(TYPE_META[alert.type]?.cat ?? null)
+    setStep('configure')
     setError(null)
-    setDrawerOpen(true)
+    setSheetOpen(true)
   }
 
   const openDuplicate = (alert) => {
     setEditing(null)
     setDraft({ type: alert.type, target: alert.target, thresholds: alert.thresholds ?? {}, channels: alert.channels ?? { telegram: true }, label: alert.label ? `${alert.label} (copy)` : '' })
+    setSelCat(TYPE_META[alert.type]?.cat ?? null)
+    setStep('configure')
     setError(null)
-    setDrawerOpen(true)
+    setSheetOpen(true)
   }
 
   const handleSave = async () => {
@@ -318,19 +565,19 @@ export default function AlertsPage() {
     const target = draft.target.trim() || '__any__'
     setSaving(true)
     try {
-      const url = editing ? `/api/alerts/${editing.id}` : '/api/alerts'
+      const url    = editing ? `/api/alerts/${editing.id}` : '/api/alerts'
       const method = editing ? 'PATCH' : 'POST'
-      const res = await authFetch(url, { method, body: JSON.stringify({ ...draft, target }) })
-      const json = await res.json()
+      const res    = await authFetch(url, { method, body: JSON.stringify({ ...draft, target }) })
+      const json   = await res.json()
       if (!res.ok) { setError(json.error ?? 'Save failed'); setSaving(false); return }
-      setDrawerOpen(false)
+      setSheetOpen(false)
       await load()
     } catch (e) { setError(e.message) }
     setSaving(false)
   }
 
   const handleDelete = async (alert) => {
-    if (!confirm(`Delete alert "${alert.label || TYPE_META[alert.type]?.label}"?`)) return
+    if (!confirm(`Delete "${alert.label || TYPE_META[alert.type]?.label}"?`)) return
     await authFetch(`/api/alerts/${alert.id}`, { method: 'DELETE' })
     setAlerts(prev => prev.filter(a => a.id !== alert.id))
   }
@@ -340,10 +587,37 @@ export default function AlertsPage() {
     setAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, enabled: !a.enabled } : a))
   }
 
+  const pickCategory = (catId) => {
+    setSelCat(catId)
+    const typesInCat = Object.entries(TYPE_META).filter(([, m]) => m.cat === catId)
+    if (typesInCat.length === 1) {
+      // Only one type → skip type step
+      setDraft(defaultDraft(typesInCat[0][0]))
+      if (catId === 'announcements') {
+        setStep('configure')
+      } else {
+        setStep('configure')
+      }
+    } else {
+      setStep('type')
+    }
+  }
+
+  const pickType = (typeId) => {
+    setDraft(prev => ({ ...defaultDraft(typeId), label: prev.label }))
+    setStep('configure')
+  }
+
+  const typesInSelCat = selCat
+    ? Object.entries(TYPE_META).filter(([, m]) => m.cat === selCat)
+    : []
+
   const visible = cat === 'all' ? alerts : alerts.filter(a => TYPE_META[a.type]?.cat === cat)
-  const typesForCat = cat === 'all'
-    ? Object.entries(TYPE_META).map(([id]) => id)
-    : Object.entries(TYPE_META).filter(([, m]) => m.cat === cat).map(([id]) => id)
+
+  const drawerTitle = editing ? 'Edit Alert'
+    : step === 'category' ? 'Choose alert type'
+    : step === 'type' ? (CATEGORIES.find(c => c.id === selCat)?.label ?? 'Choose alert type')
+    : TYPE_META[draft.type]?.label ?? 'New Alert'
 
   return (
     <div className="alp-root">
@@ -355,11 +629,11 @@ export default function AlertsPage() {
             <span className="alp-sidebar-title">Categories</span>
           </div>
           <nav className="alp-nav">
-            {CATEGORIES.map(c => {
+            {[{ id: 'all', label: 'All Alerts', Icon: Layers, color: '#888' }, ...CATEGORIES].map(c => {
               const count = c.id === 'all' ? alerts.length : alerts.filter(a => TYPE_META[a.type]?.cat === c.id).length
               return (
                 <button key={c.id} className={`alp-nav-item ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
-                  <span className="alp-nav-icon">{c.icon}</span>
+                  <c.Icon size={14} className="alp-nav-icon" />
                   <span className="alp-nav-label">{c.label}</span>
                   {count > 0 && <span className="alp-nav-count">{count}</span>}
                 </button>
@@ -368,8 +642,8 @@ export default function AlertsPage() {
           </nav>
           <div className="alp-sidebar-footer">
             <a href="/profile" className="alp-sidebar-link">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              Channel Settings
+              <Settings size={13} />
+              Channel settings
             </a>
           </div>
         </aside>
@@ -381,10 +655,10 @@ export default function AlertsPage() {
               <h1 className="alp-page-title">Alerts</h1>
               <p className="alp-page-sub">Real-time notifications for price, wallet activity, listings, and PnL.</p>
             </div>
-            <button className="alp-btn-new" onClick={openNew}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <Button onClick={openNew} className="alp-btn-new">
+              <Plus size={15} />
               New Alert
-            </button>
+            </Button>
           </div>
 
           {loading ? (
@@ -393,19 +667,26 @@ export default function AlertsPage() {
             </div>
           ) : visible.length === 0 ? (
             <div className="alp-empty">
-              <div className="alp-empty-icon">◈</div>
+              <div className="alp-empty-icon">
+                <Layers size={28} strokeWidth={1.5} />
+              </div>
               <div className="alp-empty-title">No alerts yet</div>
-              <div className="alp-empty-sub">Create your first alert to get notified via Telegram or Discord.</div>
-              <button className="alp-btn-new" onClick={openNew}>New Alert</button>
+              <div className="alp-empty-sub">
+                {cat === 'all'
+                  ? 'Create your first alert to get notified via Telegram or Discord.'
+                  : `No ${CATEGORIES.find(c => c.id === cat)?.label.toLowerCase() ?? cat} alerts. Create one now.`}
+              </div>
+              <Button onClick={openNew} className="alp-btn-new alp-btn-new--sm">
+                <Plus size={14} /> New Alert
+              </Button>
             </div>
           ) : (
             <div className="alp-list">
               {visible.map(a => (
-                <AlertCard key={a.id} alert={a}
-                  onEdit={openEdit}
-                  onDuplicate={openDuplicate}
-                  onDelete={handleDelete}
-                  onToggle={handleToggle}
+                <AlertCard
+                  key={a.id} alert={a}
+                  onEdit={openEdit} onDuplicate={openDuplicate}
+                  onDelete={handleDelete} onToggle={handleToggle}
                 />
               ))}
             </div>
@@ -413,52 +694,93 @@ export default function AlertsPage() {
         </main>
       </div>
 
-      {/* Drawer overlay */}
-      {drawerOpen && (
-        <div className="alp-overlay" onClick={() => setDrawerOpen(false)}>
-          <div className="alp-drawer" onClick={e => e.stopPropagation()}>
-            <div className="alp-drawer-header">
-              <h2 className="alp-drawer-title">{editing ? 'Edit Alert' : 'New Alert'}</h2>
-              <button className="alp-drawer-close" onClick={() => setDrawerOpen(false)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-
-            {/* Single scrollable area — type picker + form fields */}
-            <div className="alp-drawer-scroll">
-              {!editing && (
-                <div className="alp-drawer-section">
-                  <label className="alp-field-label">Alert Type</label>
-                  <div className="alp-type-grid">
-                    {typesForCat.map(tid => {
-                      const m = TYPE_META[tid]
-                      if (!m) return null
-                      return (
-                        <button key={tid} className={`alp-type-tile ${draft.type === tid ? 'active' : ''}`} onClick={() => setDraft({ ...defaultDraft(tid), label: draft.label })} style={{ '--tile-color': CAT_COLORS[m.cat] }}>
-                          <span className="alp-type-tile-name">{m.label}</span>
-                          <span className="alp-type-tile-desc">{m.desc}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+      {/* Sheet drawer */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="alp-sheet">
+          <SheetHeader className="alp-sheet-header">
+            <div className="alp-sheet-header-row">
+              {step !== 'category' && !editing && (
+                <button
+                  className="alp-sheet-back"
+                  onClick={() => setStep(step === 'configure' && typesInSelCat.length > 1 ? 'type' : 'category')}
+                >
+                  <ChevronLeft size={16} />
+                </button>
               )}
-              <div className="alp-drawer-body">
-                <DrawerFields draft={draft} onChange={setDraft} />
+              <SheetTitle className="alp-sheet-title">{drawerTitle}</SheetTitle>
+            </div>
+            {!editing && step !== 'category' && (
+              <div className="alp-step-trail">
+                <span className={step === 'type' || step === 'configure' ? 'alp-trail-done' : ''}>
+                  {CATEGORIES.find(c => c.id === selCat)?.label ?? 'Category'}
+                </span>
+                {typesInSelCat.length > 1 && (
+                  <>
+                    <span className="alp-trail-sep">›</span>
+                    <span className={step === 'configure' ? 'alp-trail-done' : ''}>
+                      {step === 'configure' ? (TYPE_META[draft.type]?.label ?? 'Type') : 'Type'}
+                    </span>
+                  </>
+                )}
               </div>
-            </div>
+            )}
+          </SheetHeader>
 
-            {/* Footer always visible at bottom */}
-            <div className="alp-drawer-footer">
-              {error && <div className="alp-drawer-error" style={{ flex: 1, marginBottom: 0 }}>{error}</div>}
-              <button className="alp-btn-ghost" onClick={() => setDrawerOpen(false)}>Cancel</button>
-              <button className="alp-btn-save" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Alert'}
-              </button>
+          <ScrollArea className="alp-sheet-body">
+
+            {/* Step 0 — category picker */}
+            {step === 'category' && (
+              <div className="alp-cat-grid">
+                {CATEGORIES.map(c => {
+                  const existing = alerts.filter(a => TYPE_META[a.type]?.cat === c.id).length
+                  return (
+                    <button key={c.id} className="alp-cat-tile" onClick={() => pickCategory(c.id)} style={{ '--tile-color': c.color }}>
+                      <div className="alp-cat-tile-icon">
+                        <c.Icon size={20} />
+                      </div>
+                      <div className="alp-cat-tile-text">
+                        <span className="alp-cat-tile-name">{c.label}</span>
+                        <span className="alp-cat-tile-desc">{c.desc}</span>
+                      </div>
+                      {existing > 0 && <span className="alp-cat-tile-count">{existing}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Step 1 — type picker within category */}
+            {step === 'type' && (
+              <div className="alp-type-grid">
+                {typesInSelCat.map(([tid, m]) => (
+                  <button key={tid} className={`alp-type-tile ${draft.type === tid ? 'active' : ''}`} onClick={() => pickType(tid)}>
+                    <m.Icon size={16} className="alp-type-icon" />
+                    <span className="alp-type-tile-name">{m.label}</span>
+                    <span className="alp-type-tile-desc">{m.desc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Step 2 — configure */}
+            {step === 'configure' && (
+              <DrawerFields draft={draft} onChange={setDraft} symbols={symbols} />
+            )}
+
+          </ScrollArea>
+
+          {/* Footer */}
+          {step === 'configure' && (
+            <div className="alp-sheet-footer">
+              {error && <div className="alp-sheet-error">{error}</div>}
+              <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving…' : editing ? 'Save changes' : 'Create alert'}
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
