@@ -1,0 +1,164 @@
+/* ============================================================
+   MAINTENANCE GATE
+   ============================================================ */
+
+.mnt-root {
+  position: fixed;
+  inset: 0;
+  background: var(--ds-bg-0, #141414);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* ─── Spinner (loading state) ────────────────────────────── */
+
+.mnt-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--ds-border-default, #333);
+  border-top-color: var(--ds-accent, #f26b1f);
+  border-radius: 50%;
+  animation: mnt-spin 0.7s linear infinite;
+}
+
+@keyframes mnt-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Main body ──────────────────────────────────────────── */
+
+.mnt-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+  width: 100%;
+  max-width: 400px;
+  padding: 0 24px;
+}
+
+/* ─── Center block ───────────────────────────────────────── */
+
+.mnt-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.mnt-icon {
+  color: var(--ds-accent, #f26b1f);
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+.mnt-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #f5f5f5);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.mnt-sub {
+  font-size: 14px;
+  color: var(--ds-text-secondary, #a8a8a8);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.mnt-divider {
+  width: 40px;
+  height: 1px;
+  background: var(--ds-border-default, #333);
+  margin: 4px 0;
+}
+
+.mnt-tagline {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, #555);
+  margin: 0;
+}
+
+/* ─── Login form ─────────────────────────────────────────── */
+
+.mnt-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.mnt-form-hint {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-text-muted, #555);
+  margin: 0 0 2px;
+}
+
+.mnt-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.mnt-input {
+  width: 100%;
+  background: var(--ds-bg-3, #242424);
+  border: 1px solid var(--ds-border-default, #333);
+  border-radius: var(--ds-r-md, 8px);
+  padding: 11px 14px;
+  font-size: 14px;
+  color: var(--ds-text-primary, #f5f5f5);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.mnt-input:focus {
+  border-color: var(--ds-accent, #f26b1f);
+}
+
+.mnt-input::placeholder {
+  color: var(--ds-text-muted, #555);
+}
+
+.mnt-error {
+  font-size: 12px;
+  color: var(--ds-danger-red, #ef4444);
+  margin: 0;
+  text-align: center;
+}
+
+.mnt-submit {
+  width: 100%;
+  padding: 11px;
+  background: var(--ds-accent, #f26b1f);
+  border: none;
+  border-radius: var(--ds-r-md, 8px);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  margin-top: 2px;
+}
+
+.mnt-submit:hover:not(:disabled) {
+  background: var(--ds-accent-hover, #ff7d33);
+}
+
+.mnt-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
