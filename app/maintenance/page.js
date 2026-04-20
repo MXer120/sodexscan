@@ -1,13 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import '../styles/MaintenancePage.css'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
 
 export default function MaintenancePage() {
   const [email, setEmail]       = useState('')
@@ -20,32 +14,26 @@ export default function MaintenancePage() {
     setError('')
     setSubmitting(true)
 
-    const { error: authErr } = await supabase.auth.signInWithPassword({ email, password })
-    if (authErr) {
-      setError(authErr.message)
+    try {
+      const res = await fetch('/api/maintenance-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Sign in failed.')
+        setSubmitting(false)
+        return
+      }
+
+      // Cookie is set server-side (httpOnly, 24h) — hard reload so middleware re-checks
+      window.location.href = '/'
+    } catch {
+      setError('Network error. Please try again.')
       setSubmitting(false)
-      return
     }
-
-    // Verify this account is actually an owner before redirecting
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Authentication failed.'); setSubmitting(false); return }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'owner') {
-      await supabase.auth.signOut()
-      setError('Access restricted to site owners only.')
-      setSubmitting(false)
-      return
-    }
-
-    // Hard reload so middleware re-evaluates with the new auth cookie
-    window.location.href = '/'
   }
 
   return (
