@@ -11,13 +11,14 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const wallet = searchParams.get('wallet_address')
   const sortBy = searchParams.get('sort_by') || 'volume'
+  const windowType = searchParams.get('window_type') || 'ALL_TIME'
 
   if (!wallet) {
     return Response.json({ error: 'wallet_address required' }, { status: 400 })
   }
 
   try {
-    const url = `${SODEX_API}?window_type=ALL_TIME&sort_by=${sortBy}&wallet_address=${wallet}`
+    const url = `${SODEX_API}?window_type=${windowType}&sort_by=${sortBy}&wallet_address=${wallet}`
     const res = await fetch(url)
     const json = await res.json()
 
@@ -26,18 +27,18 @@ export async function GET(request) {
     }
 
     if (!json.data.found || !json.data.item) {
-      return Response.json({ found: false })
+      return Response.json({ code: 0, data: null })
     }
 
     const item = json.data.item
     return Response.json({
-      found: true,
-      accountId: item.account_id,
-      walletAddress: item.wallet_address?.toLowerCase(),
-      sodexVolume: parseFloat(item.volume_usd) || 0,
-      sodexPnl: parseFloat(item.pnl_usd) || 0,
-      volumeRank: sortBy === 'volume' ? item.rank : null,
-      pnlRank: sortBy === 'pnl' ? item.rank : null,
+      code: 0,
+      data: {
+        rank: item.rank,
+        wallet_address: item.wallet_address,
+        pnl_usd: item.pnl_usd,
+        volume_usd: item.volume_usd,
+      }
     }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
     })

@@ -23,6 +23,12 @@ const ReverseSearchWidget = lazy(() => import('./widgets/ReverseSearchWidget'))
 const SearchBarWidget = lazy(() => import('./widgets/SearchBarWidget'))
 const MarketOverviewWidget = lazy(() => import('./widgets/MarketOverviewWidget'))
 
+// ── SoSoValue widgets ─────────────────────────────────────────────
+const SosoEtfFlowsWidget = lazy(() => import('./widgets/SosoEtfFlowsWidget'))
+const SosoIndexWidget = lazy(() => import('./widgets/SosoIndexWidget'))
+const SosoMacroWidget = lazy(() => import('./widgets/SosoMacroWidget'))
+const SosoNewsWidget = lazy(() => import('./widgets/SosoNewsWidget'))
+
 // ── New scanner widgets ────────────────────────────────────────────
 const AccountValueWidget = lazy(() => import('./widgets/AccountValueWidget'))
 const AccountEquityWidget = lazy(() => import('./widgets/AccountEquityWidget'))
@@ -76,6 +82,47 @@ export const WIDGET_REGISTRY = {
     description: 'Live perps & spot market tickers with prices and 24h stats',
     category: 'market',
     defaultSize: { w: 12, h: 8, minW: 6, minH: 4 }, smH: 6, mdH: 7,
+    defaultSettings: {},
+    settingsSchema: [],
+    visibilitySchema: [],
+  },
+  // ── SoSoValue ──────────────────────────────────────────────────
+  'sosovalue-etf-flows': {
+    component: SosoEtfFlowsWidget,
+    label: 'ETF Flows',
+    description: 'BTC & ETH spot-ETF daily net flows + cumulative (SoSoValue)',
+    category: 'market',
+    defaultSize: { w: 8, h: 6, minW: 4, minH: 4 }, smH: 14, mdH: 6,
+    defaultSettings: {},
+    settingsSchema: [],
+    visibilitySchema: [],
+  },
+  'sosovalue-index': {
+    component: SosoIndexWidget,
+    label: 'Crypto Indices',
+    description: 'SoSoValue crypto market indices (BTC / Altcoin / L1 / DeFi)',
+    category: 'market',
+    defaultSize: { w: 8, h: 6, minW: 4, minH: 4 }, smH: 14, mdH: 6,
+    defaultSettings: {},
+    settingsSchema: [],
+    visibilitySchema: [],
+  },
+  'sosovalue-macro': {
+    component: SosoMacroWidget,
+    label: 'Macro Calendar',
+    description: 'Upcoming macro events: FOMC, CPI, NFP and more (SoSoValue)',
+    category: 'market',
+    defaultSize: { w: 6, h: 7, minW: 4, minH: 4 }, smH: 16, mdH: 7,
+    defaultSettings: {},
+    settingsSchema: [],
+    visibilitySchema: [],
+  },
+  'sosovalue-news': {
+    component: SosoNewsWidget,
+    label: 'Market News',
+    description: 'Curated crypto news feed by asset (SoSoValue)',
+    category: 'social',
+    defaultSize: { w: 6, h: 8, minW: 4, minH: 4 }, smH: 18, mdH: 8,
     defaultSettings: {},
     settingsSchema: [],
     visibilitySchema: [],

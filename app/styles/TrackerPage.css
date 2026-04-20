@@ -88,7 +88,7 @@
 
 .search-input {
   flex: 1;
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   padding: 14px 18px;
@@ -100,7 +100,7 @@
 .search-input:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(25, 25, 25, 0.8);
+  background: var(--ds-bg-1);
 }
 
 .search-input::placeholder {
@@ -138,7 +138,7 @@
 }
 
 .method-btn {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.6);
   padding: 8px 16px;
@@ -161,7 +161,7 @@
 
 /* Wallet Details */
 .wallet-details {
-  background: rgba(20, 20, 20, 0.4);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 24px;
@@ -241,7 +241,7 @@
 }
 
 .metric-card {
-  background: rgba(30, 30, 30, 0.5);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   padding: 16px;
@@ -350,7 +350,7 @@
 }
 
 .items-per-page select {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 6px 10px;
@@ -371,7 +371,7 @@
 }
 
 .history-pagination button {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 6px 12px;
@@ -489,8 +489,8 @@
 
 /* Refetch Button */
 .refetch-btn {
-  background: rgba(60, 200, 240, 0.1);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.1);
+  border: 1px solid rgba(242, 107, 31, 0.3);
   color: var(--color-success);
   padding: 8px 16px;
   border-radius: 6px;
@@ -500,8 +500,8 @@
 }
 
 .refetch-btn:hover:not(:disabled) {
-  background: rgba(60, 200, 240, 0.2);
-  border-color: rgba(60, 200, 240, 0.5);
+  background: rgba(242, 107, 31, 0.2);
+  border-color: rgba(242, 107, 31, 0.5);
 }
 
 .refetch-btn:disabled {
@@ -621,7 +621,7 @@
 }
 
 .view-btn {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
   padding: 4px 10px;
@@ -637,8 +637,8 @@
 }
 
 .view-btn.active {
-  background: rgba(60, 200, 240, 0.15);
-  border-color: rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.15);
+  border-color: rgba(242, 107, 31, 0.3);
   color: var(--color-success);
 }
 
@@ -648,7 +648,7 @@
 }
 
 .tab-btn {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.6);
   padding: 10px 20px;
@@ -664,8 +664,8 @@
 }
 
 .tab-btn.active {
-  background: rgba(60, 200, 240, 0.15);
-  border-color: rgba(60, 200, 240, 0.4);
+  background: rgba(242, 107, 31, 0.15);
+  border-color: rgba(242, 107, 31, 0.4);
   color: var(--color-success);
 }
 
@@ -683,7 +683,7 @@
 
 /* Wallet Table Section */
 .wallet-table-section {
-  background: rgba(20, 20, 20, 0.4);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 24px;
@@ -713,7 +713,7 @@
 
 .filter-select,
 .sort-select {
-  background: rgba(30, 30, 30, 0.8);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.8);
   padding: 8px 12px;
@@ -827,7 +827,7 @@
 }
 
 .page-size-select {
-  background: rgba(30, 30, 30, 0.8);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.8);
   padding: 8px 12px;
@@ -884,8 +884,8 @@
   position: fixed;
   top: 100px;
   right: 24px;
-  background: rgba(60, 200, 240, 0.15);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.15);
+  border: 1px solid rgba(242, 107, 31, 0.3);
   color: var(--color-success);
   padding: 12px 20px;
   border-radius: 8px;
@@ -900,8 +900,8 @@
 }
 
 .calc-open-btn:hover {
-  background: rgba(60, 200, 240, 0.25);
-  border-color: rgba(60, 200, 240, 0.5);
+  background: rgba(242, 107, 31, 0.25);
+  border-color: rgba(242, 107, 31, 0.5);
   transform: translateY(-2px);
 }
 
@@ -938,7 +938,7 @@
 }
 
 .calc-modal {
-  background: rgba(20, 20, 20, 0.95);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 32px;
@@ -1009,8 +1009,8 @@
 }
 
 .calc-info-tooltip {
-  background: rgba(60, 200, 240, 0.1);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.1);
+  border: 1px solid rgba(242, 107, 31, 0.3);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
@@ -1028,8 +1028,8 @@
 }
 
 .close-tooltip-btn {
-  background: rgba(60, 200, 240, 0.15);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.15);
+  border: 1px solid rgba(242, 107, 31, 0.3);
   color: var(--color-success);
   padding: 6px 14px;
   border-radius: 6px;
@@ -1040,7 +1040,7 @@
 }
 
 .close-tooltip-btn:hover {
-  background: rgba(60, 200, 240, 0.25);
+  background: rgba(242, 107, 31, 0.25);
 }
 
 .points-mode-toggle {
@@ -1066,9 +1066,9 @@
 }
 
 .points-mode-toggle button.active {
-  background: rgba(60, 200, 240, 0.15);
+  background: rgba(242, 107, 31, 0.15);
   color: var(--color-success);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  border: 1px solid rgba(242, 107, 31, 0.3);
 }
 
 .points-mode-toggle button:hover:not(.active) {
@@ -1098,8 +1098,8 @@
 }
 
 .field-tooltip {
-  background: rgba(60, 200, 240, 0.1);
-  border: 1px solid rgba(60, 200, 240, 0.25);
+  background: rgba(242, 107, 31, 0.1);
+  border: 1px solid rgba(242, 107, 31, 0.25);
   border-radius: 6px;
   padding: 8px 12px;
   margin-top: 6px;
@@ -1136,7 +1136,7 @@
 }
 
 .calc-field input {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 10px 12px;
@@ -1147,13 +1147,13 @@
 
 .calc-field input:focus {
   outline: none;
-  border-color: rgba(60, 200, 240, 0.4);
+  border-color: rgba(242, 107, 31, 0.4);
 }
 
 /* Calculator Result */
 .calc-result {
-  background: rgba(60, 200, 240, 0.08);
-  border: 1px solid rgba(60, 200, 240, 0.2);
+  background: rgba(242, 107, 31, 0.08);
+  border: 1px solid rgba(242, 107, 31, 0.2);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
@@ -1178,7 +1178,7 @@
 }
 
 .display-toggle button {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
   padding: 4px 10px;
@@ -1194,8 +1194,8 @@
 }
 
 .display-toggle button.active {
-  background: rgba(60, 200, 240, 0.15);
-  border-color: rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.15);
+  border-color: rgba(242, 107, 31, 0.3);
   color: var(--color-success);
 }
 
@@ -1248,7 +1248,7 @@
 
 /* Price Chart */
 .price-chart {
-  background: rgba(20, 20, 20, 0.4);
+  background: var(--ds-bg-0);
   border-radius: 8px;
   padding: 20px;
   margin-top: 20px;
@@ -1277,8 +1277,8 @@
 
 /* Airdrop Card (in metrics grid) */
 .airdrop-card {
-  background: rgba(60, 200, 240, 0.08);
-  border-color: rgba(60, 200, 240, 0.2);
+  background: rgba(242, 107, 31, 0.08);
+  border-color: rgba(242, 107, 31, 0.2);
 }
 
 .metric-label-row {
@@ -1320,7 +1320,7 @@
   left: 0;
   right: 0;
   margin-top: 12px;
-  background: rgba(25, 25, 25, 0.98);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
   padding: 20px;
@@ -1485,7 +1485,7 @@
 
 /* Batch Management */
 .batch-selector {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 24px;
@@ -1500,7 +1500,7 @@
 }
 
 .batch-select {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   padding: 12px 16px;
@@ -1514,7 +1514,7 @@
 
 .batch-select:focus {
   outline: none;
-  border-color: rgba(60, 200, 240, 0.4);
+  border-color: rgba(242, 107, 31, 0.4);
 }
 
 .batch-selector .create-batch-btn {
@@ -1539,7 +1539,7 @@
 
 /* Batch Stats Section */
 .batch-stats-section {
-  background: rgba(20, 20, 20, 0.6);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 32px;
@@ -1561,7 +1561,7 @@
 }
 
 .batch-stats-summary .stat-card {
-  background: rgba(30, 30, 30, 0.6);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 20px;
   border-radius: 8px;
@@ -1593,8 +1593,8 @@
 
 .view-wallet-btn,
 .remove-wallet-btn {
-  background: rgba(60, 200, 240, 0.15);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.15);
+  border: 1px solid rgba(242, 107, 31, 0.3);
   color: var(--color-success);
   padding: 6px 12px;
   border-radius: 4px;
@@ -1605,7 +1605,7 @@
 }
 
 .view-wallet-btn:hover {
-  background: rgba(60, 200, 240, 0.25);
+  background: rgba(242, 107, 31, 0.25);
 }
 
 .remove-wallet-btn {
@@ -1622,7 +1622,7 @@
 .batch-management {
   margin: 24px 0;
   padding: 20px;
-  background: rgba(30, 30, 30, 0.4);
+  background: var(--ds-bg-1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
 }
@@ -1642,8 +1642,8 @@
 
 .create-batch-btn,
 .batch-btn {
-  background: rgba(60, 200, 240, 0.15);
-  border: 1px solid rgba(60, 200, 240, 0.3);
+  background: rgba(242, 107, 31, 0.15);
+  border: 1px solid rgba(242, 107, 31, 0.3);
   color: var(--color-success);
   padding: 8px 14px;
   border-radius: 6px;
@@ -1653,7 +1653,7 @@
 }
 
 .create-batch-btn:hover {
-  background: rgba(60, 200, 240, 0.25);
+  background: rgba(242, 107, 31, 0.25);
 }
 
 .batch-btn.active {
@@ -1664,7 +1664,7 @@
 }
 
 .batch-btn:not(.active):hover {
-  background: rgba(60, 200, 240, 0.25);
+  background: rgba(242, 107, 31, 0.25);
 }
 
 .batch-btn:disabled {
@@ -1676,7 +1676,7 @@
 .wallet-season-stats {
   margin: 32px 0;
   padding: 24px;
-  background: rgba(20, 20, 20, 0.4);
+  background: var(--ds-bg-0);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
 }

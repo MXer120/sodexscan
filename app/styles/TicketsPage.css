@@ -465,8 +465,8 @@
 }
 
 .ticket-overview-stat-card.active:hover {
-  border-color: rgba(72, 203, 255, 0.4);
-  box-shadow: 0 4px 12px rgba(72, 203, 255, 0.05);
+  border-color: rgba(242, 107, 31, 0.4);
+  box-shadow: 0 4px 12px rgba(242, 107, 31, 0.05);
 }
 
 .ticket-overview-stat-card.waiting:hover {

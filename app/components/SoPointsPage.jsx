@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { useTheme } from '../lib/ThemeContext'
 import '../styles/SoPoints.css'
 import { supabase } from '../lib/supabaseClient'
 import { useUserProfile } from '../hooks/useProfile'
@@ -20,7 +19,6 @@ const SPOT_MULTIPLIER = 2
 const TOTAL_POOL = 1_000_000
 
 const SoPointsPage = () => {
-    const { theme } = useTheme()
     const [showWarning, setShowWarning] = useState(true)
     const [timeLeft, setTimeLeft] = useState('')
     const [globalStats, setGlobalStats] = useState({
@@ -1070,7 +1068,7 @@ const SoPointsPage = () => {
         }
       `}</style>
             {showWarning && (
-                <WarningModal onClose={() => setShowWarning(false)} theme={theme} />
+                <WarningModal onClose={() => setShowWarning(false)} />
             )}
 
             <style jsx>{`
@@ -1087,7 +1085,8 @@ const SoPointsPage = () => {
     )
 }
 
-function WarningModal({ onClose, theme }) {
+function WarningModal({ onClose }) {
+  const accentColor = '#f26b1f'
     useEffect(() => {
         document.body.style.overflow = 'hidden'
         return () => { document.body.style.overflow = 'unset' }
@@ -1114,11 +1113,11 @@ function WarningModal({ onClose, theme }) {
                 onClick={e => e.stopPropagation()}
                 style={{
                     background: 'var(--color-bg-secondary)',
-                    border: `1px solid ${theme.accentColor}33`,
+                    border: `1px solid ${accentColor}33`,
                     borderRadius: '24px',
                     width: '100%',
                     maxWidth: '440px',
-                    boxShadow: `0 24px 80px rgba(0,0,0,0.9), 0 0 40px ${theme.accentColor}11`,
+                    boxShadow: `0 24px 80px rgba(0,0,0,0.9), 0 0 40px ${accentColor}11`,
                     overflow: 'hidden',
                     animation: 'modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     position: 'relative'
@@ -1130,7 +1129,7 @@ function WarningModal({ onClose, theme }) {
                     right: '-50px',
                     width: '150px',
                     height: '150px',
-                    background: theme.accentColor,
+                    background: accentColor,
                     filter: 'blur(70px)',
                     opacity: 0.15,
                     pointerEvents: 'none'
@@ -1140,15 +1139,15 @@ function WarningModal({ onClose, theme }) {
                     <div style={{
                         width: '64px',
                         height: '64px',
-                        background: `${theme.accentColor}15`,
+                        background: `${accentColor}15`,
                         borderRadius: '20px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         margin: '0 auto 24px',
-                        border: `1px solid ${theme.accentColor}33`
+                        border: `1px solid ${accentColor}33`
                     }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={theme.accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                             <line x1="12" y1="9" x2="12" y2="13"></line>
                             <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -1180,7 +1179,7 @@ function WarningModal({ onClose, theme }) {
                         onClick={onClose}
                         style={{
                             width: '100%',
-                            background: theme.accentColor,
+                            background: accentColor,
                             color: '#000',
                             border: 'none',
                             borderRadius: '14px',
@@ -1189,15 +1188,15 @@ function WarningModal({ onClose, theme }) {
                             fontWeight: '700',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
-                            boxShadow: `0 8px 24px ${theme.accentColor}44`
+                            boxShadow: `0 8px 24px ${accentColor}44`
                         }}
                         onMouseOver={e => {
                             e.currentTarget.style.transform = 'translateY(-2px)'
-                            e.currentTarget.style.boxShadow = `0 12px 28px ${theme.accentColor}66`
+                            e.currentTarget.style.boxShadow = `0 12px 28px ${accentColor}66`
                         }}
                         onMouseOut={e => {
                             e.currentTarget.style.transform = 'translateY(0)'
-                            e.currentTarget.style.boxShadow = `0 8px 24px ${theme.accentColor}44`
+                            e.currentTarget.style.boxShadow = `0 8px 24px ${accentColor}44`
                         }}
                     >
                         I Understand

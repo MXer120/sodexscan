@@ -66,24 +66,30 @@ body.aggregator-active .page-transition {
   100% { background-position: calc(200px + 100%) 0; }
 }
 
-/* Stats Dashboard styles - updated for new theme */
+/* ── Page content wrapper — offsets ALL pages from sidebar+topbar ── */
+.page-content {
+  margin-left: var(--sb-width, 240px);
+  padding-top: 60px; /* topbar height */
+  min-height: 100vh;
+  transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 700px) {
+  .page-content {
+    margin-left: 0;
+    padding-top: 0;
+    padding-bottom: 60px;
+  }
+}
+
+/* Stats Dashboard styles — inner page padding only, layout offset is .page-content */
 .dashboard,
 .landing-page {
   padding: 24px;
-  padding-top: 80px;
-  /* Account for fixed navbar */
   margin: 0 auto;
   position: relative;
   min-height: 100vh;
   width: 100%;
-}
-
-@media (max-width: 768px) {
-
-  .dashboard,
-  .landing-page {
-    padding-top: 100px;
-  }
 }
 
 /* Background for stats pages - very subtle */
@@ -460,7 +466,6 @@ body.aggregator-active .page-transition {
 @media (max-width: 768px) {
   .dashboard {
     padding: 16px;
-    padding-top: 80px;
   }
 
   .stats-row {
@@ -520,23 +525,15 @@ body.aggregator-active .page-transition {
   }
 }
 
-/* Reduce padding when announcement bar is present */
-body:has(.announcement-bar) .dashboard,
-body:has(.announcement-bar) .landing-page {
-  padding-top: 8px !important;
-}
 
 @media (max-width: 700px) {
   body {
-    padding-top: 32px;
-    /* Space for fixed Top Status Bar */
+    padding-top: 0;
   }
 
   .dashboard,
   .landing-page {
-    padding-top: 24px;
-    /* Reduced since Top Navbar is gone */
-    padding-bottom: 90px;
-    /* Space for Bottom Navbar (60px) + Extra */
+    padding: 16px;
+    padding-bottom: 16px;
   }
 }

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react'
-import { useTheme } from '../lib/ThemeContext'
 import { useUserGrowthData } from '../hooks/useUserGrowthData'
 import { SkeletonChart, SkeletonBar } from './Skeleton'
 import {
@@ -74,7 +73,6 @@ const calculateYAxisDomain = (data) => {
 }
 
 export default function TotalUsersChart({ overrideTotalUsers }) {
-  const { theme } = useTheme()
   const { data: growthData, isLoading: loading, isError } = useUserGrowthData()
   const [projectionDays, setProjectionDays] = useState(7)
   const [timeframeDays, setTimeframeDays] = useState(30)
@@ -286,7 +284,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
                   <ReferenceArea
                     x1={currentDayDate}
                     x2={lastFilteredDate}
-                    fill={theme.bullishColor}
+                    fill='#22c55e'
                     fillOpacity={0.06}
                   />
                 )}
@@ -315,7 +313,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
                 <Line
                   type="monotone"
                   dataKey="predictedTotal"
-                  stroke={theme.bullishColor}
+                  stroke='#22c55e'
                   strokeWidth={2}
                   strokeDasharray="4 4"
                   connectNulls={true}
@@ -326,12 +324,12 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
                       <circle
                         key={`pred-${payload.date}`}
                         cx={cx} cy={cy} r={3}
-                        fill={theme.bullishColor}
+                        fill='#22c55e'
                         opacity={0.8}
                       />
                     )
                   }}
-                  activeDot={{ r: 4, fill: theme.bullishColor, stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -432,7 +430,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
         .timeframe-btn:hover,
         .projection-btn:hover { color: #aaa; }
         .timeframe-btn.active { background: var(--color-overlay-medium); color: var(--color-text-main); }
-        .projection-btn.active { background: ${theme.bullishColor}; color: var(--color-text-main); }
+        .projection-btn.active { background: #22c55e; color: var(--color-text-main); }
         .chart-body-row { display: flex; gap: 16px; }
         .chart-area { flex: 1; min-width: 0; }
         .chart-loading,
@@ -461,12 +459,12 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           padding-bottom: 5px;
         }
         :global(.tooltip-tag) { margin-left: 5px; font-weight: 600; }
-        :global(.tooltip-tag.projected) { color: ${theme.bullishColor}; }
+        :global(.tooltip-tag.projected) { color: #22c55e; }
         :global(.tooltip-tag.current) { color: var(--color-primary); }
         :global(.tooltip-row) { display: flex; justify-content: space-between; margin-bottom: 2px; }
         :global(.tooltip-label) { color: var(--color-text-muted); font-size: 11px; }
         :global(.tooltip-value) { color: var(--color-text-main); font-weight: 600; font-size: 11px; }
-        :global(.tooltip-value.green) { color: ${theme.bullishColor}; }
+        :global(.tooltip-value.green) { color: #22c55e; }
         .milestones-box {
           width: 160px;
           flex-shrink: 0;
@@ -486,7 +484,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
           border-bottom: 1px solid var(--color-overlay-subtle);
         }
         .milestones-title { font-size: 12px; font-weight: 600; color: var(--color-text-main); }
-        .milestones-rate { font-size: 9px; color: ${theme.bullishColor}; font-weight: 500; }
+        .milestones-rate { font-size: 9px; color: #22c55e; font-weight: 500; }
         .milestones-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
         .milestone-item {
           display: flex;
@@ -500,7 +498,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
         .milestone-item:hover { background: var(--color-overlay-subtle); }
         .milestone-number { font-size: 13px; font-weight: 700; color: var(--color-text-main); }
         .milestone-eta { display: flex; flex-direction: column; align-items: flex-end; }
-        .milestone-days { font-size: 11px; font-weight: 600; color: ${theme.bullishColor}; }
+        .milestone-days { font-size: 11px; font-weight: 600; color: #22c55e; }
         .milestone-date { font-size: 9px; color: var(--color-text-muted); }
         .no-milestones { color: var(--color-text-muted); font-size: 11px; text-align: center; padding: 16px 0; }
         .milestones-legend {
@@ -515,7 +513,7 @@ export default function TotalUsersChart({ overrideTotalUsers }) {
         .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
         .legend-dot.actual { background: var(--color-primary); }
         .legend-dot.current { background: var(--color-primary); border: 2px solid #fff; box-sizing: border-box; }
-        .legend-dot.predicted { background: ${theme.bullishColor}; opacity: 0.8; }
+        .legend-dot.predicted { background: #22c55e; opacity: 0.8; }
         @media (max-width: 900px) {
           .chart-header-row { flex-direction: column; align-items: flex-start; }
           .chart-controls-row { width: 100%; justify-content: flex-start; }

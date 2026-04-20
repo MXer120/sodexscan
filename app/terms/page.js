@@ -152,6 +152,12 @@ export default function TermsPage() {
                   <strong style={{ color: 'var(--color-primary)' }}>5.2 Keine Anlageberatung:</strong> Die bereitgestellten Informationen stellen keine Finanz-, Anlage- oder Rechtsberatung dar. Kryptowährungshandel birgt erhebliche Risiken einschließlich des Totalverlusts. Vergangene Performance ist kein Indikator für zukünftige Ergebnisse. Sie handeln auf eigenes Risiko.
                 </p>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--color-primary)' }}>5.2a Copy-Trade &amp; Signale:</strong> Die Funktion „Copy-Trade-Signale" dieser Website übermittelt ausschließlich Informationssignale über die Handelsaktivitäten Dritter. Wir führen <strong>keine Trades in Ihrem Namen aus</strong>, verwahren <strong>keine privaten Schlüssel oder API-Keys</strong> und sind <strong>kein Zahlungsdienstleister oder Verwahrstelle</strong>. Die Simulations-Rangliste basiert auf hypothetischen, vergangenen Daten und ist kein Indikator für zukünftige Ergebnisse. Alle Handelsentscheidungen treffen Sie eigenverantwortlich in Ihrer eigenen Wallet.
+                </p>
+                <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--color-primary)' }}>5.2b Benachrichtigungen &amp; Alarme:</strong> Der Benachrichtigungsdienst (Telegram, Discord) dient ausschließlich der Information. Benachrichtigungen können verzögert, unvollständig oder fehlerhaft sein. Sie sind nicht als Handlungsaufforderung zu verstehen.
+                </p>
+                <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
                   <strong style={{ color: 'var(--color-primary)' }}>5.3 Haftungsbeschränkung:</strong> Der Betreiber haftet nicht für direkte oder indirekte Schäden, entgangene Gewinne, Datenverlust oder Folgeschäden, die durch die Nutzung oder Nichtnutzung der Website entstehen, außer bei Vorsatz, grober Fahrlässigkeit oder Verletzung wesentlicher Vertragspflichten. Die Haftung ist auf vorhersehbare Schäden begrenzt.
                 </p>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
@@ -280,6 +286,12 @@ export default function TermsPage() {
                 </p>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
                   <strong style={{ color: 'var(--color-primary)' }}>5.2 No Investment Advice:</strong> The information provided does not constitute financial, investment, or legal advice. Cryptocurrency trading involves substantial risks including total loss. Past performance is not indicative of future results. You act at your own risk.
+                </p>
+                <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--color-primary)' }}>5.2a Copy-Trade &amp; Signals:</strong> The Copy-Trade Signals feature provides informational signals only about third-party trading activity. We <strong>do not execute trades on your behalf</strong>, <strong>do not hold private keys or API keys</strong>, and are <strong>not a money transmitter, broker, or custodian</strong>. The simulated leaderboard rankings are based on hypothetical past performance and are not indicative of future results. All trading decisions are made solely by you in your own wallet.
+                </p>
+                <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
+                  <strong style={{ color: 'var(--color-primary)' }}>5.2b Alerts &amp; Notifications:</strong> The alert service (Telegram, Discord) is for informational purposes only. Alerts may be delayed, incomplete, or inaccurate and should not be construed as a prompt to take any action.
                 </p>
                 <p style={{ color: 'var(--color-text-main)', marginBottom: '12px' }}>
                   <strong style={{ color: 'var(--color-primary)' }}>5.3 Limitation of Liability:</strong> The operator is not liable for direct or indirect damages, lost profits, data loss, or consequential damages arising from the use or non-use of the Website, except in cases of intent, gross negligence, or violation of essential contractual obligations. Liability is limited to foreseeable damages.

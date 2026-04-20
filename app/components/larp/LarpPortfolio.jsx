@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { perpsState, perpsBalances, perpsPositions, perpsOrders, perpsOrderHistory, perpsPositionHistory, perpsTrades, perpsFundings, spotBalances, spotOrders, perpsMarkPrices } from '../../lib/sodexApi'
 import { useWalletData } from '../../hooks/useWalletData'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts'
@@ -88,6 +88,358 @@ const SearchIcon = () => (
   </svg>
 )
 
+const SODEX_LOGO = 'https://sodex.com/assets/SoDEX-zLhsse8_.svg'
+
+// Decorative QR-like grid for share card (seeded so it's stable across renders)
+function QrDecoration({ size = 64, color = 'rgba(255,255,255,0.15)' }) {
+  const cells = useMemo(() => {
+    const out = []
+    const n = 8
+    const cellSize = size / n
+    // simple seeded pseudo-random
+    let seed = 42
+    const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647 }
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (rand() > 0.42) {
+          out.push(<rect key={`${r}-${c}`} x={c * cellSize} y={r * cellSize} width={cellSize - 1} height={cellSize - 1} fill={color} rx="1" />)
+        }
+      }
+    }
+    return out
+  }, [size, color])
+  return <svg width={size} height={size}>{cells}</svg>
+}
+
+// Character overlay SVGs for share card
+const OVERLAY_CHARACTERS = [
+  // 1: Bull mascot
+  <svg key="bull" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="79" cy="79" r="60" fill="rgba(24,179,107,0.12)" />
+    <path d="M55 50 Q45 30 35 35 Q30 40 40 55Z" fill="#18B36B" opacity="0.7"/>
+    <path d="M103 50 Q113 30 123 35 Q128 40 118 55Z" fill="#18B36B" opacity="0.7"/>
+    <ellipse cx="79" cy="85" rx="35" ry="32" fill="#18B36B" opacity="0.25"/>
+    <circle cx="67" cy="75" r="5" fill="#fff" opacity="0.8"/>
+    <circle cx="91" cy="75" r="5" fill="#fff" opacity="0.8"/>
+    <circle cx="68" cy="74" r="2.5" fill="#111"/>
+    <circle cx="92" cy="74" r="2.5" fill="#111"/>
+    <ellipse cx="79" cy="95" rx="12" ry="8" fill="#18B36B" opacity="0.35"/>
+    <circle cx="74" cy="93" r="2" fill="#111" opacity="0.4"/>
+    <circle cx="84" cy="93" r="2" fill="#111" opacity="0.4"/>
+    <path d="M72 88 Q79 82 86 88" stroke="#fff" strokeWidth="1.5" fill="none" opacity="0.5"/>
+  </svg>,
+  // 2: Rocket
+  <svg key="rocket" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M79 20 Q79 20 95 70 L79 80 L63 70 Z" fill="#FF7637" opacity="0.6"/>
+    <ellipse cx="79" cy="75" rx="16" ry="25" fill="#ccc" opacity="0.2"/>
+    <path d="M63 70 Q50 90 58 100 L63 85Z" fill="#FF7637" opacity="0.4"/>
+    <path d="M95 70 Q108 90 100 100 L95 85Z" fill="#FF7637" opacity="0.4"/>
+    <circle cx="79" cy="65" r="6" fill="#48CBFF" opacity="0.5"/>
+    <path d="M70 100 L74 130 L79 120 L84 130 L88 100" fill="#FF4444" opacity="0.5"/>
+    <path d="M73 105 L76 125 L79 118 L82 125 L85 105" fill="#FFaa00" opacity="0.4"/>
+  </svg>,
+  // 3: Diamond
+  <svg key="diamond" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M79 25 L120 60 L79 135 L38 60 Z" fill="#48CBFF" opacity="0.15"/>
+    <path d="M79 25 L120 60 L79 135 L38 60 Z" stroke="#48CBFF" strokeWidth="2" opacity="0.4"/>
+    <path d="M38 60 L120 60" stroke="#48CBFF" strokeWidth="1.5" opacity="0.3"/>
+    <path d="M79 25 L65 60 L79 135" stroke="#48CBFF" strokeWidth="1" opacity="0.25"/>
+    <path d="M79 25 L93 60 L79 135" stroke="#48CBFF" strokeWidth="1" opacity="0.25"/>
+    <path d="M79 60 L79 135" stroke="#fff" strokeWidth="0.5" opacity="0.15"/>
+  </svg>,
+  // 4: Crown
+  <svg key="crown" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M35 100 L50 50 L79 75 L108 50 L123 100 Z" fill="#FFD700" opacity="0.2"/>
+    <path d="M35 100 L50 50 L79 75 L108 50 L123 100 Z" stroke="#FFD700" strokeWidth="2" opacity="0.5"/>
+    <rect x="35" y="100" width="88" height="15" rx="3" fill="#FFD700" opacity="0.2" stroke="#FFD700" strokeWidth="1.5" strokeOpacity="0.4"/>
+    <circle cx="50" cy="50" r="5" fill="#FFD700" opacity="0.4"/>
+    <circle cx="79" cy="75" r="5" fill="#FFD700" opacity="0.4"/>
+    <circle cx="108" cy="50" r="5" fill="#FFD700" opacity="0.4"/>
+  </svg>,
+  // 5: Lightning
+  <svg key="lightning" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M90 20 L55 80 L75 80 L65 140 L110 65 L85 65 Z" fill="#FFD700" opacity="0.25"/>
+    <path d="M90 20 L55 80 L75 80 L65 140 L110 65 L85 65 Z" stroke="#FFD700" strokeWidth="2" opacity="0.5"/>
+    <path d="M87 28 L58 78 L76 78 L68 132 L105 68 L84 68 Z" fill="#FFD700" opacity="0.1"/>
+  </svg>,
+  // 6: Shield
+  <svg key="shield" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M79 25 L120 45 L120 90 Q120 120 79 140 Q38 120 38 90 L38 45 Z" fill="#18B36B" opacity="0.12"/>
+    <path d="M79 25 L120 45 L120 90 Q120 120 79 140 Q38 120 38 90 L38 45 Z" stroke="#18B36B" strokeWidth="2" opacity="0.4"/>
+    <path d="M67 80 L77 92 L97 65" stroke="#18B36B" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
+  </svg>,
+  // 7: Star
+  <svg key="star" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M79 25 L92 62 L132 62 L100 85 L112 125 L79 100 L46 125 L58 85 L26 62 L66 62 Z" fill="#FF7637" opacity="0.15"/>
+    <path d="M79 25 L92 62 L132 62 L100 85 L112 125 L79 100 L46 125 L58 85 L26 62 L66 62 Z" stroke="#FF7637" strokeWidth="1.5" opacity="0.4"/>
+  </svg>,
+  // 8: Moon
+  <svg key="moon" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="79" cy="79" r="45" fill="#48CBFF" opacity="0.1"/>
+    <path d="M90 34 A45 45 0 1 0 90 124 A35 35 0 1 1 90 34" fill="#48CBFF" opacity="0.2"/>
+    <circle cx="55" cy="60" r="3" fill="#fff" opacity="0.15"/>
+    <circle cx="45" cy="85" r="2" fill="#fff" opacity="0.1"/>
+    <circle cx="65" cy="100" r="2.5" fill="#fff" opacity="0.12"/>
+  </svg>,
+  // 9: Fire
+  <svg key="fire" viewBox="0 0 158 158" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M79 20 Q100 50 105 80 Q110 110 79 135 Q48 110 53 80 Q58 50 79 20Z" fill="#FF4444" opacity="0.15"/>
+    <path d="M79 45 Q92 65 95 85 Q98 105 79 125 Q60 105 63 85 Q66 65 79 45Z" fill="#FF7637" opacity="0.2"/>
+    <path d="M79 65 Q87 78 88 90 Q90 102 79 115 Q68 102 70 90 Q72 78 79 65Z" fill="#FFD700" opacity="0.25"/>
+  </svg>,
+]
+
+const SHARE_TEXT = `Join me to earn on SoDEX!\n\nTrade and earn on SoDEX Now:\nhttps://sodex.com/join/SOSO`
+const REFERRAL_LINK = 'https://sodex.com/join/SOSO'
+
+function ShareModal({ wallet, totalPnl, unrealizedPnl, closedPnl, volume, onClose }) {
+  const [tab, setTab] = useState('standard') // standard | custom
+  const [mode, setMode] = useState('profit') // profit | ror
+  const [selectedOverlay, setSelectedOverlay] = useState(-1) // -1 = none
+  const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const cardRef = useRef(null)
+  const [downloading, setDownloading] = useState(false)
+  const [overlayExists, setOverlayExists] = useState(false)
+
+  const pnlVal = parseFloat(totalPnl || 0)
+  const isPositive = pnlVal >= 0
+  const pnlColor = isPositive ? '#18B36B' : '#F24237'
+  const pnlSign = isPositive ? '+' : ''
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Check if custom overlay image exists
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => setOverlayExists(true)
+    img.onerror = () => setOverlayExists(false)
+    img.src = '/larp-pnl-overlay.png'
+  }, [])
+
+  // Compute display value based on mode
+  const displayValue = useMemo(() => {
+    if (mode === 'ror') {
+      // Rate of Return — rough calc based on unrealized + closed vs volume
+      const total = parseFloat(totalPnl || 0)
+      const vol = parseFloat(volume || 1)
+      const ror = vol > 0 ? (total / vol) * 100 : 0
+      return `${ror >= 0 ? '+' : ''}${ror.toFixed(2)}%`
+    }
+    return `${pnlSign}$${Math.abs(pnlVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }, [mode, totalPnl, volume, pnlSign, pnlVal])
+
+  const displayLabel = mode === 'ror' ? 'Profit & Loss (Futures & Vault)' : 'Profit & Loss (Futures & Vault)'
+
+  const handleDownload = useCallback(async () => {
+    if (!cardRef.current || downloading) return
+    setDownloading(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        backgroundColor: null,
+        useCORS: true,
+        logging: false,
+      })
+      const link = document.createElement('a')
+      link.download = `sodex-pnl-${today}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch (err) {
+      console.error('Share card download failed:', err)
+    }
+    setDownloading(false)
+  }, [downloading, today])
+
+  const handleCopyPoster = useCallback(async () => {
+    if (!cardRef.current) return
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: null, useCORS: true, logging: false })
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        }
+      })
+    } catch (err) {
+      console.error('Copy poster failed:', err)
+    }
+  }, [])
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(SHARE_TEXT).then(() => {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    })
+  }, [])
+
+  const handleShareTwitter = useCallback(() => {
+    const text = encodeURIComponent(`Trade and earn on SoDEX Now!\n${REFERRAL_LINK}`)
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank')
+  }, [])
+
+  const handleShareTelegram = useCallback(() => {
+    const text = encodeURIComponent(SHARE_TEXT)
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(REFERRAL_LINK)}&text=${text}`, '_blank')
+  }, [])
+
+  // Render the 518x518 PnL card
+  const renderCard = (isCustom) => (
+    <div
+      className={`larp-share-card ${isCustom ? 'larp-share-card-custom' : 'larp-share-card-standard'}`}
+      ref={cardRef}
+    >
+      {/* Background layers */}
+      {isCustom ? (
+        <div className="larp-share-card-custom-bg" />
+      ) : (
+        <>
+          <img
+            src="https://sodex.com/assets/up-bg-Bl4GgV0a.png"
+            alt=""
+            className="larp-share-card-decor"
+            crossOrigin="anonymous"
+          />
+          <div className="larp-share-card-gradient" />
+        </>
+      )}
+
+      {/* Custom overlay image if it exists */}
+      {isCustom && overlayExists && (
+        <img src="/larp-pnl-overlay.png" alt="" className="larp-share-card-overlay-img" crossOrigin="anonymous" />
+      )}
+
+      {/* Character overlay */}
+      {selectedOverlay >= 0 && selectedOverlay < OVERLAY_CHARACTERS.length && (
+        <div className="larp-share-card-character">
+          {OVERLAY_CHARACTERS[selectedOverlay]}
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="larp-share-card-content">
+        {/* Logo */}
+        <img src="https://sodex.com/assets/SoDEX-DCUqMD7E.svg" alt="SoDEX" className="larp-share-card-logo" crossOrigin="anonymous" />
+
+        {/* Label */}
+        <div className="larp-share-card-label">{displayLabel}</div>
+
+        {/* Big PnL */}
+        <div className="larp-share-card-pnl" style={{ color: pnlColor }}>
+          {displayValue}
+        </div>
+
+        {/* Spacer pushes footer to bottom */}
+        <div style={{ flex: 1 }} />
+
+        {/* Bottom divider + footer */}
+        <div className="larp-share-card-divider" />
+        <div className="larp-share-card-footer">
+          <div className="larp-share-card-footer-left">
+            <div className="larp-share-card-trade-now">Trade Now!</div>
+            <div className="larp-share-card-referral">{REFERRAL_LINK}</div>
+          </div>
+          <div className="larp-share-card-qr">
+            <QrDecoration size={64} color="rgba(255,255,255,0.2)" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      <div className="larp-share-overlay" onClick={onClose} />
+      <div className="larp-share-modal">
+        {/* Close button */}
+        <button className="larp-share-close" onClick={onClose} aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+        </button>
+
+        <div className="larp-share-layout">
+          {/* LEFT: Card preview */}
+          <div className="larp-share-card-wrap">
+            {renderCard(tab === 'custom')}
+          </div>
+
+          {/* RIGHT: Controls */}
+          <div className="larp-share-controls">
+            {/* Tab toggle: Standard / Custom */}
+            <div className="larp-share-tabs">
+              <button className={`larp-share-tab${tab === 'standard' ? ' active' : ''}`} onClick={() => setTab('standard')}>Standard</button>
+              <button className={`larp-share-tab${tab === 'custom' ? ' active' : ''}`} onClick={() => setTab('custom')}>Custom</button>
+            </div>
+
+            {/* Mode toggle */}
+            <div className="larp-share-mode-toggle">
+              <button className={`larp-share-mode-btn${mode === 'ror' ? ' active' : ''}`} onClick={() => setMode('ror')}>Rate of Return</button>
+              <button className={`larp-share-mode-btn${mode === 'profit' ? ' active' : ''}`} onClick={() => setMode('profit')}>Profit</button>
+            </div>
+
+            {/* Share Link section */}
+            <div className="larp-share-section">
+              <div className="larp-share-section-title">Share Link</div>
+              <div className="larp-share-link-box">
+                <div className="larp-share-link-text">{SHARE_TEXT}</div>
+                <button className="larp-share-link-copy" onClick={handleCopyLink}>
+                  {copiedLink ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#18B36B" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Overlay section */}
+            <div className="larp-share-section">
+              <div className="larp-share-section-title">Overlay</div>
+              <div className="larp-share-overlay-grid">
+                {/* None option */}
+                <button
+                  className={`larp-share-overlay-item${selectedOverlay === -1 ? ' active' : ''}`}
+                  onClick={() => setSelectedOverlay(-1)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20"><line x1="3" y1="3" x2="17" y2="17" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                {OVERLAY_CHARACTERS.map((_, i) => (
+                  <button
+                    key={i}
+                    className={`larp-share-overlay-item${selectedOverlay === i ? ' active' : ''}`}
+                    onClick={() => setSelectedOverlay(i)}
+                  >
+                    <div className="larp-share-overlay-thumb">{OVERLAY_CHARACTERS[i]}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="larp-share-actions">
+              <button className="larp-share-action-btn" onClick={handleShareTwitter} title="Twitter">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </button>
+              <button className="larp-share-action-btn" onClick={handleShareTelegram} title="Telegram">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              </button>
+              <button className="larp-share-action-btn larp-share-action-wide" onClick={handleCopyPoster}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                {copied ? 'Copied!' : 'Copy Poster'}
+              </button>
+              <button className="larp-share-action-btn larp-share-action-wide larp-share-action-primary" onClick={handleDownload} disabled={downloading}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                {downloading ? 'Saving...' : 'Download Poster'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // Coins that are pending incoming (deposit/withdraw disabled)
 const INCOMING_COINS = ['PURR', 'JEFF']
 
@@ -119,6 +471,7 @@ export default function LarpPortfolio({ wallet }) {
   const [showMoreTabs, setShowMoreTabs] = useState(false)
   const [visibleTabCount, setVisibleTabCount] = useState(ALL_TABS.length)
   const [expandedCoins, setExpandedCoins] = useState({}) // coin → bool for USDC/USDT dropdown
+  const [showShareModal, setShowShareModal] = useState(false)
   const intervalRef = useRef(null)
   const fastIntervalRef = useRef(null)
   const moreRef = useRef(null)
@@ -392,6 +745,7 @@ export default function LarpPortfolio({ wallet }) {
     if (hideSmall) {
       filtered = filtered.filter(b => b.usdValue >= 1)
     }
+    filtered.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0))
     return filtered
   }, [balances, spotBals, hideSmall, searchCoin, markPrices])
 
@@ -418,6 +772,7 @@ export default function LarpPortfolio({ wallet }) {
           <button
             className={`larp-port-share-btn${!wallet ? ' disabled' : ''}`}
             disabled={!wallet}
+            onClick={() => wallet && setShowShareModal(true)}
           >
             <span>Share</span>
             <ShareIcon />
@@ -900,6 +1255,18 @@ export default function LarpPortfolio({ wallet }) {
       </div>
     </div>
     <LarpAnnouncements />
+
+    {/* PnL Share Card Modal */}
+    {showShareModal && (
+      <ShareModal
+        wallet={wallet}
+        totalPnl={totalPnl}
+        unrealizedPnl={unrealizedPnl}
+        closedPnl={closedPnl}
+        volume={volume}
+        onClose={() => setShowShareModal(false)}
+      />
+    )}
     </div>
   )
 }

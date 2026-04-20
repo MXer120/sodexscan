@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react'
-import { useTheme } from '../lib/ThemeContext'
 import Link from 'next/link'
 import ChartCard from './ChartCard'
 import PnlCalendar from './PnlCalendar'
@@ -519,11 +518,10 @@ export default function MainnetTracker({ walletAddress, accountId: propAccountId
     }
   }, [isEditingAlias])
 
-  const { theme } = useTheme()
   // Universal colors
-  const BULLISH_COLOR = theme.bullishColor
-  const BEARISH_COLOR = theme.bearishColor
-  const INTERNAL_COLOR = theme.accentColor
+  const BULLISH_COLOR = '#22c55e'
+  const BEARISH_COLOR = '#ef4444'
+  const INTERNAL_COLOR = '#f26b1f'
 
   const totalUnrealizedPnl = positions.reduce((sum, pos) =>
     sum + parseFloat(pos.unrealizedProfit || 0), 0)

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { useTheme } from '../lib/ThemeContext'
 import {
   ComposedChart,
   Line,
@@ -53,9 +52,8 @@ export default function ChartCard({
   onTimeframeChange = null,
   fullHeight = false
 }) {
-  const { theme } = useTheme()
-  const successColor = theme.bullishColor
-  const errorColor = theme.bearishColor
+  const successColor = '#22c55e'
+  const errorColor = '#ef4444'
   const [selectedSeries, setSelectedSeries] = useState([])
   const [timeframe, setTimeframe] = useState('ALL')
   const [dropdownOpen, setDropdownOpen] = useState(false)

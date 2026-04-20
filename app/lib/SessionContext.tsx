@@ -36,6 +36,7 @@ interface SessionContextType {
   role: string | null
   isMod: boolean
   isOwner: boolean
+  isTeam: boolean
   openAuthModal: () => void
   setAuthModalCallback: (callback: (() => void) | null) => void
 }
@@ -47,6 +48,7 @@ const SessionContext = createContext<SessionContextType>({
   role: null,
   isMod: false,
   isOwner: false,
+  isTeam: false,
   openAuthModal: () => { },
   setAuthModalCallback: () => { },
 })
@@ -60,6 +62,7 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
 
   const isMod = role === 'mod' || role === 'owner'
   const isOwner = role === 'owner'
+  const isTeam = role === 'team' || isMod
 
   const openAuthModal = () => {
     if (authModalCallback) {
@@ -140,7 +143,7 @@ export const SessionContextProvider = ({ children, supabaseClient }: { children:
   }, [supabaseClient])
 
   return (
-    <SessionContext.Provider value={{ session, user, loading, role, isMod, isOwner, openAuthModal, setAuthModalCallback }}>
+    <SessionContext.Provider value={{ session, user, loading, role, isMod, isOwner, isTeam, openAuthModal, setAuthModalCallback }}>
       {children}
     </SessionContext.Provider>
   )

@@ -180,7 +180,7 @@
   position: relative;
   z-index: 1;
   padding: 80px 48px;
-  background: #0A0A0A;
+  background: var(--ds-bg-0);
   width: 100%;
 }
 
@@ -259,7 +259,7 @@
   position: relative;
   z-index: 1;
   padding: 100px 48px 120px;
-  background: #0A0A0A;
+  background: var(--ds-bg-0);
   width: 100%;
 }
 
@@ -283,7 +283,7 @@
 }
 
 .product-card {
-  background: rgba(20, 20, 20, 0.4);
+  background: var(--ds-bg-3);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 32px;
@@ -312,7 +312,7 @@
 .product-card:hover {
   transform: translateY(-8px);
   border-color: rgba(255, 255, 255, 0.15);
-  background: rgba(25, 25, 25, 0.6);
+  background: var(--ds-bg-3);
 }
 
 .product-card:hover::before {

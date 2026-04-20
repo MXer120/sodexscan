@@ -727,7 +727,7 @@ body:has(.scanner-dashboard) {
     bottom: calc(100% + 8px);
     left: 0;
     right: 0;
-    background: rgba(30, 30, 30, 0.98);
+    background: var(--ds-bg-1);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     padding: 10px 12px;
@@ -745,5 +745,5 @@ body:has(.scanner-dashboard) {
     top: 100%;
     left: 20px;
     border: 6px solid transparent;
-    border-top-color: rgba(30, 30, 30, 0.98);
+    border-top-color: var(--ds-bg-1);
 }

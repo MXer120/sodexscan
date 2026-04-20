@@ -4,8 +4,6 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import { useAggregatorLayout } from '../hooks/useAggregatorLayout'
-import { useTheme } from '../lib/ThemeContext'
-import { THEME_FAVICONS } from '../lib/themes'
 import { useUserProfile } from '../hooks/useProfile'
 import { useSessionContext } from '../lib/SessionContext'
 import { useGlobalTemplates, useGlobalTemplateMutations } from '../hooks/useGlobalTemplates'
@@ -27,8 +25,7 @@ const ResponsiveGridLayout = WidthProvider(Responsive)
 
 export default function AggregatorPage() {
   const agg = useAggregatorLayout()
-  const { logo, theme } = useTheme()
-  const favicon = THEME_FAVICONS[theme.colorScheme] || '/favicon-cyan.svg'
+  const favicon = '/favicon-cyan.svg'
   const { isOwner } = useSessionContext()
   const { data: profileData } = useUserProfile()
   const profileWallet = profileData?.profile?.own_wallet || ''
@@ -431,7 +428,7 @@ export default function AggregatorPage() {
   if (agg.isLoading) {
     return (
       <div className="agg-loading-screen">
-        <img src={logo || '/logo.svg'} alt="Logo" className="agg-loading-logo" />
+        <img src="/logo.svg" alt="Logo" className="agg-loading-logo" />
         <div className="agg-loading-bar">
           <div
             className="agg-loading-bar-fill"
@@ -454,7 +451,7 @@ export default function AggregatorPage() {
     <div className={`agg-root ${navDockClass}${agg.performanceMode ? ' perf-mode' : ''}`}>
       {/* Navigation sidebar */}
       <AggNav
-        logo={logo}
+        logo="/logo.svg"
         favicon={favicon}
         navExpanded={agg.navExpanded}
         onSetNavExpanded={agg.setNavExpanded}

@@ -78,7 +78,7 @@
 
 .agg-loading-bar-fill {
   height: 100%;
-  background: var(--color-primary, #48cbff);
+  background: var(--color-primary, #f26b1f);
   border-radius: 3px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -479,7 +479,7 @@ body.aggregator-active [class*="Navbar"] {
   bottom: 100%;
   left: 0;
   margin-bottom: 4px;
-  background: var(--color-bg-secondary, rgba(25, 25, 25, 0.98));
+  background: var(--color-bg-secondary, rgba(26, 26, 26, 0.98));
   border: 1px solid var(--color-border-visible);
   border-radius: 8px;
   padding: 4px;
@@ -538,7 +538,7 @@ body.aggregator-active [class*="Navbar"] {
    Widget Cards
    ══════════════════════════════════════════════════════════════════ */
 .agg-widget-card {
-  background: var(--color-bg-card, rgba(20, 20, 20, 0.6));
+  background: var(--color-bg-card, rgba(36, 36, 36, 0.6));
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
   display: flex;
@@ -779,7 +779,7 @@ body.aggregator-active [class*="Navbar"] {
    Settings Panel
    ══════════════════════════════════════════════════════════════════ */
 .agg-settings-panel {
-  background: var(--color-bg-secondary, rgba(25, 25, 25, 0.98));
+  background: var(--color-bg-secondary, rgba(26, 26, 26, 0.98));
   border: 1px solid var(--color-border-visible);
   border-radius: 10px;
   padding: 12px;
@@ -868,7 +868,7 @@ body.aggregator-active [class*="Navbar"] {
   right: 0;
   top: 100%;
   margin-top: 4px;
-  background: var(--color-bg-secondary, rgba(25, 25, 25, 0.98));
+  background: var(--color-bg-secondary, rgba(26, 26, 26, 0.98));
   border: 1px solid var(--color-border-visible);
   border-radius: 10px;
   padding: 10px;
@@ -961,7 +961,7 @@ body.aggregator-active [class*="Navbar"] {
   top: calc(100% + 4px);
   left: 0;
   min-width: 100%;
-  background: var(--color-bg-secondary, rgba(25, 25, 25, 0.98));
+  background: var(--color-bg-secondary, rgba(26, 26, 26, 0.98));
   border: 1px solid var(--color-border-visible);
   border-radius: 8px;
   padding: 4px;
@@ -2173,7 +2173,7 @@ body.aggregator-active [class*="Navbar"] {
   top: 100%;
   right: 0;
   margin-top: 4px;
-  background: var(--color-bg-secondary, rgba(25, 25, 25, 0.98));
+  background: var(--color-bg-secondary, rgba(26, 26, 26, 0.98));
   border: 1px solid var(--color-border-visible);
   border-radius: 10px;
   width: 260px;
@@ -2330,8 +2330,8 @@ body.aggregator-active [class*="Navbar"] {
 
 /* Drag over indicator */
 .master-element-sub.drag-over {
-  border-color: var(--color-primary, #48cbff);
-  box-shadow: 0 0 0 1px var(--color-primary, #48cbff);
+  border-color: var(--color-primary, #f26b1f);
+  box-shadow: 0 0 0 1px var(--color-primary, #f26b1f);
 }
 
 .master-element-sub-header {
@@ -2428,7 +2428,7 @@ body.aggregator-active [class*="Navbar"] {
 }
 
 .master-element-resize-handle:hover .master-element-resize-grip {
-  background: var(--color-primary, #48cbff);
+  background: var(--color-primary, #f26b1f);
 }
 
 /* ── Performance Mode Toggle ────────────────────────────────── */
@@ -2636,7 +2636,7 @@ body.aggregator-active [class*="Navbar"] {
   transition: background 0.2s, transform 0.2s;
 }
 .agg-tutorial-dot.active {
-  background: var(--color-primary, #48cbff);
+  background: var(--color-primary, #f26b1f);
   transform: scale(1.25);
 }
 .agg-tutorial-dot.done {
@@ -2673,7 +2673,7 @@ body.aggregator-active [class*="Navbar"] {
   transition: all 0.15s;
 }
 .agg-tutorial-btn.primary {
-  background: var(--color-primary, #48cbff);
+  background: var(--color-primary, #f26b1f);
   color: #000;
 }
 .agg-tutorial-btn.primary:hover { opacity: 0.88; }
@@ -2817,8 +2817,8 @@ body.aggregator-active [class*="Navbar"] {
 }
 .agg-assistant-device-btn.active {
   background: rgba(var(--color-primary-rgb, 72, 203, 255), 0.1);
-  border-color: var(--color-primary, #48cbff);
-  color: var(--color-primary, #48cbff);
+  border-color: var(--color-primary, #f26b1f);
+  color: var(--color-primary, #f26b1f);
 }
 
 .agg-assistant-preview-note {
@@ -2848,8 +2848,8 @@ body.aggregator-active [class*="Navbar"] {
 }
 .agg-assistant-action-btn:hover {
   background: var(--color-overlay-light);
-  border-color: var(--color-primary, #48cbff);
-  color: var(--color-primary, #48cbff);
+  border-color: var(--color-primary, #f26b1f);
+  color: var(--color-primary, #f26b1f);
 }
 
 .agg-assistant-action-desc {
@@ -3071,7 +3071,7 @@ body.aggregator-active [class*="Navbar"] {
 }
 .agg-tour-click-hint {
   font-size: 11px;
-  color: var(--color-primary, #48cbff);
+  color: var(--color-primary, #f26b1f);
   font-weight: 600;
   padding: 5px 8px;
   background: rgba(var(--color-primary-rgb, 72, 203, 255), 0.1);

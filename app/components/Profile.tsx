@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useUserProfile, useUpdateOwnWallet, useUpdateShowZeroData, useWeeklyWalletStats } from '../hooks/useProfile'
 import {
@@ -10,14 +9,12 @@ import {
   useAssignToGroup, useBulkAssignToGroup
 } from '../hooks/useWalletTags'
 import { GROUP_COLORS, COLOR_HEX, GroupColor } from '../lib/walletTags'
-import { useTheme } from '../lib/ThemeContext'
 import { supabase } from '../lib/supabaseClient'
-import { COLOR_SCHEMES, ColorScheme, ThemeMode, BULLISH_PRESETS, BEARISH_PRESETS, ACCENT_PRESETS, TERMINAL_SCHEMES, THEME_AUTO_COLORS, isValidHex } from '../lib/themes'
 import WalletDisplay from './WalletDisplay'
 import { SkeletonBar } from './Skeleton'
 import '../styles/Profile.css'
 
-type ProfileSection = 'account' | 'settings' | 'customization' | 'aliases'
+type ProfileSection = 'account' | 'settings' | 'aliases' | 'alerts'
 
 export default function Profile() {
   useEffect(() => {
@@ -37,7 +34,6 @@ export default function Profile() {
   const bulkAssign = useBulkAssignToGroup()
   const updateOwnWallet = useUpdateOwnWallet()
   const updateShowZeroData = useUpdateShowZeroData()
-  const { theme, setTheme, previewTheme, commitTheme, autoSyncColors, setAutoSyncColors, isLoading: themeLoading } = useTheme()
   const ownWalletForWeekly = profileData?.profile?.own_wallet?.toLowerCase() ?? null
   const { data: weeklyStats, isLoading: weeklyLoading } = useWeeklyWalletStats(ownWalletForWeekly)
 
@@ -91,40 +87,6 @@ export default function Profile() {
     { path: '/reverse-search', label: 'Reverse Search' },
   ]
 
-  // Custom color inputs
-  const [customBullish, setCustomBullish] = useState(theme.bullishColor)
-  const [customBearish, setCustomBearish] = useState(theme.bearishColor)
-  const [customAccent, setCustomAccent] = useState(theme.accentColor)
-
-  // Unsaved changes — explicit dirty flag, set by handlers, cleared by save/discard
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  // Snapshot of saved theme (what's in localStorage/Supabase) for discard
-  const [savedTheme, setSavedTheme] = useState({
-    colorScheme: theme.colorScheme,
-    mode: theme.mode,
-    bullishColor: theme.bullishColor,
-    bearishColor: theme.bearishColor,
-    accentColor: theme.accentColor
-  })
-
-  // Once ThemeContext finishes loading from DB, update savedTheme snapshot
-  useEffect(() => {
-    if (!themeLoading) {
-      setSavedTheme({
-        colorScheme: theme.colorScheme,
-        mode: theme.mode,
-        bullishColor: theme.bullishColor,
-        bearishColor: theme.bearishColor,
-        accentColor: theme.accentColor,
-      })
-    }
-  }, [themeLoading]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    setCustomBullish(theme.bullishColor)
-    setCustomBearish(theme.bearishColor)
-    setCustomAccent(theme.accentColor)
-  }, [theme.bullishColor, theme.bearishColor, theme.accentColor])
 
   const handleCopyWallet = async (wallet: string) => {
     await navigator.clipboard.writeText(wallet)
@@ -133,28 +95,10 @@ export default function Profile() {
   }
 
   const handleTagClick = (walletAddress: string) => {
-    if (hasUnsavedChanges) {
-      // Trigger shake animation
-      const banner = document.querySelector('.unsaved-changes-banner')
-      if (banner) {
-        banner.classList.add('shake')
-        setTimeout(() => banner.classList.remove('shake'), 500)
-      }
-      return
-    }
     router.push(`/tracker?wallet=${encodeURIComponent(walletAddress)}`)
   }
 
   const handleLogout = async () => {
-    if (hasUnsavedChanges) {
-      // Trigger shake animation
-      const banner = document.querySelector('.unsaved-changes-banner')
-      if (banner) {
-        banner.classList.add('shake')
-        setTimeout(() => banner.classList.remove('shake'), 500)
-      }
-      return
-    }
     await supabase.auth.signOut()
     window.location.href = '/'
   }
@@ -247,19 +191,6 @@ export default function Profile() {
     }
   }, [profileData?.profile?.own_wallet])
 
-  // Block navigation when unsaved changes
-  useEffect(() => {
-    if (!hasUnsavedChanges) return
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      e.returnValue = ''
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
-
   const handleSaveOwnWallet = async () => {
     setIsSaving(true)
     try {
@@ -268,95 +199,6 @@ export default function Profile() {
       console.error('Error saving own wallet:', err)
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleSaveAllChanges = async () => {
-    setIsSaving(true)
-    try {
-      await updateOwnWallet.mutateAsync(ownWalletInput.trim())
-      await commitTheme()
-
-      setSavedTheme({
-        colorScheme: theme.colorScheme,
-        mode: theme.mode,
-        bullishColor: theme.bullishColor,
-        bearishColor: theme.bearishColor,
-        accentColor: theme.accentColor
-      })
-
-      setHasUnsavedChanges(false)
-    } catch (err) {
-      console.error('Error saving changes:', err)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleDiscardChanges = () => {
-    // Revert to the last saved theme
-    previewTheme({
-      colorScheme: savedTheme.colorScheme,
-      mode: savedTheme.mode,
-      bullishColor: savedTheme.bullishColor,
-      bearishColor: savedTheme.bearishColor,
-      accentColor: savedTheme.accentColor
-    })
-    if (profileData?.profile?.own_wallet) {
-      setOwnWalletInput(profileData.profile.own_wallet)
-    }
-    setHasUnsavedChanges(false)
-  }
-
-  // Theme handlers — use previewTheme for live CSS preview, explicitly mark dirty
-  const markDirty = () => setHasUnsavedChanges(true)
-
-  const handleColorSchemeChange = (scheme: ColorScheme) => {
-    if (autoSyncColors) {
-      const auto = THEME_AUTO_COLORS[scheme]
-      previewTheme({ colorScheme: scheme, bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
-    } else {
-      previewTheme({ colorScheme: scheme })
-    }
-    markDirty()
-  }
-
-  const handleAutoSyncToggle = () => {
-    const newVal = !autoSyncColors
-    setAutoSyncColors(newVal)
-    if (newVal) {
-      const auto = THEME_AUTO_COLORS[theme.colorScheme]
-      previewTheme({ bullishColor: auto.bullish, bearishColor: auto.bearish, accentColor: auto.accent })
-      markDirty()
-    }
-  }
-
-  const handleModeChange = (mode: ThemeMode) => {
-    previewTheme({ mode })
-    markDirty()
-  }
-
-  const handleBullishColorChange = (color: string) => {
-    setCustomBullish(color)
-    if (isValidHex(color)) {
-      previewTheme({ bullishColor: color })
-      markDirty()
-    }
-  }
-
-  const handleBearishColorChange = (color: string) => {
-    setCustomBearish(color)
-    if (isValidHex(color)) {
-      previewTheme({ bearishColor: color })
-      markDirty()
-    }
-  }
-
-  const handleAccentColorChange = (color: string) => {
-    setCustomAccent(color)
-    if (isValidHex(color)) {
-      previewTheme({ accentColor: color })
-      markDirty()
     }
   }
 
@@ -385,15 +227,6 @@ export default function Profile() {
   const { profile, leaderboardStats, tagMap } = profileData
 
   const handleSectionChange = (section: ProfileSection) => {
-    if (hasUnsavedChanges) {
-      // Trigger shake animation instead of browser confirm
-      const banner = document.querySelector('.unsaved-changes-banner')
-      if (banner) {
-        banner.classList.add('shake')
-        setTimeout(() => banner.classList.remove('shake'), 500)
-      }
-      return
-    }
     setActiveSection(section)
   }
 
@@ -419,19 +252,6 @@ export default function Profile() {
       )
     },
     {
-      key: 'customization',
-      label: 'Customization',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="13.5" cy="6.5" r="2.5" />
-          <circle cx="17.5" cy="10.5" r="2.5" />
-          <circle cx="8.5" cy="7.5" r="2.5" />
-          <circle cx="6.5" cy="12.5" r="2.5" />
-          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" />
-        </svg>
-      )
-    },
-    {
       key: 'aliases',
       label: 'Alias Manager',
       icon: (
@@ -440,36 +260,21 @@ export default function Profile() {
           <line x1="7" y1="7" x2="7.01" y2="7" />
         </svg>
       )
+    },
+    {
+      key: 'alerts' as ProfileSection,
+      label: 'Alerts',
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      )
     }
   ]
 
   return (
     <div className="profile-container">
-      {/* Unsaved Changes Banner — portal to body to escape page-transition transform */}
-      {hasUnsavedChanges && typeof document !== 'undefined' && createPortal(
-        <div className="unsaved-changes-banner">
-          <div className="banner-content">
-            <div className="banner-text">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span>You have unsaved changes</span>
-            </div>
-            <div className="banner-actions">
-              <button onClick={handleDiscardChanges} className="discard-btn" disabled={isSaving}>
-                Discard
-              </button>
-              <button onClick={handleSaveAllChanges} className="save-btn" disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
       <div className="profile-layout">
         {/* Vertical Navigation */}
         <nav className="profile-nav">
@@ -714,193 +519,6 @@ export default function Profile() {
                       </label>
                     )
                   })}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Customization Section */}
-          {activeSection === 'customization' && (
-            <>
-              <h1 className="profile-title">Customization</h1>
-
-              {/* Color Scheme */}
-              <div className="profile-section">
-                <h2 className="section-title">Color Scheme</h2>
-                <span className="theme-row-label">Colors</span>
-                <div className="theme-grid">
-                  {(['cyan', 'orange', 'purple', 'green', 'monochrome'] as ColorScheme[]).map(scheme => (
-                    <button
-                      key={scheme}
-                      className={`theme-card ${theme.colorScheme === scheme ? 'active' : ''}`}
-                      onClick={() => handleColorSchemeChange(scheme)}
-                    >
-                      <div
-                        className="theme-preview"
-                        style={{ background: COLOR_SCHEMES[scheme].dark.primary }}
-                      />
-                      <span className="theme-name">{COLOR_SCHEMES[scheme].name}</span>
-                    </button>
-                  ))}
-                </div>
-                <span className="theme-row-label" style={{ marginTop: '16px' }}>Design</span>
-                <div className="theme-grid">
-                  {(['cli', 'nsa', 'paper'] as ColorScheme[]).map(scheme => (
-                    <button
-                      key={scheme}
-                      className={`theme-card ${theme.colorScheme === scheme ? 'active' : ''} ${TERMINAL_SCHEMES.includes(scheme) ? 'terminal' : ''}`}
-                      onClick={() => handleColorSchemeChange(scheme)}
-                    >
-                      <div
-                        className={`theme-preview ${TERMINAL_SCHEMES.includes(scheme) ? 'terminal-preview' : ''}`}
-                        style={{ background: COLOR_SCHEMES[scheme].dark.primary }}
-                      />
-                      <span className="theme-name">{COLOR_SCHEMES[scheme].name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Auto-sync Colors */}
-              <div className="profile-section">
-                <label className="setting-item" style={{ cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={autoSyncColors}
-                    onChange={handleAutoSyncToggle}
-                  />
-                  <span className="custom-checkbox">
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </span>
-                  <span className="setting-label">Auto-sync colors with theme</span>
-                </label>
-                <p className="setting-description" style={{ marginTop: 4, fontSize: 12 }}>
-                  Bullish, bearish & accent colors automatically match the selected theme.
-                </p>
-              </div>
-
-              {/* Light/Dark Mode */}
-              <div className="profile-section">
-                <h2 className="section-title">Mode</h2>
-                <div className="mode-toggle">
-                  <button
-                    className={`mode-btn ${theme.mode === 'dark' ? 'active' : ''}`}
-                    onClick={() => handleModeChange('dark')}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                    </svg>
-                    Dark
-                  </button>
-                  <button
-                    className={`mode-btn ${theme.mode === 'light' ? 'active' : ''}`}
-                    onClick={() => handleModeChange('light')}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="5" />
-                      <line x1="12" y1="1" x2="12" y2="3" />
-                      <line x1="12" y1="21" x2="12" y2="23" />
-                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                      <line x1="1" y1="12" x2="3" y2="12" />
-                      <line x1="21" y1="12" x2="23" y2="12" />
-                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                    </svg>
-                    Light <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>V0.1</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Bullish Color */}
-              <div className="profile-section">
-                <h2 className="section-title">Bullish Color</h2>
-                <div className="color-presets">
-                  {BULLISH_PRESETS.map(color => (
-                    <button
-                      key={color}
-                      className={`color-preset ${theme.bullishColor === color ? 'active' : ''}`}
-                      style={{ background: color }}
-                      onClick={() => { previewTheme({ bullishColor: color }); markDirty() }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-                <div className="custom-color-input">
-                  <label>Custom:</label>
-                  <input
-                    type="text"
-                    value={customBullish}
-                    onChange={(e) => handleBullishColorChange(e.target.value)}
-                    placeholder="#22c55e"
-                    className={!isValidHex(customBullish) && customBullish !== '' ? 'invalid' : ''}
-                  />
-                  <div
-                    className="color-preview"
-                    style={{ background: isValidHex(customBullish) ? customBullish : '#22c55e' }}
-                  />
-                </div>
-              </div>
-
-              {/* Bearish Color */}
-              <div className="profile-section">
-                <h2 className="section-title">Bearish Color</h2>
-                <div className="color-presets">
-                  {BEARISH_PRESETS.map(color => (
-                    <button
-                      key={color}
-                      className={`color-preset ${theme.bearishColor === color ? 'active' : ''}`}
-                      style={{ background: color }}
-                      onClick={() => { previewTheme({ bearishColor: color }); markDirty() }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-                <div className="custom-color-input">
-                  <label>Custom:</label>
-                  <input
-                    type="text"
-                    value={customBearish}
-                    onChange={(e) => handleBearishColorChange(e.target.value)}
-                    placeholder="#ef4444"
-                    className={!isValidHex(customBearish) && customBearish !== '' ? 'invalid' : ''}
-                  />
-                  <div
-                    className="color-preview"
-                    style={{ background: isValidHex(customBearish) ? customBearish : '#ef4444' }}
-                  />
-                </div>
-              </div>
-
-              {/* Accent Color */}
-              <div className="profile-section">
-                <h2 className="section-title">Accent Color</h2>
-                <div className="color-presets">
-                  {ACCENT_PRESETS.map((color: string) => (
-                    <button
-                      key={color}
-                      className={`color-preset ${theme.accentColor === color ? 'active' : ''}`}
-                      style={{ background: color }}
-                      onClick={() => { previewTheme({ accentColor: color }); markDirty() }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-                <div className="custom-color-input">
-                  <label>Custom:</label>
-                  <input
-                    type="text"
-                    value={customAccent}
-                    onChange={(e) => handleAccentColorChange(e.target.value)}
-                    placeholder="#1230B7"
-                    className={!isValidHex(customAccent) && customAccent !== '' ? 'invalid' : ''}
-                  />
-                  <div
-                    className="color-preview"
-                    style={{ background: isValidHex(customAccent) ? customAccent : '#1230B7' }}
-                  />
                 </div>
               </div>
             </>
@@ -1193,8 +811,183 @@ export default function Profile() {
               </div>
             </>
           )}
+
+          {/* Alerts Section */}
+          {activeSection === 'alerts' && (
+            <AlertsSection userId={profile?.id} />
+          )}
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── Alerts Section (inline to avoid extra file) ────────────────────────────
+
+function AlertsSection({ userId }: { userId?: string }) {
+  const [tgChannel, setTgChannel] = React.useState<string | null>(null)
+  const [dcChannel, setDcChannel] = React.useState<string | null>(null)
+  const [dcInput, setDcInput] = React.useState('')
+  const [linkToken, setLinkToken] = React.useState<string | null>(null)
+  const [loadingTg, setLoadingTg] = React.useState(false)
+  const [savingDc, setSavingDc] = React.useState(false)
+  const [msg, setMsg] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!userId) return
+    supabase
+      .from('user_notification_channels')
+      .select('channel, address, verified_at')
+      .eq('user_id', userId)
+      .then(({ data }) => {
+        data?.forEach(ch => {
+          if (ch.channel === 'telegram') setTgChannel(ch.address)
+          if (ch.channel === 'discord') { setDcChannel(ch.address); setDcInput(ch.address) }
+        })
+      })
+  }, [userId])
+
+  const handleGenerateTgLink = async () => {
+    if (!userId) return
+    setLoadingTg(true)
+    const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+    await supabase.from('telegram_link_tokens').insert({ token, user_id: userId })
+    setLinkToken(token)
+    setLoadingTg(false)
+  }
+
+  const handleDisconnectTg = async () => {
+    if (!userId) return
+    await supabase.from('user_notification_channels').delete().eq('user_id', userId).eq('channel', 'telegram')
+    setTgChannel(null)
+    setLinkToken(null)
+    setMsg('Telegram disconnected.')
+  }
+
+  const handleSaveDc = async () => {
+    if (!userId || !dcInput.startsWith('https://discord.com/api/webhooks/')) {
+      setMsg('Please enter a valid Discord webhook URL (starts with https://discord.com/api/webhooks/)')
+      return
+    }
+    setSavingDc(true)
+    await supabase.from('user_notification_channels').upsert(
+      { user_id: userId, channel: 'discord', address: dcInput, verified_at: new Date().toISOString() },
+      { onConflict: 'user_id,channel' }
+    )
+    setDcChannel(dcInput)
+    setSavingDc(false)
+    setMsg('Discord webhook saved.')
+  }
+
+  const handleDisconnectDc = async () => {
+    if (!userId) return
+    await supabase.from('user_notification_channels').delete().eq('user_id', userId).eq('channel', 'discord')
+    setDcChannel(null)
+    setDcInput('')
+    setMsg('Discord disconnected.')
+  }
+
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'CommunityDexBot'
+
+  return (
+    <>
+      <h1 className="profile-title">Alerts &amp; Notifications</h1>
+      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
+        Receive instant signals when tracked wallets open/close positions, when prices move, or when Sodex has maintenance.
+        Alerts are informational only — not financial advice.
+      </p>
+
+      {msg && (
+        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 13, color: '#22c55e', marginBottom: 16 }}>
+          {msg}
+        </div>
+      )}
+
+      {/* Telegram */}
+      <div className="profile-section">
+        <h2 className="section-title">Telegram</h2>
+        {tgChannel ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--color-text-main)' }}>✅ Connected (chat ID: {tgChannel})</span>
+            <button onClick={handleDisconnectTg} style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer' }}>
+              Disconnect
+            </button>
+          </div>
+        ) : linkToken ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
+              Click the link below to open Telegram and activate alerts. Link expires in 15 minutes.
+            </p>
+            <a
+              href={`https://t.me/${botUsername}?start=${linkToken}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, background: '#0088cc', color: '#fff', fontWeight: 600, fontSize: 13, textDecoration: 'none', width: 'fit-content' }}
+            >
+              Open Telegram →
+            </a>
+            <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: 0 }}>After clicking, refresh this page to confirm.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>Connect Telegram to receive alerts via our bot. Free, no phone number sharing.</p>
+            <button onClick={handleGenerateTgLink} disabled={loadingTg} style={{ padding: '8px 18px', borderRadius: 8, background: '#0088cc', color: '#fff', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', width: 'fit-content' }}>
+              {loadingTg ? 'Generating…' : 'Connect Telegram'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Discord */}
+      <div className="profile-section">
+        <h2 className="section-title">Discord</h2>
+        {dcChannel ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--color-text-main)' }}>✅ Webhook connected</span>
+            <button onClick={handleDisconnectDc} style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer' }}>
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
+              Paste your Discord channel webhook URL. Create one in Discord: Channel Settings → Integrations → Webhooks → New Webhook.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="url"
+                placeholder="https://discord.com/api/webhooks/…"
+                value={dcInput}
+                onChange={e => setDcInput(e.target.value)}
+                style={{ flex: 1, background: 'var(--color-bg-input, var(--color-surface))', border: '1px solid var(--color-border)', borderRadius: 8, padding: '8px 12px', color: 'var(--color-text-main)', fontSize: 13 }}
+              />
+              <button onClick={handleSaveDc} disabled={savingDc} style={{ padding: '8px 18px', borderRadius: 8, background: '#5865F2', color: '#fff', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                {savingDc ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Alert types info */}
+      <div className="profile-section">
+        <h2 className="section-title">What you'll receive</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { emoji: '🟢🔴', label: 'Fill signals', desc: 'When a wallet you follow opens or closes a position' },
+            { emoji: '📈📉', label: 'Price alerts', desc: 'When a tracked symbol moves ≥5% (set via watchlist)' },
+            { emoji: '👁', label: 'Wallet activity', desc: 'Any activity on wallets in your watchlist' },
+            { emoji: '🚧', label: 'Maintenance', desc: 'When Sodex gateway becomes unreachable' },
+          ].map(item => (
+            <div key={item.label} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
+              <span style={{ fontSize: 18, minWidth: 32 }}>{item.emoji}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-main)' }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   )
 }

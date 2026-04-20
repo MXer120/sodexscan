@@ -22,7 +22,7 @@ export async function GET(request) {
     let offset = meta?.sodex_sync_offset || 0
 
     // Fetch page 1 (or first page of batch) to get total count
-    const probeRes = await fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=1&page_size=1`)
+    const probeRes = await fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=1&pageSize=1`)
     const probeData = await probeRes.json()
     if (probeData.code !== 0) throw new Error('Sodex API error: ' + probeData.message)
     const totalItems = probeData.data.total
@@ -42,7 +42,7 @@ export async function GET(request) {
       const fetches = []
       for (let j = i; j < i + CONCURRENCY && j <= endPage; j++) {
         fetches.push(
-          fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=${j}&page_size=${PAGE_SIZE}`)
+          fetch(`${SODEX_LB_API}?window_type=ALL_TIME&page=${j}&pageSize=${PAGE_SIZE}`)
             .then(r => r.json())
             .then(d => (d.code === 0 && d.data?.items) ? d.data.items : [])
             .catch(() => [])

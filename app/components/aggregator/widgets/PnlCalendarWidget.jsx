@@ -3,18 +3,16 @@
 import { useMemo, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useWalletData } from '../../../hooks/useWalletData'
-import { useTheme } from '../../../lib/ThemeContext'
-import { hexToRgb } from '../../../lib/themes'
 import { SkeletonChart } from '../../Skeleton'
 
 const NEUTRAL_COLOR = 'var(--color-text-muted)'
 
 // ── Helpers (mirrored from PnlCalendar.jsx) ─────────────────────
 
-const getPnlBgColor = (pnl, minPnl, maxPnl, isBestDay, theme) => {
-  const primaryRgb = hexToRgb(theme.accentColor)
-  const bullishRgb = hexToRgb(theme.bullishColor)
-  const bearishRgb = hexToRgb(theme.bearishColor)
+const getPnlBgColor = (pnl, minPnl, maxPnl, isBestDay) => {
+  const primaryRgb = '242, 107, 31'
+  const bullishRgb = '34, 197, 94'
+  const bearishRgb = '239, 68, 68'
 
   if (isBestDay && pnl > 0.01) return `rgba(${primaryRgb}, 0.25)`
   if (Math.abs(pnl) < 0.01) return 'var(--color-overlay-faint)'
@@ -30,10 +28,10 @@ const getPnlBgColor = (pnl, minPnl, maxPnl, isBestDay, theme) => {
   }
 }
 
-const getPnlTextColor = (pnl, isBestDay, theme) => {
-  if (isBestDay && pnl > 0.01) return theme.accentColor
-  if (pnl >= 0.01) return theme.bullishColor
-  if (pnl <= -0.01) return theme.bearishColor
+const getPnlTextColor = (pnl, isBestDay) => {
+  if (isBestDay && pnl > 0.01) return '#f26b1f'
+  if (pnl >= 0.01) return '#22c55e'
+  if (pnl <= -0.01) return '#ef4444'
   return NEUTRAL_COLOR
 }
 
@@ -81,10 +79,9 @@ function toDateStr(ts) {
 
 export default function PnlCalendarWidget({ config, onUpdateConfig }) {
   const { data, isLoading } = useWalletData(config.walletAddress || null)
-  const { theme } = useTheme()
-  const BULLISH_COLOR = theme.bullishColor
-  const BEARISH_COLOR = theme.bearishColor
-  const PRIMARY_COLOR = theme.accentColor
+  const BULLISH_COLOR = '#22c55e'
+  const BEARISH_COLOR = '#ef4444'
+  const PRIMARY_COLOR = '#f26b1f'
 
   const view = config.view || 'rolling'
 
@@ -212,7 +209,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
       const dateStr = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
       const pnl = dailyPnlMap[dateStr] || 0
       const isBestDay = dateStr === stats.bestDay
-      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
       const textColor = getPnlTextColor(pnl, isBestDay, theme)
 
       days.push(
@@ -257,7 +254,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       const pnl = dailyPnlMap[dateStr] || 0
       const isBestDay = dateStr === stats.bestDay
-      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+      const bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
       const textColor = getPnlTextColor(pnl, isBestDay, theme)
 
       cells.push(
@@ -337,7 +334,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
         const isBestDay = dateStr === stats.bestDay
         let bgColor = 'var(--color-overlay-subtle)'
         if (Math.abs(pnl) >= 0.01 || dailyPnlMap[dateStr] !== undefined) {
-          bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+          bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
         }
         week.push(
           <div key={dateStr}
@@ -440,7 +437,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
           const isBestDay = dateStr === stats.bestDay
           let bgColor = 'var(--color-overlay-subtle)'
           if (Math.abs(pnl) >= 0.01 || dailyPnlMap[dateStr] !== undefined) {
-            bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay, theme)
+            bgColor = getPnlBgColor(pnl, stats.minPnl, stats.maxPnl, isBestDay)
           }
 
           week.push(
@@ -551,7 +548,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
           {[{ key: 'rolling', label: '1Y' }, { key: 'weekly', label: 'W' }, { key: 'monthly', label: 'M' }, { key: 'yearly', label: 'Y' }].map(v => (
             <button key={v.key} onClick={() => handleViewChange(v.key)} style={{
               padding: '3px 8px', fontSize: '10px', fontWeight: '600',
-              background: view === v.key ? `rgba(${hexToRgb(PRIMARY_COLOR)}, 0.2)` : 'transparent',
+              background: view === v.key ? 'rgba(242, 107, 31, 0.2)' : 'transparent',
               color: view === v.key ? PRIMARY_COLOR : 'var(--color-text-muted)',
               border: 'none', borderRadius: '3px', cursor: 'pointer', transition: 'all 0.2s', outline: 'none'
             }}>{v.label}</button>
@@ -616,7 +613,6 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
           BEARISH_COLOR={BEARISH_COLOR}
           getPnlTextColor={getPnlTextColor}
           formatPnl={formatPnl}
-          theme={theme}
         />
       )}
 
@@ -633,7 +629,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
           <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: '500', marginBottom: '2px' }}>
             {new Date(hoveredDay.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
           </div>
-          <div style={{ fontSize: '12px', fontWeight: '700', color: getPnlTextColor(hoveredDay.pnl, false, theme) }}>
+          <div style={{ fontSize: '12px', fontWeight: '700', color: getPnlTextColor(hoveredDay.pnl, false) }}>
             {formatPnl(hoveredDay.pnl)}
           </div>
           <div style={{
@@ -653,7 +649,7 @@ export default function PnlCalendarWidget({ config, onUpdateConfig }) {
 
 // ── Day Detail Modal ────────────────────────────────────────────
 
-function DayDetailModal({ selectedDate, setSelectedDate, dailyPnlMap, BULLISH_COLOR, BEARISH_COLOR, getPnlTextColor, formatPnl, theme }) {
+function DayDetailModal({ selectedDate, setSelectedDate, dailyPnlMap, BULLISH_COLOR, BEARISH_COLOR, getPnlTextColor, formatPnl }) {
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = 'unset' }
@@ -688,7 +684,7 @@ function DayDetailModal({ selectedDate, setSelectedDate, dailyPnlMap, BULLISH_CO
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>Net PnL</div>
-            <div style={{ fontSize: '18px', fontWeight: '700', color: getPnlTextColor(pnl, false, theme) }}>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: getPnlTextColor(pnl, false) }}>
               {formatPnl(pnl)}
             </div>
           </div>

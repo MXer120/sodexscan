@@ -10,6 +10,76 @@ import LarpVault from './LarpVault'
 import LarpLeaderboard from './LarpLeaderboard'
 import '../../styles/LarpPage.css'
 
+function LarpBorderOverlay() {
+  const [walletRect, setWalletRect] = useState(null)
+
+  useEffect(() => {
+    const measure = () => {
+      const btn = document.querySelector('.larp-wallet-btn')
+      if (btn) {
+        const r = btn.getBoundingClientRect()
+        setWalletRect({ x: r.x, y: r.y, w: r.width, h: r.height })
+      }
+    }
+    measure()
+    // Re-measure on resize
+    const ro = new ResizeObserver(measure)
+    ro.observe(document.body)
+    // Also observe wallet btn directly if it exists
+    const btn = document.querySelector('.larp-wallet-btn')
+    if (btn) ro.observe(btn)
+    return () => ro.disconnect()
+  }, [])
+
+  if (!walletRect) {
+    // Fallback: simple rectangle until wallet btn is measured
+    return (
+      <svg className="larp-border-overlay" viewBox="0 0 1 1" preserveAspectRatio="none">
+        <rect x="0" y="0" width="1" height="1" fill="none" stroke="var(--larp-border, #48cbff)" strokeWidth="0.003" vectorEffect="non-scaling-stroke" />
+      </svg>
+    )
+  }
+
+  const pad = 6
+  const sw = 2 // stroke width
+  const W = window.innerWidth
+  const H = window.innerHeight
+
+  // Wallet button bounds with padding
+  const wL = walletRect.x - pad
+  const wT = walletRect.y - pad
+  const wR = walletRect.x + walletRect.w + pad
+  const wB = walletRect.y + walletRect.h + pad
+
+  // Path: traces outer border with a notch/tab dipping down around the wallet button
+  // Start top-left, go right along top to wallet area, dip down around wallet, back up, continue to right edge
+  const d = [
+    `M ${sw/2},${sw/2}`,              // top-left
+    `H ${wL}`,                         // across top to wallet left
+    `V ${wB}`,                         // down to wallet bottom
+    `H ${wR}`,                         // across wallet bottom
+    `V ${sw/2}`,                       // back up to top
+    `H ${W - sw/2}`,                   // continue to right edge
+    `V ${H - sw/2}`,                   // down right side
+    `H ${sw/2}`,                       // across bottom
+    `Z`,                               // back to top-left
+  ].join(' ')
+
+  return (
+    <svg
+      className="larp-border-overlay"
+      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 9999 }}
+    >
+      <path
+        d={d}
+        fill="none"
+        stroke="var(--larp-border, #48cbff)"
+        strokeWidth={sw}
+      />
+    </svg>
+  )
+}
+
 const SODEX_EXTERNAL = {
   rewards: 'https://sodex.com/points',
   referrals: 'https://sodex.com/referrals',
@@ -34,8 +104,22 @@ export default function LarpPage() {
   const [wallet, setWallet] = useState('')
   const [walletInput, setWalletInput] = useState('')
   const [showWalletModal, setShowWalletModal] = useState(false)
+
+  const [fromScanner, setFromScanner] = useState(false)
+
+  // Accept ?wallet= param to pre-connect (used by "View as Sodex" from scanner)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const w = params.get('wallet')
+    if (w && /^0x[a-fA-F0-9]{40}$/.test(w)) {
+      setWallet(w)
+      setActiveView('portfolio')
+      setFromScanner(true)
+    }
+  }, [])
   const [ownWallet, setOwnWallet] = useState(null)
   const [openDropdown, setOpenDropdown] = useState(null)
+  const [topPerformers, setTopPerformers] = useState([])
   const dropdownRef = useRef(null)
 
   // Close dropdown on outside click
@@ -80,6 +164,16 @@ export default function LarpPage() {
 
   const truncAddr = (a) => a ? `${a.slice(0, 6)}...${a.slice(-4)}` : ''
 
+  // Fetch top 5 leaderboard performers for wallet modal
+  useEffect(() => {
+    fetch('/api/sodex-leaderboard?window_type=ALL_TIME&sort_by=pnl&sort_order=desc&page=1&page_size=5')
+      .then(r => r.json())
+      .then(json => {
+        if (json?.data?.items) setTopPerformers(json.data.items)
+      })
+      .catch(() => {})
+  }, [])
+
   const handleNavClick = (key) => {
     setActiveView(key)
     setOpenDropdown(null)
@@ -105,6 +199,7 @@ export default function LarpPage() {
     { key: 'referrals', label: 'Referrals', href: SODEX_EXTERNAL.referrals },
     { key: 'staking', label: 'Staking', href: SODEX_EXTERNAL.staking },
     { key: 'leaderboard', label: 'Leaderboard', internal: true },
+    { key: 'detector', label: 'Larp Detector', href: '/larp-detector' },
     {
       key: 'more', label: 'More', hasDropdown: true,
       children: [
@@ -123,15 +218,18 @@ export default function LarpPage() {
 
   return (
     <div className="larp-frame" style={{ '--larp-border': 'var(--color-primary, #48cbff)' }}>
-      {/* Colored border overlay */}
-      <div className="larp-border-overlay" />
+      {/* Colored border overlay — SVG path with wallet button notch */}
+      <LarpBorderOverlay />
 
       {/* Sodex-style navbar */}
       <header className="larp-nav">
         <div className="larp-nav-inner" ref={dropdownRef}>
-          {/* Logo */}
+          {/* Logo — CommunityScan when from scanner, else Sodex */}
           <a className="larp-nav-logo" onClick={() => handleNavClick('trade')} style={{ cursor: 'pointer' }}>
-            <img src={SODEX_LOGO} alt="SoDEX" width="88" height="24" style={{ height: 24, width: 'auto' }} />
+            {fromScanner
+              ? <img src="/logo-green.svg" alt="CommunityScan" height="24" style={{ height: 24, width: 'auto' }} />
+              : <img src={SODEX_LOGO} alt="SoDEX" width="88" height="24" style={{ height: 24, width: 'auto' }} />
+            }
           </a>
 
           {/* Nav items */}
@@ -217,6 +315,16 @@ export default function LarpPage() {
 
           {/* Right section — matches sodex.com order */}
           <div className="larp-nav-right">
+            {/* Back to Scanner — only when opened from scanner */}
+            {fromScanner && wallet && (
+              <a
+                href={`/tracker/${wallet}`}
+                className="larp-nav-link"
+                style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary, #48cbff)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+              >
+                &larr; Scanner
+              </a>
+            )}
             {/* Connect Wallet button */}
             <button
               className="larp-wallet-btn"
@@ -271,6 +379,27 @@ export default function LarpPage() {
                 Connect
               </button>
             </div>
+            {topPerformers.length > 0 && (
+              <div className="larp-modal-top-performers">
+                <div className="larp-modal-top-title">Top Performers (All Time)</div>
+                {topPerformers.map((p, i) => {
+                  const pnl = parseFloat(p.pnl_usd || 0)
+                  return (
+                    <div
+                      key={p.wallet_address}
+                      className="larp-modal-top-row"
+                      onClick={() => { setWallet(p.wallet_address); setShowWalletModal(false) }}
+                    >
+                      <span className="larp-modal-top-rank">#{i + 1}</span>
+                      <span className="larp-modal-top-addr">{truncAddr(p.wallet_address)}</span>
+                      <span className={`larp-modal-top-pnl ${pnl >= 0 ? 'larp-green' : 'larp-red'}`}>
+                        {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
             {ownWallet && (
               <button
                 className="larp-modal-own"
@@ -289,7 +418,7 @@ export default function LarpPage() {
       )}
 
       {/* Page content */}
-      <div className={`larp-content${activeView === 'portfolio' ? ' larp-content-portfolio' : ''}${activeView === 'leaderboard' ? ' larp-content-leaderboard' : ''}${activeView === 'vault' ? ' larp-content-vault' : ''}`}>
+      <div className={`larp-content${activeView === 'portfolio' ? ' larp-content-portfolio' : ''}${activeView === 'leaderboard' ? ' larp-content-leaderboard' : ''}${activeView === 'vault' ? ' larp-content-vault' : ''}${activeView === 'detector' ? ' larp-content-detector' : ''}`}>
         {activeView === 'trade' && <LarpTrade wallet={wallet} />}
         {activeView === 'portfolio' && <LarpPortfolio wallet={wallet} />}
         {activeView === 'vault' && <LarpVault wallet={wallet} />}

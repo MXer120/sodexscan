@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import TopPairs from './TopPairs'
 import SearchAndAddBox from './SearchAndAddBox'
 import SignUpCTA from './SignUpCTA'
+import EtfFlowTicker from './EtfFlowTicker'
 import '../styles/MainnetPage.css'
 
 function LandingPage() {
@@ -66,6 +67,8 @@ function LandingPage() {
           The platform supports reverse wallet search, referral code lookup, and social handle resolution, enabling users to find traders by multiple identifiers beyond raw addresses. CommunityScan provides structured machine-readable data through dedicated AI endpoints, a comprehensive llms.txt file, and JSON-LD schema markup on every page. Data is served with stale-while-revalidate caching and hourly revalidation to balance freshness with performance. The platform is free to use, built on Next.js and Supabase, and deployed on Vercel's edge network for global low-latency access.
         </p>
       </section>
+
+      <EtfFlowTicker />
 
       <TopPairs />
 

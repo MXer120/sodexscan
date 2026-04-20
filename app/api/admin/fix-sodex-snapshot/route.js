@@ -28,7 +28,7 @@ export async function POST(request) {
 
     // 2. Fetch ALL pages of 24h LB
     const allItems24h = []
-    const firstRes = await fetch(`${SODEX_LB_API}?window_type=24H&page=1&page_size=${PAGE_SIZE}`)
+    const firstRes = await fetch(`${SODEX_LB_API}?window_type=24H&page=1&pageSize=${PAGE_SIZE}`)
     const firstData = await firstRes.json()
     if (firstData.code !== 0) throw new Error('Sodex 24H API error: ' + firstData.message)
     allItems24h.push(...firstData.data.items)
@@ -38,7 +38,7 @@ export async function POST(request) {
       const batch = []
       for (let j = i; j < i + CONCURRENCY && j <= totalPages; j++) {
         batch.push(
-          fetch(`${SODEX_LB_API}?window_type=24H&page=${j}&page_size=${PAGE_SIZE}`)
+          fetch(`${SODEX_LB_API}?window_type=24H&page=${j}&pageSize=${PAGE_SIZE}`)
             .then(r => r.json())
             .then(d => (d.code === 0 && d.data?.items) ? d.data.items : [])
             .catch(() => [])

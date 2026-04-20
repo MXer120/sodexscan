@@ -13,9 +13,10 @@ export async function GET(request) {
   const pageSize = searchParams.get('page_size') || '20'
   const sortBy = searchParams.get('sort_by') || 'volume'
   const sortOrder = searchParams.get('sort_order') || 'desc'
+  const windowType = searchParams.get('window_type') || 'ALL_TIME'
 
   try {
-    const url = `${SODEX_API}?window_type=ALL_TIME&sort_by=${sortBy}&sort_order=${sortOrder}&page=${page}&page_size=${pageSize}`
+    const url = `${SODEX_API}?window_type=${windowType}&sort_by=${sortBy}&sort_order=${sortOrder}&page=${page}&pageSize=${pageSize}`
     const res = await fetch(url)
     const json = await res.json()
 
@@ -23,27 +24,11 @@ export async function GET(request) {
       throw new Error('Sodex API error: ' + (json.message || 'unknown'))
     }
 
-    const data = json.data.items.map(item => ({
-      accountId: item.account_id,
-      walletAddress: item.wallet_address?.toLowerCase(),
-      sodexVolume: parseFloat(item.volume_usd) || 0,
-      sodexPnl: parseFloat(item.pnl_usd) || 0,
-      rank: item.rank,
-      volume: 0,
-      pnl: 0,
-      spotVolume: 0,
-      spotPnl: 0,
-      unrealizedPnl: 0,
-    }))
-
     return Response.json({
-      data,
-      meta: {
-        page: parseInt(page),
-        per_page: parseInt(pageSize),
+      code: 0,
+      data: {
+        items: json.data.items,
         total: json.data.total,
-        sort_by: sortBy,
-        sort_order: sortOrder
       }
     }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }

@@ -25,21 +25,10 @@ function TrackerPage() {
   const pagePermission = configReady ? (configCache['/tracker']?.permission || 'anon') : 'anon'
   const needsAuth = pagePermission !== 'anon' && !user
 
+  // ALL hooks MUST be above any conditional return
   useEffect(() => {
     if (!authLoading && needsAuth && openAuthModal) openAuthModal()
   }, [authLoading, needsAuth, openAuthModal])
-
-  if (authLoading) return null
-  if (needsAuth) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '16px' }}>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Sign in to access the Scanner</p>
-        <button onClick={openAuthModal} style={{ padding: '10px 24px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-          Sign In
-        </button>
-      </div>
-    )
-  }
 
   useEffect(() => {
     document.title = walletAddress
@@ -52,15 +41,11 @@ function TrackerPage() {
     return () => { document.body.style.overflow = 'auto' }
   }, [])
 
-  // Handle URL search params on mount
   useEffect(() => {
     const walletParam = searchParams.get('wallet')
     const tagParam = searchParams.get('tag')
-
     if (tagParam && tags) {
-      const matchedTag = tags.find(t =>
-        t.tag_name.toLowerCase() === tagParam.toLowerCase()
-      )
+      const matchedTag = tags.find(t => t.tag_name.toLowerCase() === tagParam.toLowerCase())
       if (matchedTag) setWalletAddress(matchedTag.wallet_address)
     } else if (walletParam) {
       setWalletAddress(walletParam)
@@ -70,14 +55,26 @@ function TrackerPage() {
   const handleWalletChange = useCallback((address) => {
     setWalletAddress(address)
     setSearchInput('')
-    window.history.replaceState(null, '', `/tracker/${address}`)
+    if (address) window.history.replaceState(null, '', `/tracker/${address}`)
   }, [])
 
   const handleSearchResult = useCallback(({ wallet_address }) => {
     handleWalletChange(wallet_address)
   }, [handleWalletChange])
 
-  // Build search box to pass into MainnetTracker
+  // Conditional returns AFTER all hooks
+  if (authLoading) return null
+  if (needsAuth) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '16px' }}>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Sign in to access the Scanner</p>
+        <button onClick={openAuthModal} style={{ padding: '10px 24px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+          Sign In
+        </button>
+      </div>
+    )
+  }
+
   const sharedSearchBox = (
     <SearchAndAddBox
       onAction={handleSearchResult}
@@ -89,8 +86,6 @@ function TrackerPage() {
     />
   )
 
-  // Always render MainnetTracker — it handles its own loading/empty states
-  // walletAddress=null means MainnetTracker won't fetch, but keeps DOM stable
   return (
     <div className="dashboard scanner-dashboard" style={{
       padding: '0',

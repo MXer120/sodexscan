@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createChart, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
 import {
   perpsTickers, perpsSymbols, perpsOrderbook, perpsKlines,
   perpsRecentTrades, perpsPositions, perpsOrders, perpsBalances,
@@ -68,8 +69,10 @@ export default function LarpTrade({ wallet }) {
   const [hideSmallBalances, setHideSmallBalances] = useState(false)
   const [sizePercent, setSizePercentState] = useState(0)
 
-  const canvasRef = useRef(null)
   const chartContainerRef = useRef(null)
+  const chartInstanceRef = useRef(null)
+  const candleSeriesRef = useRef(null)
+  const volumeSeriesRef = useRef(null)
 
   // --- Data fetching ---
   const fetchTickers = useCallback(async () => {
@@ -195,122 +198,102 @@ export default function LarpTrade({ wallet }) {
     return () => clearInterval(id)
   }, [ticker?.nextFundingTime])
 
-  // --- Chart rendering ---
+  // --- Chart: create instance on mount ---
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || klines.length === 0) return
-
     const container = chartContainerRef.current
-    const resizeObserver = new ResizeObserver(() => drawChart())
-    if (container) resizeObserver.observe(container)
+    if (!container) return
 
-    function drawChart() {
-      const rect = container?.getBoundingClientRect()
-      if (!rect) return
-      const dpr = window.devicePixelRatio || 1
-      const w = rect.width
-      const h = rect.height
-      canvas.width = w * dpr
-      canvas.height = h * dpr
-      canvas.style.width = w + 'px'
-      canvas.style.height = h + 'px'
+    const chart = createChart(container, {
+      autoSize: true,
+      layout: {
+        background: { color: '#121212' },
+        textColor: '#A3A3A3',
+        fontFamily: 'monospace',
+        fontSize: 10,
+      },
+      grid: {
+        vertLines: { color: 'rgba(255,255,255,0.04)' },
+        horzLines: { color: 'rgba(255,255,255,0.04)' },
+      },
+      crosshair: { mode: 0 },
+      rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' },
+      timeScale: {
+        borderColor: 'rgba(255,255,255,0.1)',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+    })
 
-      const ctx = canvas.getContext('2d')
-      ctx.scale(dpr, dpr)
-      ctx.clearRect(0, 0, w, h)
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#18B36B',
+      downColor: '#F24237',
+      borderUpColor: '#18B36B',
+      borderDownColor: '#F24237',
+      wickUpColor: '#18B36B',
+      wickDownColor: '#F24237',
+    })
 
-      // Background
-      ctx.fillStyle = '#121212'
-      ctx.fillRect(0, 0, w, h)
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volume',
+    })
 
-      const paddingRight = 70
-      const paddingBottom = 24
-      const volumeH = 50
-      const chartW = w - paddingRight
-      const chartH = h - paddingBottom - volumeH
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    })
 
-      const prices = klines.flatMap(k => [parseFloat(k.h), parseFloat(k.l)])
-      const volumes = klines.map(k => parseFloat(k.v ?? k.volume ?? 0))
-      const minP = Math.min(...prices)
-      const maxP = Math.max(...prices)
-      const maxV = Math.max(...volumes) || 1
-      const range = maxP - minP || 1
-      const toY = (p) => chartH - ((p - minP) / range) * (chartH - 10) - 5
+    chartInstanceRef.current = chart
+    candleSeriesRef.current = candleSeries
+    volumeSeriesRef.current = volumeSeries
 
-      const candleW = Math.max(1, (chartW - 10) / klines.length)
-      const bodyW = Math.max(1, candleW * 0.7)
+    return () => {
+      chart.remove()
+      chartInstanceRef.current = null
+      candleSeriesRef.current = null
+      volumeSeriesRef.current = null
+    }
+  }, [])
 
-      // Grid lines
-      const levels = 6
-      for (let i = 0; i <= levels; i++) {
-        const p = minP + (range * i) / levels
-        const y = toY(p)
-        ctx.strokeStyle = 'rgba(255,255,255,0.04)'
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(chartW, y)
-        ctx.stroke()
+  // --- Chart: update data when klines change ---
+  useEffect(() => {
+    const candleSeries = candleSeriesRef.current
+    const volumeSeries = volumeSeriesRef.current
+    if (!candleSeries || !volumeSeries || klines.length === 0) return
+
+    // Deduplicate and sort by time — API can return duplicates or unsorted data
+    const seen = new Set()
+    const sorted = [...klines]
+      .map(k => ({ ...k, _ts: Math.floor(new Date(k.t).getTime() / 1000) }))
+      .sort((a, b) => a._ts - b._ts)
+      .filter(k => { if (seen.has(k._ts)) return false; seen.add(k._ts); return true })
+
+    const candleData = sorted.map(k => ({
+      time: k._ts,
+      open: parseFloat(k.o),
+      high: parseFloat(k.h),
+      low: parseFloat(k.l),
+      close: parseFloat(k.c),
+    }))
+
+    const volumeData = sorted.map(k => {
+      const o = parseFloat(k.o), c = parseFloat(k.c)
+      return {
+        time: k._ts,
+        value: parseFloat(k.v ?? k.volume ?? 0),
+        color: c >= o ? 'rgba(24,179,107,0.25)' : 'rgba(242,66,55,0.25)',
       }
+    })
 
-      // Volume bars
-      klines.forEach((k, i) => {
-        const o = parseFloat(k.o), c = parseFloat(k.c)
-        const vol = parseFloat(k.v ?? k.volume ?? 0)
-        const x = i * candleW + candleW / 2 + 5
-        const green = c >= o
-        const vBarH = (vol / maxV) * volumeH
-        const vY = h - paddingBottom - vBarH
-        ctx.fillStyle = green ? 'rgba(24,179,107,0.25)' : 'rgba(242,66,55,0.25)'
-        ctx.fillRect(x - bodyW / 2, vY, bodyW, vBarH)
-      })
-
-      // Candles
-      klines.forEach((k, i) => {
-        const o = parseFloat(k.o), hi = parseFloat(k.h), lo = parseFloat(k.l), c = parseFloat(k.c)
-        const x = i * candleW + candleW / 2 + 5
-        const green = c >= o
-        ctx.strokeStyle = green ? '#18B36B' : '#F24237'
-        ctx.fillStyle = green ? '#18B36B' : '#F24237'
-
-        // Wick
-        ctx.beginPath()
-        ctx.moveTo(x, toY(hi))
-        ctx.lineTo(x, toY(lo))
-        ctx.lineWidth = 1
-        ctx.stroke()
-
-        // Body
-        const top = toY(Math.max(o, c))
-        const bot = toY(Math.min(o, c))
-        const bodyH = Math.max(1, bot - top)
-        ctx.fillRect(x - bodyW / 2, top, bodyW, bodyH)
-      })
-
-      // Y-axis labels
-      ctx.fillStyle = 'rgba(255,255,255,0.35)'
-      ctx.font = '10px monospace'
-      ctx.textAlign = 'left'
-      for (let i = 0; i <= levels; i++) {
-        const p = minP + (range * i) / levels
-        const y = toY(p)
-        ctx.fillText(fmtNum(p, maxP > 100 ? 1 : maxP > 1 ? 2 : 4), chartW + 6, y + 3)
-      }
-
-      // X-axis time labels
-      ctx.fillStyle = 'rgba(255,255,255,0.25)'
-      ctx.textAlign = 'center'
-      const step = Math.max(1, Math.floor(klines.length / 6))
-      for (let i = 0; i < klines.length; i += step) {
-        const d = new Date(klines[i].t)
-        const label = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0')
-        const x = i * candleW + candleW / 2 + 5
-        ctx.fillText(label, x, h - 6)
-      }
+    try {
+      candleSeries.setData(candleData)
+      volumeSeries.setData(volumeData)
+    } catch (e) {
+      console.warn('Chart setData error:', e.message)
     }
 
-    drawChart()
-    return () => resizeObserver.disconnect()
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.timeScale().fitContent()
+    }
   }, [klines])
 
   // --- Derived values ---
@@ -503,12 +486,7 @@ export default function LarpTrade({ wallet }) {
                 Indicators
               </button>
             </div>
-            <div className="larp-chart-canvas" ref={chartContainerRef}>
-              <canvas
-                ref={canvasRef}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-              />
-            </div>
+            <div className="larp-chart-canvas" ref={chartContainerRef} />
           </div>
 
           {/* ORDER BOOK */}
