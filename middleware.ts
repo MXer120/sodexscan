@@ -1,60 +1,70 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+
+const BYPASS = [
+  '/_next',
+  '/api/',
+  '/maintenance',
+]
+const STATIC = /\.(?:ico|svg|png|jpg|jpeg|gif|webp|woff2?|ttf|otf)$/
+
+function rewriteToMaintenance(request: NextRequest) {
+  const url = request.nextUrl.clone()
+  url.pathname = '/maintenance'
+  const reqHeaders = new Headers(request.headers)
+  reqHeaders.set('x-maintenance', '1')
+  return NextResponse.rewrite(url, { request: { headers: reqHeaders } })
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Pass through: Next internals, static assets, API routes, the maintenance page itself
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/') ||
-    pathname === '/maintenance' ||
-    /\.(?:ico|svg|png|jpg|jpeg|gif|webp|woff2?|ttf|otf)$/.test(pathname)
-  ) {
+  if (BYPASS.some(p => pathname.startsWith(p)) || STATIC.test(pathname)) {
     return NextResponse.next()
   }
 
-  const response = NextResponse.next({
-    request: { headers: new Headers(request.headers) },
-  })
+  // supabaseResponse must be mutated inside setAll per official @supabase/ssr pattern
+  let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll() },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              request.cookies.set(name, value, options)
+            )
+            supabaseResponse = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
         },
-      },
-    }
-  )
+      }
+    )
 
-  let isOwner = false
-  const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
-  if (user) {
+    if (!user) return rewriteToMaintenance(request)
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
-    isOwner = profile?.role === 'owner'
+
+    if (profile?.role !== 'owner') return rewriteToMaintenance(request)
+
+  } catch (err) {
+    // Fail closed — any error means show maintenance, never leak content
+    console.error('[middleware] auth check failed, showing maintenance:', err)
+    return rewriteToMaintenance(request)
   }
 
-  if (!isOwner) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/maintenance'
-    const reqHeaders = new Headers(request.headers)
-    reqHeaders.set('x-maintenance', '1')
-    return NextResponse.rewrite(url, { request: { headers: reqHeaders } })
-  }
-
-  return response
+  return supabaseResponse
 }
 
 export const config = {
