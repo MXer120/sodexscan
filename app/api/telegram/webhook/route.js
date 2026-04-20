@@ -6,7 +6,7 @@
 
 import { supabaseAdmin } from '../../../lib/supabaseServer'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://sodexscan.com'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.communityscan-sodex.com'
 
 export async function POST(request) {
   let update

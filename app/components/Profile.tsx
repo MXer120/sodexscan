@@ -850,9 +850,18 @@ function AlertsSection({ userId }: { userId?: string }) {
   const handleGenerateTgLink = async () => {
     if (!userId) return
     setLoadingTg(true)
-    const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
-    await supabase.from('telegram_link_tokens').insert({ token, user_id: userId })
-    setLinkToken(token)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/telegram/link', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+      })
+      const json = await res.json()
+      if (json.token) setLinkToken(json.token)
+      else setMsg(json.error ?? 'Failed to generate link')
+    } catch {
+      setMsg('Failed to generate link')
+    }
     setLoadingTg(false)
   }
 
