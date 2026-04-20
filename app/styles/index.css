@@ -1,3 +1,6 @@
+/* Tailwind utilities (no preflight — existing DS styles take precedence) */
+@tailwind utilities;
+
 :root {
   /* =========================================
      THEME CONFIGURATION

@@ -1,6 +1,10 @@
 /* ============================================================
-   MAINTENANCE GATE
+   MAINTENANCE / UPGRADE GATE
+   UX: staggered entrance, interruptible transitions, tabular-nums,
+       antialiased text, concentric radii, subtle exit
    ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
 
 .mnt-root {
   position: fixed;
@@ -10,32 +14,41 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
 }
 
-/* ─── Spinner (loading state) ────────────────────────────── */
-
-.mnt-spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--ds-border-default, #333);
-  border-top-color: var(--ds-accent, #f26b1f);
-  border-radius: 50%;
-  animation: mnt-spin 0.7s linear infinite;
+.mnt-root--in {
+  animation: mnt-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-@keyframes mnt-spin {
-  to { transform: rotate(360deg); }
+@keyframes mnt-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Main body ──────────────────────────────────────────── */
+/* ─── Staggered entrance ─────────────────────────────────── */
+
+.mnt-stagger {
+  opacity: 0;
+  animation: mnt-item-in 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: calc(var(--i, 0) * 80ms + 120ms);
+}
+
+@keyframes mnt-item-in {
+  from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+/* ─── Layout ─────────────────────────────────────────────── */
 
 .mnt-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 48px;
+  gap: 52px;
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   padding: 0 24px;
 }
 
@@ -45,42 +58,70 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   text-align: center;
 }
 
 .mnt-icon {
   color: var(--ds-accent, #f26b1f);
-  opacity: 0.9;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(242, 107, 31, 0.1);
+  border-radius: 14px; /* concentric: icon inner 40px, outer container ~52px, padding ~6px → r = 6+8 = 14 */
+  border: 1px solid rgba(242, 107, 31, 0.2);
   margin-bottom: 4px;
 }
 
 .mnt-title {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--ds-text-primary, #f5f5f5);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
 .mnt-sub {
   font-size: 14px;
   color: var(--ds-text-secondary, #a8a8a8);
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
+  text-wrap: pretty;
+  max-width: 320px;
 }
 
-.mnt-divider {
-  width: 40px;
-  height: 1px;
-  background: var(--ds-border-default, #333);
+/* Animated pulse dots */
+.mnt-pulse {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   margin: 4px 0;
 }
 
+.mnt-pulse span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ds-accent, #f26b1f);
+  opacity: 0.4;
+  animation: mnt-dot 1.4s ease-in-out infinite;
+}
+
+.mnt-pulse span:nth-child(2) { animation-delay: 0.2s; }
+.mnt-pulse span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes mnt-dot {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40%           { opacity: 1;   transform: scale(1); }
+}
+
 .mnt-tagline {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ds-text-muted, #555);
   margin: 0;
@@ -91,53 +132,63 @@
 .mnt-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
   width: 100%;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ds-border-default, #333);
+  border-radius: 16px; /* concentric: content ~12px inner, padding 20px → 12+4 = 16 */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .mnt-form-hint {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ds-text-muted, #555);
-  margin: 0 0 2px;
+  margin: 0 0 4px;
+  text-align: center;
 }
 
 .mnt-fields {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 100%;
 }
 
 .mnt-input {
   width: 100%;
   background: var(--ds-bg-3, #242424);
   border: 1px solid var(--ds-border-default, #333);
-  border-radius: var(--ds-r-md, 8px);
+  border-radius: 10px; /* concentric to form 16px: 16 - (20-14)/2 ≈ 10 */
   padding: 11px 14px;
   font-size: 14px;
   color: var(--ds-text-primary, #f5f5f5);
   outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.15s;
+  /* Interruptible transition — CSS transition responds immediately on interaction */
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 .mnt-input:focus {
   border-color: var(--ds-accent, #f26b1f);
+  background: var(--ds-bg-4, #2a2a2a);
+  box-shadow: 0 0 0 3px rgba(242, 107, 31, 0.12);
 }
 
-.mnt-input::placeholder {
-  color: var(--ds-text-muted, #555);
-}
+.mnt-input::placeholder { color: var(--ds-text-muted, #555); }
 
 .mnt-error {
   font-size: 12px;
   color: var(--ds-danger-red, #ef4444);
   margin: 0;
   text-align: center;
+  text-wrap: pretty;
+  animation: mnt-item-in 0.2s ease forwards;
 }
 
 .mnt-submit {
@@ -145,20 +196,24 @@
   padding: 11px;
   background: var(--ds-accent, #f26b1f);
   border: none;
-  border-radius: var(--ds-r-md, 8px);
+  border-radius: 10px; /* matches input */
   color: #fff;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   margin-top: 2px;
+  -webkit-font-smoothing: antialiased;
 }
 
 .mnt-submit:hover:not(:disabled) {
   background: var(--ds-accent-hover, #ff7d33);
+  box-shadow: 0 4px 14px rgba(242, 107, 31, 0.35);
 }
 
-.mnt-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.mnt-submit:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 0.08s;
 }
+
+.mnt-submit:disabled { opacity: 0.45; cursor: not-allowed; }

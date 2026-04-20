@@ -20,6 +20,7 @@ const FALLBACK_NAV = [
   { path: '/tickets',        label: 'Tickets',        enabled: true,  tag: null,  sort_order: 70,  in_more: false },
   { path: '/larp',           label: 'LARP',           enabled: false, tag: 'New', sort_order: 75,  in_more: false },
   { path: '/reports',        label: 'Reports',        enabled: true,  tag: null,  sort_order: 75,  in_more: false },
+  { path: '/copy',           label: 'Copy Trade',     enabled: true,  tag: null,  sort_order: 76,  in_more: true  },
   { path: '/alerts',         label: 'Alerts',         enabled: true,  tag: null,  sort_order: 77,  in_more: false },
   { path: '/design-system',  label: 'Design System',  enabled: true,  tag: null,  sort_order: 78,  in_more: true  },
   { path: '/admin',          label: 'Admin',          enabled: true,  tag: null,  sort_order: 80,  in_more: false },
@@ -81,6 +82,7 @@ const NavIcon = ({ name, size = 16 }) => {
     login:      <><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></>,
     extlink:    <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>,
     reports:    <><path d="M3 3v18h18"/><path d="m7 14 3-3 4 4 5-5"/></>,
+    copy:       <><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></>,
     bell:       <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>,
     mail:       <><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></>,
     collapseL:  <><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="15 9 12 12 15 15"/></>,
@@ -111,7 +113,7 @@ const PATH_ICON_NAME = {
   '/referral': 'social', '/watchlist': 'watchlist', '/aggregator': 'aggregator',
   '/tickets': 'tickets', '/larp': 'larp', '/admin': 'admin',
   '/platform': 'platform', '/incoming': 'incoming', '/reverse-search': 'search',
-  '/reports': 'reports', '/alerts': 'bell', '/design-system': 'design',
+  '/reports': 'reports', '/alerts': 'bell', '/copy': 'copy', '/design-system': 'design',
 }
 
 function Navbar() {

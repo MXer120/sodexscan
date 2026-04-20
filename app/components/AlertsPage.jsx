@@ -346,7 +346,7 @@ export default function AlertsPage() {
     : Object.entries(TYPE_META).filter(([, m]) => m.cat === cat).map(([id]) => id)
 
   return (
-    <div className="page-content alp-root">
+    <div className="alp-root">
       <div className="alp-layout">
 
         {/* Sidebar */}
@@ -424,32 +424,33 @@ export default function AlertsPage() {
               </button>
             </div>
 
-            {/* Type picker (only when creating new) */}
-            {!editing && (
-              <div className="alp-drawer-section">
-                <label className="alp-field-label">Alert Type</label>
-                <div className="alp-type-grid">
-                  {typesForCat.map(tid => {
-                    const m = TYPE_META[tid]
-                    if (!m) return null
-                    return (
-                      <button key={tid} className={`alp-type-tile ${draft.type === tid ? 'active' : ''}`} onClick={() => setDraft({ ...defaultDraft(tid), label: draft.label })} style={{ '--tile-color': CAT_COLORS[m.cat] }}>
-                        <span className="alp-type-tile-name">{m.label}</span>
-                        <span className="alp-type-tile-desc">{m.desc}</span>
-                      </button>
-                    )
-                  })}
+            {/* Single scrollable area — type picker + form fields */}
+            <div className="alp-drawer-scroll">
+              {!editing && (
+                <div className="alp-drawer-section">
+                  <label className="alp-field-label">Alert Type</label>
+                  <div className="alp-type-grid">
+                    {typesForCat.map(tid => {
+                      const m = TYPE_META[tid]
+                      if (!m) return null
+                      return (
+                        <button key={tid} className={`alp-type-tile ${draft.type === tid ? 'active' : ''}`} onClick={() => setDraft({ ...defaultDraft(tid), label: draft.label })} style={{ '--tile-color': CAT_COLORS[m.cat] }}>
+                          <span className="alp-type-tile-name">{m.label}</span>
+                          <span className="alp-type-tile-desc">{m.desc}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+              )}
+              <div className="alp-drawer-body">
+                <DrawerFields draft={draft} onChange={setDraft} />
               </div>
-            )}
-
-            <div className="alp-drawer-body">
-              <DrawerFields draft={draft} onChange={setDraft} />
             </div>
 
-            {error && <div className="alp-drawer-error">{error}</div>}
-
+            {/* Footer always visible at bottom */}
             <div className="alp-drawer-footer">
+              {error && <div className="alp-drawer-error" style={{ flex: 1, marginBottom: 0 }}>{error}</div>}
               <button className="alp-btn-ghost" onClick={() => setDrawerOpen(false)}>Cancel</button>
               <button className="alp-btn-save" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Alert'}
