@@ -6,10 +6,10 @@ import PageController from './components/PageController'
 import PageTransition from './components/PageTransition'
 import CmsEditToggle from './components/CmsEditToggle'
 import CommandPalette from './components/CommandPalette'
-import MaintenanceGate from './components/MaintenanceGate'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Providers } from './providers'
+import { headers } from 'next/headers'
 
 export const metadata = {
   title: 'CommunityScan Sodex | #1 Data Intelligence Layer',
@@ -43,7 +43,20 @@ export const metadata = {
   },
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const isMaintenance = (await headers()).get('x-maintenance') === '1'
+
+  if (isMaintenance) {
+    return (
+      <html lang="en">
+        <head>
+          <link rel="icon" href="/favicon-orange.svg" type="image/svg+xml" />
+        </head>
+        <body>{children}</body>
+      </html>
+    )
+  }
+
   return (
     <html lang="en">
       <head>
@@ -108,18 +121,16 @@ export default function RootLayout({ children }) {
           })
         }} />
         <Providers>
-          <MaintenanceGate>
-            <Navbar />
-            <PageTransition>
-              <main className="page-content">
-                <AnnouncementBar />
-                <PageController />
-                <CmsEditToggle />
-                {children}
-              </main>
-            </PageTransition>
-            <CommandPalette />
-          </MaintenanceGate>
+          <Navbar />
+          <PageTransition>
+            <main className="page-content">
+              <AnnouncementBar />
+              <PageController />
+              <CmsEditToggle />
+              {children}
+            </main>
+          </PageTransition>
+          <CommandPalette />
         </Providers>
         <Analytics />
         <SpeedInsights />
