@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PLTR Scalper Cluster — Network Map</title>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+  body { background:#0a0a0a; color:#e0e0e0; font-family:-apple-system,monospace; margin:0; padding:20px; }
+  h1 { color:#fff; font-size:22px; margin:0 0 8px; }
+  .sub { color:#888; font-size:13px; margin-bottom:16px; }
+  #net { width:100%; height:78vh; background:#0f0f0f; border:1px solid #222; border-radius:8px; }
+  .legend { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0; font-size:12px; }
+  .lg { display:flex; align-items:center; gap:6px; }
+  .dot { width:14px; height:14px; border-radius:50%; }
+  .meta { color:#666; font-size:11px; margin-top:8px; }
+  table { border-collapse:collapse; margin-top:12px; font-size:12px; width:100%; }
+  th,td { padding:6px 10px; text-align:left; border-bottom:1px solid #222; }
+  th { color:#888; font-weight:600; }
+  .hl { color:#ff4757; font-weight:bold; }
+  .green { color:#4ade80; } .red { color:#ef4444; } .blue { color:#60a5fa; }
+</style>
+</head>
+<body>
+<h1>PLTR Scalper Cluster — Network Map (Apr 25–26, 2026)</h1>
+<div class="sub">11 Sodex accounts • 1 capital hub • verified on-chain links via valuescan + Sodex tools • off-chain via Ethplorer</div>
+
+<div class="legend">
+  <div class="lg"><div class="dot" style="background:#ff4757"></div>Highlighted (rank #1 trader)</div>
+  <div class="lg"><div class="dot" style="background:#fbbf24"></div>Capital pool / hub</div>
+  <div class="lg"><div class="dot" style="background:#60a5fa"></div>PLTR scalping bot</div>
+  <div class="lg"><div class="dot" style="background:#9ca3af"></div>Outlier (separate L1 path)</div>
+  <div class="lg"><div class="dot" style="background:#374151"></div>Sodex bridge / system contract</div>
+  <div class="lg"><div class="dot" style="background:#a78bfa"></div>Off-chain treasury (unverified)</div>
+</div>
+
+<div id="net"></div>
+
+<table>
+<thead><tr><th>Account</th><th>Sodex ID</th><th>Cum PnL</th><th>Cum Vol</th><th>L1 Holdings</th><th>Role</th></tr></thead>
+<tbody>
+<tr class="hl"><td>0x5847…427027</td><td>3602</td><td class="green">+$52,648</td><td>$38.2M</td><td>~$0 (gas only)</td><td>★ RANK #1 — primary PLTR bot</td></tr>
+<tr><td>0x267b…952566</td><td>17139</td><td class="green">+$35,600</td><td>$16.3M</td><td>~$55</td><td>PLTR bot (#3)</td></tr>
+<tr><td>0xa8ec…526cb4</td><td>40695</td><td class="green">+$29,139</td><td>$67.4M</td><td>~$0</td><td>PLTR bot (#4) — highest volume</td></tr>
+<tr><td>0x3264…6144e5</td><td>13470</td><td class="green">+$8,544</td><td>$4.2M</td><td>~$0</td><td>PLTR bot (#9)</td></tr>
+<tr><td>0x0275…19022a</td><td>189398</td><td class="green">+$8,046</td><td>$8.6M</td><td>~$0</td><td>PLTR bot (#10)</td></tr>
+<tr><td>0xe535…006345</td><td>73667</td><td class="green">+$7,109</td><td>$28.5M</td><td>~$0</td><td>Multi-symbol trader (#15)</td></tr>
+<tr><td>0x16c9…113814</td><td>159659</td><td class="green">+$5,923</td><td>$6.8M</td><td>~$13</td><td>PLTR bot (#22)</td></tr>
+<tr><td>0xbdf6…975dc5</td><td>40232</td><td class="green">+$5,620</td><td>$1.0M</td><td>$1,000 USDC</td><td>Idle Apr 25–26 (#24)</td></tr>
+<tr><td>0xb98f…de1647</td><td>1334</td><td class="green">+$687</td><td>$549k</td><td>~$1</td><td>Old account, light trader (#57)</td></tr>
+<tr><td>0xc2fc…d94fe7</td><td>1225</td><td class="red">−$49,788</td><td>$135</td><td>~$1 + dust</td><td>★ MASTER — funded 0x1F446dF with $1M+</td></tr>
+<tr><td>0x1F44…141332</td><td>1227</td><td>$0</td><td>$0</td><td>~$0</td><td>★ HUB — holds $1.27M idle bankroll</td></tr>
+<tr><td>0xf797…66bc5c</td><td>40293</td><td>$0</td><td>$0</td><td>n/a</td><td>Capital pool — $285k idle</td></tr>
+</tbody>
+</table>
+
+<div class="meta">Sources: Sodex API via local /api/tools, ValueChain block explorer (main-scan.valuechain.xyz), Ethplorer for L1 holdings.</div>
+
+<script>
+const nodes = new vis.DataSet([
+  // Highlighted rank #1
+  { id:'5847', label:'★ 0x5847…427027\nRank #1 PnL: +$52.6k\nVol: $38.2M\nApr25: +$23.5k', color:{background:'#ff4757',border:'#ff6b81'}, font:{color:'#fff',size:13}, shape:'box', borderWidth:3 },
+
+  // Capital architecture
+  { id:'c2fc', label:'0xc2fc…d94fe7\nMASTER (id 1225)\nFunded $1M+ to 1F44', color:{background:'#fbbf24',border:'#f59e0b'}, font:{color:'#000',size:12}, shape:'box' },
+  { id:'1F44', label:'0x1F44…141332\nHUB (id 1227)\n$1.27M idle equity', color:{background:'#fbbf24',border:'#f59e0b'}, font:{color:'#000',size:12}, shape:'box' },
+  { id:'f797', label:'0xf797…66bc5c\nCapital pool (id 40293)\n$285k idle', color:{background:'#fbbf24',border:'#f59e0b'}, font:{color:'#000',size:11}, shape:'box' },
+
+  // PLTR bots
+  { id:'267b', label:'0x267b…952566\nRank #3 — PLTR bot', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+  { id:'a8ec', label:'0xa8ec…526cb4\nRank #4 — PLTR bot\n$67M vol', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+  { id:'3264', label:'0x3264…6144e5\nRank #9 — PLTR bot', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+  { id:'0275', label:'0x0275…19022a\nRank #10 — PLTR bot', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+  { id:'16c9', label:'0x16c9…113814\nRank #22 — PLTR bot', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+  { id:'bdf6', label:'0xbdf6…975dc5\nRank #24 — idle', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+  { id:'b98f', label:'0xb98f…de1647\nRank #57 — light', color:{background:'#60a5fa',border:'#3b82f6'}, font:{color:'#fff',size:11}, shape:'box' },
+
+  // Outlier
+  { id:'e535', label:'0xe535…006345\nRank #15 — multi-symbol\n(separate L1 path)', color:{background:'#9ca3af',border:'#6b7280'}, font:{color:'#000',size:11}, shape:'box' },
+
+  // System contracts (Sodex bridge - filtered out of "connection" claim)
+  { id:'bridge', label:'Sodex Bridge\n0x0101…0101 (mint)\n0xcb7F…f7e2c6 (vUSDC burn)', color:{background:'#374151',border:'#1f2937'}, font:{color:'#9ca3af',size:11}, shape:'box', shapeProperties:{borderDashes:[4,4]} },
+
+  // Off-chain - unverified relation
+  { id:'72B2', label:'0x72B2f…1bA287\n(L1 Ethereum)\n$408k USDC + 32 ETH\n+ 1.7B PEPE\n⚠ NO PROVEN LINK', color:{background:'#a78bfa',border:'#8b5cf6'}, font:{color:'#000',size:11}, shape:'box', shapeProperties:{borderDashes:[2,2]} },
+]);
+
+const edges = new vis.DataSet([
+  // VERIFIED on-chain (vUSDC ERC-20 transfers, non-contract)
+  { from:'c2fc', to:'1F44', label:'$500k+ direct', color:'#fbbf24', width:3, arrows:'to' },
+  { from:'1F44', to:'c2fc', label:'$67k back', color:'#fbbf24', width:1, arrows:'to' },
+  { from:'1F44', to:'e535', label:'$145k', color:'#fbbf24', width:2, arrows:'to' },
+  { from:'1F44', to:'f797', label:'$160k', color:'#fbbf24', width:2, arrows:'to' },
+
+  // BEHAVIORAL/OPERATIONAL (same trading pattern, same withdrawal mechanism)
+  { from:'5847', to:'bridge', label:'$73k withdrawn', color:'#666', dashes:true, arrows:'to', width:1.5 },
+  { from:'267b', to:'bridge', label:'$313k', color:'#666', dashes:true, arrows:'to' },
+  { from:'a8ec', to:'bridge', label:'$962k', color:'#666', dashes:true, arrows:'to', width:2 },
+  { from:'3264', to:'bridge', label:'$24k', color:'#666', dashes:true, arrows:'to' },
+  { from:'0275', to:'bridge', label:'$17k', color:'#666', dashes:true, arrows:'to' },
+  { from:'16c9', to:'bridge', label:'$3k', color:'#666', dashes:true, arrows:'to' },
+  { from:'b98f', to:'bridge', label:'$17k', color:'#666', dashes:true, arrows:'to' },
+  { from:'c2fc', to:'bridge', label:'$50k', color:'#666', dashes:true, arrows:'to' },
+
+  // Bridge funds in
+  { from:'bridge', to:'5847', label:'$33k deposited', color:'#444', dashes:true, arrows:'to' },
+  { from:'bridge', to:'1F44', label:'$1.4M deposits', color:'#444', dashes:true, arrows:'to', width:2 },
+
+  // No connection to 0x72B2 - shown isolated
+]);
+
+new vis.Network(document.getElementById('net'), { nodes, edges }, {
+  physics: { stabilization:{iterations:200}, barnesHut:{gravitationalConstant:-8000, springLength:170} },
+  edges:   { font:{size:10, color:'#888', strokeWidth:0, background:'#0f0f0f'}, smooth:{type:'continuous'} },
+  nodes:   { borderWidth:2, shadow:true },
+  interaction: { hover:true, tooltipDelay:200 }
+});
+</script>
+</body>
+</html>

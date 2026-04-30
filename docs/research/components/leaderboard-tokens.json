@@ -1,0 +1,44 @@
+{
+  "colors": [
+    "rgb(0, 0, 0)",
+    "rgb(255, 255, 255)",
+    "rgb(24, 179, 107)",
+    "rgb(255, 118, 55)",
+    "rgb(163, 163, 163)",
+    "rgb(248, 248, 248)",
+    "rgb(245, 245, 245)",
+    "rgba(0, 0, 0, 0.85)",
+    "rgba(0, 0, 0, 0.87)"
+  ],
+  "bgColors": [
+    "rgb(18, 18, 18)",
+    "rgb(26, 44, 38)",
+    "rgb(24, 179, 107)",
+    "rgb(255, 118, 55)",
+    "rgb(10, 10, 10)",
+    "rgb(61, 61, 61)",
+    "rgba(255, 255, 255, 0.04)",
+    "rgba(0, 0, 0, 0.5)",
+    "rgb(23, 23, 23)",
+    "rgb(38, 38, 38)"
+  ],
+  "borderColors": [
+    "rgb(255, 255, 255)",
+    "rgb(26, 26, 26) rgb(26, 26, 26) rgb(38, 38, 38)",
+    "rgba(24, 179, 107, 0.5)",
+    "rgb(24, 179, 107)",
+    "rgb(255, 118, 55)",
+    "rgb(163, 163, 163)",
+    "rgb(38, 38, 38)",
+    "rgb(248, 248, 248)",
+    "rgb(61, 61, 61)",
+    "rgb(245, 245, 245)",
+    "rgba(255, 255, 255, 0.05)",
+    "rgba(0, 0, 0, 0.85)",
+    "rgba(0, 0, 0, 0.87)"
+  ],
+  "fonts": [
+    "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+    "Inter, system-ui, \"Segoe UI\", Roboto, \"Helvetica Neue\", sans-serif"
+  ]
+}

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUserProfile, useUpdateOwnWallet, useUpdateShowZeroData, useWeeklyWalletStats } from '../hooks/useProfile'
+import { useSessionContext } from '../lib/SessionContext'
 import {
   useWalletTags, useRenameTag, useDeleteTag,
   useWalletGroups, useCreateGroup, useDeleteGroup, useRenameGroup,
@@ -22,6 +23,7 @@ export default function Profile() {
   }, [])
 
   const [activeSection, setActiveSection] = useState<ProfileSection>('account')
+  const { user: sessionUser, loading: sessionLoading, openAuthModal } = useSessionContext()
   const { data: profileData, isLoading, error } = useUserProfile()
   const { data: walletTags } = useWalletTags()
   const { data: groups } = useWalletGroups()
@@ -78,10 +80,8 @@ export default function Profile() {
     { path: '/tracker', label: 'Scan' },
     { path: '/mainnet', label: 'Leaderboard' },
     { path: '/sopoints', label: 'SoPoints' },
-    { path: '/social', label: 'Social' },
     { path: '/watchlist', label: 'Watchlist' },
     { path: '/aggregator', label: 'Aggregator' },
-    { path: '/tickets', label: 'Tickets' },
     { path: '/platform', label: 'Platform' },
     { path: '/incoming', label: 'Incoming' },
     { path: '/reverse-search', label: 'Reverse Search' },
@@ -202,7 +202,27 @@ export default function Profile() {
     }
   }
 
-  if (isLoading) return null
+  if (sessionLoading || isLoading) return null
+
+  if (!sessionUser) {
+    return (
+      <div className="profile-container">
+        <div style={{ padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 15, margin: 0 }}>Sign in to view your profile</p>
+          <button
+            onClick={openAuthModal}
+            style={{ padding: '10px 24px', borderRadius: 8, background: 'var(--color-accent, #6366f1)', color: '#fff', border: 'none', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+          >
+            Log in
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (error) {
     return (

@@ -29,28 +29,28 @@
 /* Command Root */
 .command-root {
     width: 100%;
-    background: var(--color-bg-modal, rgba(20, 20, 20, 0.95));
-    border-radius: var(--theme-radius, 12px);
+    background: var(--ds-bg-2);
+    border-radius: var(--ds-r-lg);
     overflow: hidden;
-    border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-    box-shadow: var(--theme-shadow, 0 24px 80px rgba(0, 0, 0, 0.6));
+    border: 1px solid var(--ds-border-default);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--color-overlay-subtle);
     display: flex;
     flex-direction: column;
-    font-family: var(--theme-font, var(--font-inter, sans-serif));
+    font-family: 'Lato', sans-serif;
 }
 
 .command-input-wrapper {
     display: flex;
     align-items: center;
     padding: 0 16px;
-    border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid var(--ds-border-subtle);
     flex-shrink: 0;
     height: 60px;
 }
 
 .search-icon {
     display: flex;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+    color: var(--ds-text-tertiary);
     margin-right: 12px;
 }
 
@@ -62,20 +62,20 @@
     padding: 16px 0;
     outline: none;
     background: transparent;
-    color: var(--color-text-main, #fff);
+    color: var(--ds-text-primary);
     height: 100%;
 }
 
 [cmdk-input]::placeholder {
-    color: var(--color-text-disabled, rgba(255, 255, 255, 0.25));
+    color: var(--ds-text-muted);
 }
 
 .active-filter-badge {
     display: inline-flex;
     align-items: center;
-    background: rgba(var(--color-primary-rgb, 59, 130, 246), 0.2);
-    color: var(--color-primary, #3b82f6);
-    border: 1px solid rgba(var(--color-primary-rgb, 59, 130, 246), 0.3);
+    background: var(--ds-accent-soft);
+    color: var(--ds-accent);
+    border: 1px solid rgba(242, 107, 31, 0.3);
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 12px;
@@ -108,34 +108,33 @@
     content-visibility: auto;
     cursor: pointer;
     height: 44px;
-    border-radius: var(--theme-radius-sm, 6px);
+    border-radius: var(--ds-r-sm);
     font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* Added for shortcut alignment */
     gap: 12px;
     padding: 0 12px;
-    color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+    color: var(--ds-text-secondary);
     user-select: none;
     will-change: background, color;
     transition: all 0.1s ease;
 }
 
 .command-item[aria-selected="true"] {
-    background: rgba(var(--color-primary-rgb, 59, 130, 246), 0.15);
-    color: var(--color-text-main, #fff);
+    background: var(--ds-accent-soft);
+    color: var(--ds-text-primary);
 }
 
 .command-item[aria-disabled="true"] {
-    color: var(--color-text-disabled, rgba(255, 255, 255, 0.3));
+    color: var(--ds-text-muted);
     cursor: not-allowed;
 }
 
 [cmdk-group-heading] {
     user-select: none;
     font-size: 11px;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+    color: var(--ds-text-tertiary);
     padding: 8px 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -147,7 +146,7 @@
     font-size: 14px;
     text-align: center;
     white-space: pre-wrap;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+    color: var(--ds-text-tertiary);
     padding: 40px;
     display: flex;
     justify-content: center;
@@ -166,11 +165,10 @@
 .command-icon {
     display: flex;
     align-items: center;
-    /* Center SVG vertically */
     justify-content: center;
     font-size: 16px;
     opacity: 0.7;
-    color: var(--color-primary);
+    color: var(--ds-accent);
     width: 16px;
     height: 16px;
 }
@@ -197,7 +195,7 @@
 
 .wallet-detail {
     font-size: 11px;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+    color: var(--ds-text-tertiary);
     font-family: monospace;
 }
 
@@ -209,8 +207,8 @@
 }
 
 .key-cap {
-    background: var(--color-overlay-light, rgba(255, 255, 255, 0.1));
-    border: 1px solid var(--color-overlay-faint, rgba(255, 255, 255, 0.05));
+    background: var(--color-overlay-medium);
+    border: 1px solid var(--ds-border-subtle);
     padding: 0;
     width: 20px;
     height: 20px;
@@ -219,13 +217,13 @@
     justify-content: center;
     border-radius: 4px;
     font-weight: 600;
-    color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+    color: var(--ds-text-secondary);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     font-size: 11px;
 }
 
 .command-item[aria-selected="true"] .wallet-detail {
-    color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    color: var(--ds-text-secondary);
 }
 
 
@@ -234,12 +232,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* Left and Right split */
-    border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    border-top: 1px solid var(--ds-border-subtle);
     padding: 8px 16px;
-    background: var(--color-overlay-faint, rgba(255, 255, 255, 0.02));
+    background: var(--color-overlay-faint);
     font-size: 11px;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+    color: var(--ds-text-tertiary);
     height: 44px;
     flex-shrink: 0;
 }
@@ -255,7 +252,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+    color: var(--ds-text-tertiary);
 }
 
 .footer-item.separate-arrows {

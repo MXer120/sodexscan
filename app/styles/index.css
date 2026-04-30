@@ -1,202 +1,340 @@
-/* Tailwind utilities (no preflight — existing DS styles take precedence) */
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
 
 :root {
-  /* =========================================
-     DESIGN SYSTEM TOKENS — single source of truth
-     Dark mode, orange accent. Used everywhere.
-     ========================================= */
+  --radius: 0.625rem;
 
-  --ds-bg-0: #141414;
-  --ds-bg-1: #1a1a1a;
-  --ds-bg-2: #1f1f1f;
-  --ds-bg-3: #242424;
-  --ds-bg-4: #2a2a2a;
-  --ds-bg-5: #2e2e2e;
+  /* ── communityscan light mode tokens ── */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.58 0.22 27);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 
-  --ds-border-subtle: #2a2a2a;
-  --ds-border-default: #333333;
-  --ds-border-strong: #3d3d3d;
-
-  --ds-text-primary: #f5f5f5;
-  --ds-text-secondary: #a8a8a8;
-  --ds-text-tertiary: #777777;
-  --ds-text-muted: #555555;
-
-  --ds-accent: #f26b1f;
-  --ds-accent-hover: #ff7d33;
-  --ds-accent-soft: rgba(242, 107, 31, 0.15);
-
-  --ds-success: #22c55e;
-  --ds-success-soft: rgba(34, 197, 94, 0.12);
-  --ds-warning: #f59e0b;
-  --ds-warning-soft: rgba(245, 158, 11, 0.12);
-  --ds-danger-red: #ef4444;
-  --ds-danger-red-soft: rgba(239, 68, 68, 0.12);
-
-  --ds-r-sm: 6px;
-  --ds-r-md: 8px;
-  --ds-r-lg: 12px;
-  --ds-r-xl: 16px;
-
-  --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --ds-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-
-  /* =========================================
-     LEGACY ALIASES → DS tokens
-     Keeps unmigrated CSS files working with the DS palette.
-     ========================================= */
-
-  --color-primary: var(--ds-accent);
-  --color-primary-dark: var(--ds-accent-hover);
-  --color-primary-light: var(--ds-accent-hover);
+  /* ── Legacy tokens — light-mode defaults ── */
+  --color-primary: #f26b1f;
+  --color-primary-dark: #c85614;
+  --color-primary-light: #ff7d33;
   --color-primary-rgb: 242, 107, 31;
-
-  --color-bg-main: var(--ds-bg-0);
-  --color-bg-secondary: var(--ds-bg-1);
-  --color-bg-tertiary: var(--ds-bg-2);
-  --color-bg-card: var(--ds-bg-3);
-  --color-bg-modal: var(--ds-bg-2);
-  --color-bg-input: var(--ds-bg-3);
-
-  --color-text-main: var(--ds-text-primary);
-  --color-text-secondary: var(--ds-text-secondary);
-  --color-text-muted: var(--ds-text-tertiary);
-  --color-text-disabled: var(--ds-text-muted);
-  --color-text-subtle: var(--ds-text-tertiary);
-  --color-text-dark: var(--ds-text-muted);
-  --color-text-darker: #444444;
-  --color-text-light-gray: var(--ds-text-secondary);
-  --color-text-medium-gray: var(--ds-text-tertiary);
-
-  --color-border-subtle: var(--ds-border-subtle);
-  --color-border-visible: var(--ds-border-default);
-  --color-border-strong: var(--ds-border-strong);
-  --color-border-dark: var(--ds-border-default);
-
-  --color-spot: #31b3da;
-  --color-spot-bg: rgba(49, 179, 218, 0.25);
-  --color-volume: #31b3da;
-
+  --ds-accent: var(--color-primary, #f26b1f);
+  --ds-accent-hover: var(--color-primary-light, #ff7d33);
+  --ds-accent-dim: var(--color-primary-dark, #c85614);
+  --ds-accent-soft: rgba(var(--color-primary-rgb, 242, 107, 31), 0.15);
+  --ds-success: #22c55e;
+  --ds-warning: #f59e0b;
+  --ds-danger-red: #ef4444;
+  --ds-r-sm: 6px; --ds-r-md: 8px; --ds-r-lg: 12px; --ds-r-xl: 16px;
+  --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --ds-shadow-md: 0 4px 12px rgba(0,0,0,0.12);
   --color-success: var(--ds-success);
-  --color-success-rgb: 34, 197, 94;
   --color-error: var(--ds-danger-red);
-  --color-error-rgb: 239, 68, 68;
   --color-warning: var(--ds-warning);
-  --color-warning-rgb: 245, 158, 11;
-
-  --color-blue: #3b82f6;
-  --color-blue-rgb: 59, 130, 246;
-  --color-cyan: #06b6d4;
-  --color-teal: #14b8a6;
-  --color-purple: #8b5cf6;
-  --color-pink: #ec4899;
-  --color-orange: #f97316;
-  --color-lime: #84cc16;
-  --color-info: #0081A6;
+  --color-blue: #3b82f6; --color-cyan: #06b6d4; --color-purple: #8b5cf6;
+  --color-pink: #ec4899; --color-orange: #f97316;
+  --color-chart-1: #0081A6; --color-chart-2: #16a34a; --color-chart-3: #3b82f6;
+  --color-chart-4: #f59e0b; --color-chart-5: #8b5cf6;
   --color-telegram: #00aaff;
+  --color-spot: #31b3da;
+  --color-spot-bg: rgba(49,179,218,0.15);
+  --color-volume: #31b3da;
   --color-discord: var(--ds-accent);
   --color-accent: var(--ds-accent);
   --color-accent-rgb: 242, 107, 31;
+  --gradient-text: linear-gradient(180deg, #111 0%, rgba(17,17,17,0.75) 100%);
 
-  --color-chart-1: #0081A6;
-  --color-chart-2: #4ade80;
-  --color-chart-3: #3b82f6;
-  --color-chart-4: #f59e0b;
-  --color-chart-5: #8b5cf6;
-  --color-chart-6: #ec4899;
-  --color-chart-7: #14b8a6;
-  --color-chart-8: #f97316;
-  --color-chart-9: #06b6d4;
-  --color-chart-10: #84cc16;
+  /* ds-bg: light-mode grays */
+  --ds-bg-0: oklch(1 0 0);
+  --ds-bg-1: oklch(0.975 0 0);
+  --ds-bg-2: oklch(0.955 0 0);
+  --ds-bg-3: oklch(0.94 0 0);
+  --ds-bg-4: oklch(0.925 0 0);
+  --ds-bg-5: oklch(0.91 0 0);
 
-  --gradient-text: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  /* ds-text: light-mode darks */
+  --ds-text-primary: oklch(0.145 0 0);
+  --ds-text-secondary: oklch(0.4 0 0);
+  --ds-text-tertiary: oklch(0.55 0 0);
+  --ds-text-muted: oklch(0.68 0 0);
 
-  --color-overlay-faint: rgba(255, 255, 255, 0.03);
-  --color-overlay-subtle: rgba(255, 255, 255, 0.06);
-  --color-overlay-light: rgba(255, 255, 255, 0.08);
-  --color-overlay-medium: rgba(255, 255, 255, 0.15);
+  /* ds-border: light-mode */
+  --ds-border-subtle: oklch(0.925 0 0);
+  --ds-border-default: oklch(0.88 0 0);
+  --ds-border-strong: oklch(0.80 0 0);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  /* color aliases → light values */
+  --color-bg-main:      var(--ds-bg-0);
+  --color-bg-secondary: var(--ds-bg-1);
+  --color-bg-tertiary:  var(--ds-bg-2);
+  --color-bg-card:      var(--ds-bg-2);
+  --color-bg-modal:     var(--ds-bg-1);
+  --color-bg-input:     var(--ds-bg-3);
+  --color-text-main:       var(--ds-text-primary);
+  --color-text-secondary:  var(--ds-text-secondary);
+  --color-text-muted:      var(--ds-text-tertiary);
+  --color-text-disabled:   var(--ds-text-muted);
+  --color-text-subtle:     var(--ds-text-tertiary);
+  --color-text-dark:       var(--ds-text-muted);
+  --color-text-darker:     oklch(0.55 0 0);
+  --color-text-light-gray: var(--ds-text-secondary);
+  --color-text-medium-gray:var(--ds-text-tertiary);
+  --color-border-subtle:  var(--ds-border-subtle);
+  --color-border-visible: var(--ds-border-default);
+  --color-border-strong:  var(--ds-border-strong);
+  --color-border-dark:    var(--ds-border-default);
+
+  /* overlays: light-mode */
+  --color-overlay-faint:  rgba(0,0,0,0.02);
+  --color-overlay-subtle: rgba(0,0,0,0.04);
+  --color-overlay-light:  rgba(0,0,0,0.06);
+  --color-overlay-medium: rgba(0,0,0,0.10);
+
+  --color-skeleton: rgba(0,0,0,0.06);
+
+  --scrollbar-thumb: rgba(0,0,0,0.12);
+  --scrollbar-thumb-hover: rgba(0,0,0,0.20);
 }
 
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  /* Ring offset color — must match dark background so focus rings don't show a white gap */
-  --tw-ring-offset-color: var(--ds-bg-0);
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.87 0.00 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.371 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  /* bridge legacy ds tokens */
+  --ds-bg-0: oklch(0.145 0 0);
+  --ds-bg-1: oklch(0.175 0 0);
+  --ds-bg-2: oklch(0.205 0 0);
+  --ds-bg-3: oklch(0.225 0 0);
+  --ds-bg-4: oklch(0.245 0 0);
+  --ds-bg-5: oklch(0.269 0 0);
+  --ds-text-primary: oklch(0.985 0 0);
+  --ds-text-secondary: oklch(0.708 0 0);
+  --ds-text-tertiary: oklch(0.5 0 0);
+  --ds-text-muted: oklch(0.38 0 0);
+  --ds-border-default: oklch(1 0 0 / 10%);
+  --ds-border-subtle: oklch(1 0 0 / 7%);
+  --ds-border-strong: oklch(1 0 0 / 18%);
+  --color-bg-main:      var(--ds-bg-0);
+  --color-bg-secondary: var(--ds-bg-1);
+  --color-bg-tertiary:  var(--ds-bg-2);
+  --color-bg-card:      var(--ds-bg-3);
+  --color-bg-modal:     var(--ds-bg-2);
+  --color-bg-input:     var(--ds-bg-3);
+  --color-text-main:       var(--ds-text-primary);
+  --color-text-secondary:  var(--ds-text-secondary);
+  --color-text-muted:      var(--ds-text-tertiary);
+  --color-text-disabled:   var(--ds-text-muted);
+  --color-text-subtle:     var(--ds-text-tertiary);
+  --color-border-subtle:  var(--ds-border-subtle);
+  --color-border-visible: var(--ds-border-default);
+  --color-border-strong:  var(--ds-border-strong);
+  --color-border-dark:    var(--ds-border-default);
+  --color-overlay-faint:  rgba(255,255,255,0.03);
+  --color-overlay-subtle: rgba(255,255,255,0.06);
+  --color-overlay-light:  rgba(255,255,255,0.10);
+  --color-overlay-medium: rgba(255,255,255,0.16);
+  --color-skeleton: rgba(255,255,255,0.06);
+  --gradient-text: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+  --scrollbar-thumb: rgba(255,255,255,0.15);
+  --scrollbar-thumb-hover: rgba(255,255,255,0.25);
 }
 
-body {
-  font-family: 'Inter', 'Lato', sans-serif;
-  background: var(--ds-bg-0);
-  background-attachment: fixed;
-  color: var(--ds-text-primary);
-  min-height: 100vh;
-}
-
-#root {
-  min-height: 100vh;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--ds-bg-1);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-}
-
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--ds-bg-1); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 ::selection {
-  background: var(--ds-accent-soft);
-  color: #fff;
+  background: color-mix(in oklch, var(--ds-accent) 25%, transparent);
+  color: var(--foreground);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Light-mode fixes for legacy pages (TrackerPage, MainnetTracker etc.) ── */
+/* These pages have hardcoded dark colors; override them when not in dark mode */
+:root:not(.dark) {
+  /* Skeleton shimmer — light bg */
+  .skeleton {
+    background: linear-gradient(90deg,
+      rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.07) 37%, rgba(0,0,0,0.04) 63%) !important;
+    background-size: 400% 100% !important;
+  }
+
+  /* Chart/calendar toggle container (hardcoded rgba(0,0,0,0.4) in JSX) */
+  /* We can't reach inline styles but we can fix the border color alias */
+
+  /* Table cells with hardcoded white text */
+  .s4-table .value-cell,
+  .s4-table .volume-cell,
+  .s4-table .roi-cell {
+    color: var(--ds-text-primary) !important;
+  }
+
+  /* Page-size select (hardcoded dark bg/border) */
+  .page-size-select {
+    background: var(--ds-bg-2) !important;
+    border-color: var(--ds-border-default) !important;
+    color: var(--ds-text-primary) !important;
+  }
+
+  /* Finder subtitle hardcoded white opacity */
+  .finder-subtitle { color: var(--ds-text-secondary) !important; }
+
+  /* Loading text hardcoded white opacity */
+  .loading-step-text { color: var(--ds-text-muted) !important; }
+
+  /* Progress bar track */
+  .loading-progress-container { background: var(--ds-bg-3) !important; }
+
+  /* Table headers / rows that use rgba white */
+  .s4-table th,
+  .mainnet-tracker th {
+    background: var(--ds-bg-2) !important;
+    color: var(--ds-text-secondary) !important;
+    border-color: var(--ds-border-subtle) !important;
+  }
+
+  /* Overflow fix: ensure bottom table shows PnL column */
+  .mainnet-tracker > div {
+    overflow-x: auto !important;
+  }
+
+  .s4-table {
+    min-width: 800px;
+  }
 }
 
-button {
-  font-family: inherit;
+/* ==========================================================================
+   Mobile scroll & sidebar interaction fixes
+   - h-dvh adapts to mobile URL bar; h-screen (100vh) does not.
+   - Ensure body can scroll if any container collapses height.
+   - Mobile sidebar Sheet must layer above content (z-50).
+   - Enable native momentum scroll on iOS for <main>.
+   ========================================================================== */
+@media (max-width: 1024px) {
+  /* Mobile: ensure body and main content can scroll */
+  body, html {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100dvh;
+  }
+
+  /* Mobile: ensure SidebarProvider and inner containers don't block touch scrolling */
+  [data-sidebar="sidebar"][data-mobile="true"] {
+    z-index: 50;
+  }
+
+  /* Mobile: ensure main content scrolls properly */
+  main {
+    -webkit-overflow-scrolling: touch;
+  }
 }
-
-/* ── Global UI polish (make-interfaces-feel-better) ── */
-h1, h2, h3 { text-wrap: balance; }
-p, li, blockquote { text-wrap: pretty; }
-
-img { outline: 1px solid rgba(0, 0, 0, 0.08); outline-offset: -1px; }
-img[data-no-outline] { outline: none; }
-
-/* Interruptible transitions on interactive elements — never use keyframes for hover/focus states */
-a, button, [role="button"] {
-  transition-property: color, background, border-color, opacity, box-shadow;
-  transition-duration: 0.12s;
-  transition-timing-function: ease;
-}
-
-/* Layered shadow border for elevated surfaces (use instead of solid border where possible) */
-.surface-raised {
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.06),
-    0 1px 2px -1px rgba(0, 0, 0, 0.06),
-    0 2px 4px 0 rgba(0, 0, 0, 0.04);
-}
-
-/* Concentric radius helper: outer element gets extra padding-worth of radius */
-.radius-outer-sm  { border-radius: calc(var(--ds-r-sm)  + 4px); }
-.radius-outer-md  { border-radius: calc(var(--ds-r-md)  + 8px); }
-.radius-outer-lg  { border-radius: calc(var(--ds-r-lg)  + 12px); }

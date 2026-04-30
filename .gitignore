@@ -6,8 +6,11 @@
 # testing
 /coverage
 
-#ai
+# ai / claude tooling (machine-specific)
 /.claude
+/.claude-flow
+/.swarm
+/.playwright-mcp
 
 # next.js
 /.next/
@@ -32,9 +35,38 @@ yarn-error.log*
 bot/.env
 bot/venv/
 
+# python bytecode cache
+__pycache__/
+*.pyc
+
+# supabase cli local cache
+/supabase/.temp/
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design references / screenshots / mockups (not source)
+/docs/design-references/
+/larp-*.png
+/local-*.png
+/ref-sodex-*.png
+/sodex-*.png
+/verify-*.png
+/pnlcard.png
+
+# OCR / large binary data not used at runtime
+/eng.traineddata
+
+# duplicate data dumps (canonical copy lives under public/data/)
+/spot_vol_data.json
+
+# supabase audit exports (not source)
+/Supabase Performance Security Lints*.csv
+
+# ad-hoc placeholder scripts
+/_write.js
+/write_widgets.js

@@ -1,8 +1,13 @@
-/* =========================================
+﻿/* =========================================
    PAGE TRANSITION — fade-to-dark on exit, fade-in on enter
    ========================================= */
 .page-transition {
   will-change: opacity, transform;
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .page-transition--in {
@@ -66,17 +71,38 @@ body.aggregator-active .page-transition {
   100% { background-position: calc(200px + 100%) 0; }
 }
 
-/* ── Page content wrapper — offsets ALL pages from sidebar+topbar ── */
-.page-content {
-  margin-left: var(--sb-width, 240px);
-  padding-top: 60px; /* topbar height */
+/* ── App shell — sidebar + main in a flex row ── */
+.app-shell {
+  display: flex;
   min-height: 100vh;
-  transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  align-items: stretch;
+}
+
+.app-shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Page content — no sidebar offset needed (sidebar is in flow) ── */
+.page-content {
+  padding-top: 20px;
+  flex: 1;
+  min-height: 100vh;
 }
 
 @media (max-width: 700px) {
+  .app-shell {
+    display: block;
+  }
+  .app-sb {
+    display: none;
+  }
+  .app-shell-main {
+    display: block;
+  }
   .page-content {
-    margin-left: 0;
     padding-top: 0;
     padding-bottom: 60px;
   }
@@ -129,7 +155,7 @@ body.aggregator-active .page-transition {
 .tab {
   background: none;
   border: none;
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -151,7 +177,7 @@ body.aggregator-active .page-transition {
 }
 
 .tab:hover {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .tab:hover::after {
@@ -159,7 +185,7 @@ body.aggregator-active .page-transition {
 }
 
 .tab.active {
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 .tab.active::after {
@@ -181,12 +207,12 @@ body.aggregator-active .page-transition {
 }
 
 .stat-item:hover .stat-label {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .stat-label {
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: color 0.2s;
@@ -196,7 +222,7 @@ body.aggregator-active .page-transition {
   font-size: 28px;
   font-weight: 600;
   transition: color 0.2s;
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 .charts-grid {
@@ -232,7 +258,7 @@ body.aggregator-active .page-transition {
 .chart-title {
   font-size: 16px;
   font-weight: 500;
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 .chart-controls {
@@ -268,7 +294,7 @@ body.aggregator-active .page-transition {
 .timeframe-btn {
   background: none;
   border: 1px solid var(--color-border-visible);
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 12px;
@@ -278,13 +304,13 @@ body.aggregator-active .page-transition {
 
 .timeframe-btn:hover {
   border-color: var(--color-border-strong);
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .timeframe-btn.active {
   background: var(--color-overlay-light);
   border-color: var(--color-border-strong);
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 .selector-dropdown {
@@ -294,7 +320,7 @@ body.aggregator-active .page-transition {
 .selector-btn {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-visible);
-  color: var(--color-text-main);
+  color: var(--foreground);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 12px;
@@ -353,7 +379,7 @@ body.aggregator-active .page-transition {
   flex: 1;
   background: var(--color-overlay-faint);
   border: 1px solid var(--color-border-visible);
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -362,7 +388,7 @@ body.aggregator-active .page-transition {
 
 .dropdown-header button:hover {
   background: rgba(var(--color-primary-rgb), 0.1);
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 .dropdown-item {
@@ -386,7 +412,7 @@ body.aggregator-active .page-transition {
   flex: 1;
   cursor: pointer;
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .legend {
@@ -404,7 +430,7 @@ body.aggregator-active .page-transition {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -412,7 +438,7 @@ body.aggregator-active .page-transition {
 
 .legend-item:hover,
 .legend-item.hovered {
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 .legend-color {
@@ -425,7 +451,7 @@ body.aggregator-active .page-transition {
 .legend-expand-btn {
   background: none;
   border: 1px solid var(--color-border-visible);
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -436,7 +462,7 @@ body.aggregator-active .page-transition {
 
 .legend-expand-btn:hover {
   border-color: var(--color-border-strong);
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .chart-container {
@@ -450,7 +476,7 @@ body.aggregator-active .page-transition {
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
 }
 
 .error {

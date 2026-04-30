@@ -1,14 +1,42 @@
 /* ===================================================================
-   LARP Page - Pixel-Perfect Sodex DEX Clone
-   Design tokens extracted from live sodex.com via Playwright
+   LARP Page - SoDEX-style sandbox embedded in the design system shell.
+   --sodex-* tokens map to design system tokens by default (light mode);
+   .dark theme variant restores the original SoDEX dark palette.
    =================================================================== */
 
-/* Load Inter font — matches sodex.com */
+/* Inter font — matches sodex.com */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
-/* -- Design Tokens -- */
+/* -- Design Tokens — light mode (default) -- */
 :root {
   --sodex-font: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --sodex-bg-main: var(--background);
+  --sodex-bg-navbar: var(--card);
+  --sodex-bg-card: var(--card);
+  --sodex-bg-hover: var(--muted);
+  --sodex-bg-hover-solid: var(--muted);
+  --sodex-border-primary: var(--border);
+  --sodex-border-secondary: var(--border);
+  --sodex-orange: var(--ds-accent, #f26b1f);
+  --sodex-btn-orange: var(--ds-accent, #f26b1f);
+  --sodex-green: #16a34a;
+  --sodex-green-light: #22c55e;
+  --sodex-green-bg: rgba(34, 197, 94, 0.1);
+  --sodex-red: #dc2626;
+  --sodex-text-primary: var(--foreground);
+  --sodex-text-secondary: var(--muted-foreground);
+  --sodex-text-muted: var(--muted-foreground);
+  --sodex-bg-page-img: none;
+  --sodex-gold: #f59e0b;
+  --sodex-green-deep: rgba(34, 197, 94, 0.15);
+  --sodex-bg-ticker: var(--muted);
+  --sodex-text-near-white: var(--foreground);
+  --sodex-text-dim: var(--muted-foreground);
+  --sodex-border-dark: var(--border);
+}
+
+/* Dark mode — keep the original Sodex palette */
+.dark {
   --sodex-bg-main: #121212;
   --sodex-bg-navbar: #121212;
   --sodex-bg-card: #141414;
@@ -25,7 +53,6 @@
   --sodex-text-primary: #FFFFFF;
   --sodex-text-secondary: #A3A3A3;
   --sodex-text-muted: #999999;
-  --sodex-bg-page-img: url('https://sodex.com/assets/bg-D0DN1DCb.png');
   --sodex-gold: #FFD64D;
   --sodex-green-deep: #1a2c26;
   --sodex-bg-ticker: #171717;
@@ -34,39 +61,28 @@
   --sodex-border-dark: #1A1A1A;
 }
 
-/* 1. Frame
-   Uses --sodex-font (Inter) and must override terminal theme !important rules.
-   Terminal themes (cli/nsa/paper) use html[data-color-scheme] * { border-radius: 0 !important }
-   so we counter with [class] attribute selector for higher specificity. */
-.larp-frame {
-  position: relative;
-  min-height: 100vh;
+/* New shell wrappers for the embedded SoDEX page.
+   In light mode, the SoDEX tokens map to design system tokens (defined
+   in :root above). In dark mode, the .dark variant restores the
+   original SoDEX dark palette so the trading-interface mock looks
+   authentic. Inner content uses --sodex-* tokens throughout. */
+.larp-frame-shell {
+  font-family: var(--sodex-font);
+  color: var(--foreground);
+}
+
+.larp-content-shell {
   background: var(--sodex-bg-main);
   color: var(--sodex-text-primary);
-  font-family: var(--sodex-font);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 21px;
-  padding-top: 54px;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  min-height: 60vh;
 }
 
-
-.larp-border-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  border: 2px solid var(--larp-border, #f26b1f);
-  border-radius: 0 !important;
+/* Disable the original full-page frame & overlay (no longer used) */
+.larp-frame,
+.larp-border-overlay,
+.larp-nav {
+  display: none !important;
 }
-
-.larp-frame *::-webkit-scrollbar { width: 6px; height: 6px; }
-.larp-frame *::-webkit-scrollbar-track { background: transparent; }
-.larp-frame *::-webkit-scrollbar-thumb { background: var(--sodex-border-primary); border-radius: 3px !important; }
-.larp-frame *::-webkit-scrollbar-thumb:hover { background: var(--sodex-border-secondary); }
 
 /* 2. Navbar (54px) */
 .larp-nav {
@@ -561,7 +577,7 @@
 
 .larp-chart-tf.active {
   color: var(--sodex-text-primary);
-  background: #232326;
+  background: var(--sodex-bg-hover-solid);
 }
 
 .larp-chart-canvas {
@@ -573,7 +589,7 @@
 
 /* Orderbook */
 .larp-orderbook {
-  border-left: 1px solid #262626;
+  border-left: 1px solid var(--sodex-border-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -639,7 +655,7 @@
 .larp-order-form {
   grid-row: 1;
   grid-column: 2;
-  border-left: 1px solid #262626;
+  border-left: 1px solid var(--sodex-border-primary);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -699,7 +715,7 @@
 }
 
 .larp-order-type-btn.active {
-  background: #232326;
+  background: var(--sodex-bg-hover-solid);
   color: var(--sodex-text-primary);
 }
 
@@ -763,10 +779,10 @@
   letter-spacing: 0.01em;
 }
 
-.larp-submit-btn.buy { background: var(--sodex-green); color: #fff; }
-.larp-submit-btn.sell { background: var(--sodex-red); color: #fff; }
+.larp-submit-btn.buy { background: var(--sodex-green); color: var(--sodex-text-primary); }
+.larp-submit-btn.sell { background: var(--sodex-red); color: var(--sodex-text-primary); }
 .larp-submit-btn:hover { opacity: 0.9; }
-.larp-submit-btn.no-wallet { background: var(--sodex-orange); color: #fff; }
+.larp-submit-btn.no-wallet { background: var(--sodex-orange); color: var(--sodex-text-primary); }
 
 .larp-tif-badge {
   font-size: 11px;
@@ -797,7 +813,7 @@
   font-weight: 700;
   border-radius: 24px !important;
   background: var(--sodex-orange);
-  color: #fff;
+  color: var(--sodex-text-primary);
   transition: opacity 0.15s;
 }
 
@@ -805,7 +821,7 @@
 
 /* Bottom panel */
 .larp-bottom-panel {
-  border-top: 1px solid #262626;
+  border-top: 1px solid var(--sodex-border-primary);
   height: 400px;
   overflow: hidden;
   display: flex;
@@ -1115,43 +1131,43 @@
 .slb-title { font-size: 32px; font-weight: 700; color: #F8F8F8; margin: 0; line-height: 32px; }
 .slb-filters { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .slb-filters-left { display: flex; align-items: center; gap: 8px; }
-.slb-search { width: 340px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #141414; border: 1px solid #3D3D3D; border-radius: 8px !important; }
+.slb-search { width: 340px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--sodex-bg-card); border: 1px solid var(--sodex-border-secondary); border-radius: 8px !important; }
 .slb-search svg { color: #A3A3A3; flex-shrink: 0; }
 .slb-search-input { all: unset; flex: 1; font-family: var(--sodex-font); font-size: 14px; color: #F8F8F8; }
 .slb-search-input::placeholder { color: #A3A3A3; }
 .slb-dropdown { position: relative; }
-.slb-dropdown-btn { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 8px 12px; background: #141414; border: 1px solid #3D3D3D; border-radius: 8px !important; font-family: var(--sodex-font); font-size: 14px; color: #fff; white-space: nowrap; }
+.slb-dropdown-btn { all: unset; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 8px 12px; background: var(--sodex-bg-card); border: 1px solid var(--sodex-border-secondary); border-radius: 8px !important; font-family: var(--sodex-font); font-size: 14px; color: var(--sodex-text-primary); white-space: nowrap; }
 .slb-dropdown-btn-sm { padding: 4px 8px; font-size: 13px; }
 .slb-dropdown-btn svg { color: #A3A3A3; transition: transform 0.15s; }
-.slb-dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; background: #1a1a1a; border: 1px solid #3D3D3D; border-radius: 8px !important; z-index: 50; overflow: hidden; }
+.slb-dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; background: var(--sodex-border-dark); border: 1px solid var(--sodex-border-secondary); border-radius: 8px !important; z-index: 50; overflow: hidden; }
 .slb-dropdown-menu-up { top: auto; bottom: calc(100% + 4px); }
 .slb-dropdown-item { all: unset; display: block; cursor: pointer; padding: 8px 12px; font-family: var(--sodex-font); font-size: 14px; color: #A3A3A3; white-space: nowrap; transition: all 0.1s; }
-.slb-dropdown-item:hover { background: #262626; color: #fff; }
+.slb-dropdown-item:hover { background: var(--sodex-border-primary); color: var(--sodex-text-primary); }
 .slb-dropdown-item.active { color: #FF7637; }
-.slb-period-pills { display: flex; align-items: center; background: #141414; border: 1px solid #3D3D3D; border-radius: 8px !important; padding: 4px; }
+.slb-period-pills { display: flex; align-items: center; background: var(--sodex-bg-card); border: 1px solid var(--sodex-border-secondary); border-radius: 8px !important; padding: 4px; }
 .slb-period-pill { all: unset; cursor: pointer; padding: 6px 12px; font-family: var(--sodex-font); font-size: 14px; color: #A3A3A3; border-radius: 6px !important; transition: all 0.15s; line-height: 20px; height: 32px; box-sizing: border-box; }
 .slb-period-pill:hover { color: #F8F8F8; }
-.slb-period-pill.active { background: #3D3D3D; color: #FFFFFF; }
-.slb-table-container { overflow: hidden; background: #141414; border-radius: 8px !important; }
+.slb-period-pill.active { background: var(--sodex-border-secondary); color: #FFFFFF; }
+.slb-table-container { overflow: hidden; background: var(--sodex-bg-card); border-radius: 8px !important; }
 .slb-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
 .slb-table colgroup .col-rank { width: 10%; }
 .slb-table colgroup .col-trader { width: 35%; }
 .slb-table colgroup .col-pnl { width: 25%; }
 .slb-table colgroup .col-volume { width: 30%; }
-.slb-thead-row { border-bottom: 1px solid #262626; }
+.slb-thead-row { border-bottom: 1px solid var(--sodex-border-primary); }
 .slb-th { padding: 0 16px; height: 40px; vertical-align: middle; font-size: 12px; font-weight: 500; color: #A3A3A3; white-space: nowrap; text-align: left; line-height: 16px; }
 .slb-th-rank { text-align: right; }
 .slb-th-sortable { cursor: pointer; }
-.slb-th-sortable:hover { color: #fff; }
+.slb-th-sortable:hover { color: var(--sodex-text-primary); }
 .slb-th-active { color: #FF7637; border-bottom: 2px solid #FF7637; }
 .slb-th-sort-btn { display: inline-flex; align-items: center; gap: 4px; }
 .slb-sort-arrows { display: inline-flex; flex-direction: column; gap: -4px; line-height: 0; }
 .slb-sort-arrows svg { display: block; }
-.slb-row { height: 40px; border-bottom: 1px solid #262626; transition: background 0.15s; }
+.slb-row { height: 40px; border-bottom: 1px solid var(--sodex-border-primary); transition: background 0.15s; }
 .slb-row:last-child { border-bottom: 0; }
 .slb-row:hover { background: rgba(38, 38, 38, 0.5); }
 .slb-your-row { background: rgba(255, 118, 55, 0.08) !important; }
-.slb-td { padding: 0 16px; vertical-align: middle; font-size: 14px; color: #fff; }
+.slb-td { padding: 0 16px; vertical-align: middle; font-size: 14px; color: var(--sodex-text-primary); }
 .slb-td-rank { text-align: right; }
 .slb-td-trader { font-family: 'Inter', monospace; }
 .slb-td-pnl { font-weight: 600; }
@@ -1163,7 +1179,7 @@
 .slb-rank-2 { background: linear-gradient(180deg, rgba(205,225,231,0.16) 0%, rgba(205,225,231,0.02) 152.5%); }
 .slb-rank-3 { background: linear-gradient(180deg, rgba(255,131,44,0.12) 0%, rgba(255,131,44,0.02) 200%); }
 .slb-empty { text-align: center; padding: 40px 16px; color: #A3A3A3; font-size: 14px; }
-.slb-skeleton { height: 14px; border-radius: 4px !important; background: linear-gradient(90deg, #262626 25%, #383838 50%, #262626 75%); background-size: 200% 100%; animation: slb-shimmer 1.5s infinite; }
+.slb-skeleton { height: 14px; border-radius: 4px !important; background: linear-gradient(90deg, var(--sodex-border-primary) 25%, var(--sodex-bg-hover-solid) 50%, var(--sodex-border-primary) 75%); background-size: 200% 100%; animation: slb-shimmer 1.5s infinite; }
 @keyframes slb-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .slb-pagination { display: flex; justify-content: flex-end; align-items: center; padding: 12px 0; font-size: 14px; color: #A3A3A3; gap: 16px; }
 .slb-pagination-left { display: flex; align-items: center; gap: 8px; }
@@ -1171,11 +1187,11 @@
 .slb-pagination-right { display: flex; align-items: center; }
 .slb-pagination-text { font-size: 14px; color: #A3A3A3; line-height: 20px; }
 .slb-page-btn { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 4px !important; color: #A3A3A3; transition: all 0.15s; }
-.slb-page-btn:hover { background: #262626; color: #fff; }
+.slb-page-btn:hover { background: var(--sodex-border-primary); color: var(--sodex-text-primary); }
 .slb-page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.slb-page-num { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 4px; border-radius: 4px !important; font-size: 14px; color: #fff; }
+.slb-page-num { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 4px; border-radius: 4px !important; font-size: 14px; color: var(--sodex-text-primary); }
 .slb-page-arrow { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 4px !important; color: #A3A3A3; transition: all 0.15s; }
-.slb-page-arrow:hover { background: #262626; }
+.slb-page-arrow:hover { background: var(--sodex-border-primary); }
 .slb-page-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
 .slb-footer-note { font-size: 12px; color: #A3A3A3; line-height: 16px; margin: 0; }
 .slb-footer { text-align: center; padding: 16px; font-size: 12px; color: #666; }
@@ -1291,7 +1307,7 @@
 }
 
 .larp-market-tab:hover { background: var(--sodex-bg-hover); color: var(--sodex-text-primary); }
-.larp-market-tab.active { background: #232326; color: var(--sodex-text-primary); }
+.larp-market-tab.active { background: var(--sodex-bg-hover-solid); color: var(--sodex-text-primary); }
 
 .larp-market-tab-sym {
   color: var(--sodex-text-primary);
@@ -1393,7 +1409,7 @@
   padding: 2px 6px;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: var(--sodex-text-primary);
   background: var(--sodex-green);
   border-radius: 4px !important;
   line-height: 1.2;
@@ -1499,7 +1515,7 @@
 }
 
 .larp-ob-pair-btn.active {
-  background: #232326;
+  background: var(--sodex-bg-hover-solid);
   color: var(--sodex-text-primary);
 }
 
@@ -1514,7 +1530,7 @@
 .larp-order-type-toggle {
   display: flex;
   gap: 2px;
-  background: #1A1A1A;
+  background: var(--sodex-border-dark);
   border-radius: 8px !important;
   padding: 3px;
   flex: 1;
@@ -1585,14 +1601,14 @@
   font-weight: 600;
   transition: all 0.15s;
   color: var(--sodex-text-muted);
-  background: #1A1A1A;
+  background: var(--sodex-border-dark);
   height: 44px;
   box-sizing: border-box;
 }
 
 .larp-side-btn:hover { background: #222; }
-.larp-side-btn.buy.active { background: var(--sodex-green); color: #fff; }
-.larp-side-btn.sell.active { background: var(--sodex-red); color: #fff; }
+.larp-side-btn.buy.active { background: var(--sodex-green); color: var(--sodex-text-primary); }
+.larp-side-btn.sell.active { background: var(--sodex-red); color: var(--sodex-text-primary); }
 
 .larp-cross-lev {
   display: flex;
@@ -1612,7 +1628,7 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--sodex-text-primary);
-  background: #1A1A1A;
+  background: var(--sodex-border-dark);
   border: 1px solid var(--sodex-border-primary);
   border-radius: 6px !important;
   transition: all 0.15s;
@@ -1766,7 +1782,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 10px;
-  color: var(--sodex-text-tertiary, rgba(255,255,255,0.3));
+  color: var(--sodex-text-muted);
   cursor: pointer;
 }
 .larp-pct-labels span:hover {
@@ -1931,7 +1947,7 @@
 
 .larp-action-btn-primary {
   background: var(--sodex-orange);
-  color: #fff;
+  color: var(--sodex-text-primary);
 }
 
 .larp-action-btn-primary:hover { opacity: 0.9; }
@@ -1999,7 +2015,7 @@
   height: 40px;
   box-sizing: border-box;
   background: var(--sodex-green);
-  color: #fff;
+  color: var(--sodex-text-primary);
   font-family: var(--sodex-font);
   font-size: 13px;
   font-weight: 600;
@@ -2227,7 +2243,7 @@
   font-family: var(--sodex-font);
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--sodex-text-primary);
   background: var(--sodex-orange);
   border: none;
   border-radius: 8px !important;
@@ -2257,7 +2273,7 @@
   justify-content: space-between;
   height: 40px;
   padding: 0 16px;
-  border-bottom: 1px solid #262626;
+  border-bottom: 1px solid var(--sodex-border-primary);
   font-size: 13px;
   color: var(--sodex-text-secondary);
   flex-shrink: 0;
@@ -2333,7 +2349,7 @@
 }
 
 .larp-port-pnl-chart-header {
-  border-bottom: 1px solid #262626;
+  border-bottom: 1px solid var(--sodex-border-primary);
   position: relative;
 }
 
@@ -2439,7 +2455,7 @@
   top: 100%;
   right: 0;
   z-index: 20;
-  background: #1a1a1a;
+  background: var(--sodex-border-dark);
   border: 1px solid #333;
   border-radius: 4px !important;
   padding: 4px 0;
@@ -2461,7 +2477,7 @@
   box-sizing: border-box;
 }
 
-.larp-port-more-item:hover { background: #262626; color: var(--sodex-text-primary); }
+.larp-port-more-item:hover { background: var(--sodex-border-primary); color: var(--sodex-text-primary); }
 .larp-port-more-item.active { color: var(--sodex-orange); }
 
 /* Toolbar — same row as tabs, solid bg to cover overflowed tabs */
@@ -2541,7 +2557,7 @@
   align-items: center;
   gap: 6px;
   background: transparent;
-  border: 1px solid #262626;
+  border: 1px solid var(--sodex-border-primary);
   border-radius: 4px !important;
   padding: 0 8px;
   height: 28px;
@@ -2568,19 +2584,19 @@
   width: 28px;
   height: 28px;
   color: var(--sodex-text-secondary);
-  border: 1px solid #262626;
+  border: 1px solid var(--sodex-border-primary);
   border-radius: 4px !important;
   transition: all 0.15s;
 }
 
 .larp-port-refresh-btn:hover {
   color: var(--sodex-text-primary);
-  border-color: #3d3d3d;
+  border-color: var(--sodex-border-secondary);
 }
 
 /* Coin colors — light blue for all, white for USDC */
 .larp-port-coin-blue { color: #7eb8d4; }
-.larp-port-coin-white { color: #fff; }
+.larp-port-coin-white { color: var(--sodex-text-primary); }
 
 /* Position row — slim left border with subtle inward glow (coin column only) */
 .larp-pos-row-profit {
@@ -2613,7 +2629,7 @@
 
 /* Alternating row colors */
 .larp-port-bottom-master .larp-table tbody tr:nth-child(odd) {
-  background: #141414;
+  background: var(--sodex-bg-card);
 }
 .larp-port-bottom-master .larp-table tbody tr:nth-child(even) {
   background: #111111;
@@ -2961,8 +2977,8 @@
 .larp-ticker-bar {
   grid-column: 1 / -1;
   height: 28px;
-  background: #141414;
-  border-top: 1px solid #262626;
+  background: var(--sodex-bg-card);
+  border-top: 1px solid var(--sodex-border-primary);
   overflow: hidden;
   display: flex;
   align-items: center;

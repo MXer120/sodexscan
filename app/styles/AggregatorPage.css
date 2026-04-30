@@ -33,18 +33,16 @@
 
 /* ── Loading Screen ────────────────────────────────────────────── */
 .agg-loading-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 20px;
   background: var(--color-bg-main);
-  z-index: 10000;
 }
 
 .agg-loading-logo {
@@ -92,22 +90,11 @@
 
 /* ── Main container ─────────────────────────────────────────────── */
 .agg-root {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   overflow: hidden;
-}
-
-/* Hide main site navbar when aggregator is active */
-body.aggregator-active .navbar,
-body.aggregator-active .nav-bar,
-body.aggregator-active nav.main-nav,
-body.aggregator-active header.site-header,
-body.aggregator-active [class*="Navbar"] {
-  display: none !important;
 }
 
 .agg-root.nav-left {
@@ -131,9 +118,91 @@ body.aggregator-active [class*="Navbar"] {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  padding: 8px;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Sub-navigation / heading bar ───────────────────────────────── */
+.agg-subnav {
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.agg-subnav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.agg-subnav-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agg-subnav-pill {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+
+.agg-subnav-pill--accent {
+  background: color-mix(in oklch, var(--ds-accent) 12%, transparent);
+  color: var(--ds-accent);
+  border-color: color-mix(in oklch, var(--ds-accent) 25%, transparent);
+}
+
+.agg-subnav-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.agg-subnav-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.agg-subnav-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-color: var(--border);
+}
+
+.agg-subnav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.agg-subnav-btn.is-active {
+  background: color-mix(in oklch, var(--ds-accent) 12%, transparent);
+  color: var(--ds-accent);
+  border-color: color-mix(in oklch, var(--ds-accent) 25%, transparent);
 }
 
 /* ── Page tabs bar ──────────────────────────────────────────────── */
@@ -147,7 +216,7 @@ body.aggregator-active [class*="Navbar"] {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding-bottom: 40px;
+  padding: 8px 8px 40px;
 }
 
 .agg-empty {
@@ -1250,7 +1319,7 @@ body.aggregator-active [class*="Navbar"] {
   width: 16px;
   left: 2px;
   bottom: 2px;
-  background: white;
+  background: var(--background);
   border-radius: 0;
   transition: 0.25s;
 }

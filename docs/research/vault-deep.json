@@ -1,0 +1,53 @@
+{
+  "visibleText": "Trade\nVault\nPortfolio\nWEEK 9\nRewards\nReferrals\nStaking\nLeaderboard\nMore\nConnect Wallet\nResearch Terminal\nSoDEX Liquidity Provider (SLP)\n0x3687...0876\nThis is a community-owned SoDEX vault. Its funds are used to run multiple market‑making strategies on SoDEX, backstop/take over liquidated positions, and collect platform fees.\nConnect Wallet\nTVL\n115.96M sMAG7.ssi\n$54.72M\n1Y Return\n0.84\n%\nNet Asset Value\n1.0084\nMAG7.ssi/USDC\n0.471\nMy Position\nOverview\nActivity\nDepositors\nReference Performance\nTVL\nNAV\n30D\nSoDEX Vault - Digital Asset Management\n\nSecure digital asset management with yield farming, staking rewards, and liquidity provision on ValueChain.\n\nAsset Management\n\nManage your digital assets securely with advanced portfolio tools and automated strategies.\n\nYield Generation\n\nEarn competitive yields through staking, liquidity provision, and automated yield farming strategies.\n\nSecurity & Transparency\n\nFull transparency through blockchain technology with self-custody of assets and verifiable on-chain activities.\n\nAnnouncement\nNew Listing：Enabled Perps $SKHX,$ORCL,$TSM,$EWY,$COPPER-2026-03-19\nLink Mobile Device is now live on SoDEX\nSoDEX Mainnet Upgrade Completed -March 18, 2026",
+  "statEls": [
+    {
+      "text": "TradeVaultPortfolioWEEK 9\n        @keyframes breathe {\n          0%, 100% { opacity: 1; }\n          50% { opacity: 0.3; }\n        }\n      RewardsReferralsStakingLeaderboardMoreConnect WalletResearch T"
+    },
+    {
+      "text": "TradeVaultPortfolioWEEK 9\n        @keyframes breathe {\n          0%, 100% { opacity: 1; }\n          50% { opacity: 0.3; }\n        }\n      RewardsReferralsStakingLeaderboardMoreConnect WalletResearch T"
+    },
+    {
+      "text": "SoDEX Liquidity Provider (SLP)0x3687...0876This is a community-owned SoDEX vault. Its funds are used to run multiple market‑making strategies on SoDEX, backstop/take over liquidated positions, and col"
+    },
+    {
+      "text": "SoDEX Liquidity Provider (SLP)0x3687...0876This is a community-owned SoDEX vault. Its funds are used to run multiple market‑making strategies on SoDEX, backstop/take over liquidated positions, and col"
+    },
+    {
+      "text": "SoDEX Liquidity Provider (SLP)0x3687...0876This is a community-owned SoDEX vault. Its funds are used to run multiple market‑making strategies on SoDEX, backstop/take over liquidated positions, and col"
+    },
+    {
+      "text": "SoDEX Liquidity Provider (SLP)0x3687...0876This is a community-owned SoDEX vault. Its funds are used to run multiple market‑making strategies on SoDEX, backstop/take over liquidated positions, and col"
+    },
+    {
+      "text": "TVL115.96M  sMAG7.ssi$54.72M1Y Return0.84%Net Asset Value1.0084MAG7.ssi/USDC0.471"
+    },
+    {
+      "text": "TVL115.96M  sMAG7.ssi$54.72M"
+    },
+    {
+      "text": "TVL115.96M  sMAG7.ssi$54.72M"
+    },
+    {
+      "text": "TVL"
+    }
+  ],
+  "tabs": [
+    {
+      "text": "My Position",
+      "active": false
+    },
+    {
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "text": "Activity",
+      "active": false
+    },
+    {
+      "text": "Depositors",
+      "active": false
+    }
+  ]
+}

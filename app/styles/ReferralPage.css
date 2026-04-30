@@ -14,9 +14,9 @@
 .referral-title {
   font-size: 36px;
   font-weight: 700;
-  color: var(--color-text-main);
+  color: var(--foreground);
   margin-bottom: 16px;
-  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -24,7 +24,7 @@
 
 .referral-subtitle {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted-foreground);
   line-height: 1.6;
   margin: 0;
   max-width: 600px;
@@ -54,21 +54,21 @@
 .referral-search-input {
   width: 240px;
   padding: 10px 14px;
-  background: var(--ds-bg-0);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #fff;
+  color: var(--foreground);
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
 }
 
 .referral-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--muted-foreground);
 }
 
 .referral-search-input:focus {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--ds-border-strong);
 }
 
 /* Grid Layout */
@@ -81,14 +81,14 @@
 /* Card */
 .referral-card {
   background: var(--ds-bg-0);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   transition: border-color 0.2s;
 }
 
 .referral-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--ds-border-default);
 }
 
 /* Featured Card */
@@ -154,23 +154,23 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 16px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-overlay-light);
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-overlay-light);
   text-decoration: none;
   cursor: pointer;
   transition: border-color 0.2s;
 }
 
 .referral-link-row:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--ds-border-default);
 }
 
 .referral-link {
   flex: 1;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--foreground);
   text-decoration: none;
   word-break: break-all;
   transition: color 0.2s;
@@ -182,7 +182,7 @@
 
 .link-icon {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--muted-foreground);
   transition: color 0.2s;
 }
 
@@ -206,22 +206,22 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-overlay-light);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--foreground);
   cursor: default;
   transition: background 0.2s;
 }
 
 .social-badge:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-overlay-medium);
 }
 
 .social-badge.unknown {
-  color: rgba(255, 255, 255, 0.4);
-  border-color: rgba(255, 255, 255, 0.05);
+  color: var(--muted-foreground);
+  border-color: var(--color-overlay-light);
 }
 
 .social-svg {
@@ -236,7 +236,7 @@
 
 .info-icon {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--muted-foreground);
   margin-left: 2px;
 }
 
@@ -246,16 +246,16 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--ds-bg-1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--popover);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--popover-foreground);
   line-height: 1.5;
   width: 280px;
   z-index: 100;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px var(--color-overlay-medium);
   pointer-events: none;
 }
 
@@ -266,7 +266,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: var(--ds-bg-1);
+  border-top-color: var(--popover);
 }
 
 /* Load More */
@@ -279,7 +279,7 @@
 }
 
 .loading-more {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 
@@ -288,14 +288,14 @@
   margin-top: 24px;
   text-align: right;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted-foreground);
 }
 
 /* States */
 .loading-state {
   padding: 40px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted-foreground);
 }
 
 .error-state {
@@ -310,11 +310,11 @@
 
 .empty-state {
   background: var(--ds-bg-0);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 60px 20px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 

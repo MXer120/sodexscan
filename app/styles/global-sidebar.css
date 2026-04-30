@@ -1,0 +1,632 @@
+/* ─── Global floating sidebar — visible on all non-workflow pages ────────────── */
+:root {
+  --gs-icon-w: 52px;
+  --gs-panel-w: 272px;
+  --gs-bg: rgba(255,255,255,0.85);
+  --gs-border: rgba(0,0,0,0.08);
+  --gs-blur: 20px;
+  --gs-text: rgba(0,0,0,0.85);
+  --gs-muted: rgba(0,0,0,0.55);
+  --gs-dim: rgba(0,0,0,0.14);
+  --gs-accent: #22c55e;
+  --gs-accent-bg: rgba(34,197,94,0.12);
+  --gs-hover: rgba(0,0,0,0.05);
+  --gs-tint: rgba(0,0,0,0.04);
+}
+
+.dark {
+  --gs-bg: rgba(8,8,8,0.82);
+  --gs-border: rgba(255,255,255,0.07);
+  --gs-text: rgba(255,255,255,0.88);
+  --gs-muted: rgba(255,255,255,0.38);
+  --gs-dim: rgba(255,255,255,0.14);
+  --gs-hover: rgba(255,255,255,0.07);
+  --gs-tint: rgba(255,255,255,0.04);
+}
+
+/* ── Icon strip ────────────────────────────────────────────────────────────── */
+.gs-icon-strip {
+  position: fixed;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--gs-icon-w);
+  background: var(--gs-bg);
+  border: 1px solid var(--gs-border);
+  backdrop-filter: blur(var(--gs-blur));
+  -webkit-backdrop-filter: blur(var(--gs-blur));
+  border-radius: 16px;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  z-index: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+}
+
+/* Logo mark at top */
+.gs-logo {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.gs-logo svg { opacity: 0.7; }
+
+.gs-divider {
+  width: 26px;
+  height: 1px;
+  background: var(--gs-border);
+  margin: 4px 0;
+}
+
+/* Icon buttons */
+.gs-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--gs-muted);
+  transition: background 0.13s, color 0.13s;
+  position: relative;
+}
+
+.gs-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.gs-btn:hover { background: var(--gs-hover); color: var(--gs-text); }
+.gs-btn.active { background: var(--gs-accent-bg); color: var(--gs-accent); }
+
+/* Tooltip on hover */
+.gs-btn[data-tip] { position: relative; }
+.gs-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--popover);
+  border: 1px solid var(--gs-border);
+  color: var(--gs-text);
+  font-size: 11.5px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 600;
+}
+
+.gs-btn[data-tip]:hover::after { opacity: 1; }
+
+/* Active indicator dot */
+.gs-btn .gs-dot {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gs-accent);
+}
+
+/* ── Expanded panel ─────────────────────────────────────────────────────────── */
+.gs-panel {
+  position: fixed;
+  left: calc(var(--gs-icon-w) + 18px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--gs-panel-w);
+  max-height: 70vh;
+  background: var(--gs-bg);
+  border: 1px solid var(--gs-border);
+  backdrop-filter: blur(var(--gs-blur));
+  -webkit-backdrop-filter: blur(var(--gs-blur));
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 499;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  transition: opacity 0.18s, transform 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+.gs-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-8px);
+}
+
+/* Panel header */
+.gs-panel-header {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--gs-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gs-panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gs-muted);
+  padding: 0 2px;
+}
+
+/* Search */
+.gs-search {
+  position: relative;
+}
+
+.gs-search-input {
+  width: 100%;
+  background: var(--gs-tint);
+  border: 1px solid var(--gs-border);
+  border-radius: 8px;
+  padding: 7px 10px 7px 30px;
+  color: var(--gs-text);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.gs-search-input::placeholder { color: var(--gs-muted); }
+.gs-search-input:focus { border-color: var(--gs-dim); }
+
+.gs-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gs-muted);
+  pointer-events: none;
+}
+
+.gs-search-icon svg { width: 12px; height: 12px; }
+
+/* Tab toggle */
+.gs-tabs {
+  display: flex;
+  background: var(--gs-tint);
+  border: 1px solid var(--gs-border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.gs-tab {
+  flex: 1;
+  padding: 5px 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--gs-muted);
+  transition: all 0.13s;
+  font-family: inherit;
+}
+
+.gs-tab.active { background: var(--gs-hover); color: var(--gs-text); }
+
+/* Tree */
+.gs-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gs-border) transparent;
+}
+
+.gs-tree::-webkit-scrollbar { width: 3px; }
+.gs-tree::-webkit-scrollbar-thumb { background: var(--gs-border); border-radius: 2px; }
+
+/* Tree items */
+.gs-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--gs-muted);
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+  text-decoration: none;
+  position: relative;
+}
+
+.gs-item:hover { background: var(--gs-hover); color: var(--gs-text); }
+
+.gs-item.active {
+  background: var(--gs-hover);
+  color: var(--gs-text);
+}
+
+.gs-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.gs-item-label { flex: 1; }
+
+.gs-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--gs-hover);
+  color: var(--gs-muted);
+  border-radius: 5px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.gs-item.active .gs-badge { background: var(--gs-accent-bg); color: var(--gs-accent); }
+
+/* Folder children with indent line */
+.gs-children {
+  padding-left: 18px;
+  position: relative;
+}
+
+.gs-children::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 4px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--gs-border);
+}
+
+/* Caret for folders */
+.gs-caret {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.gs-caret.open { transform: rotate(90deg); }
+.gs-caret svg { width: 10px; height: 10px; }
+
+/* Section labels */
+.gs-section-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gs-dim);
+  padding: 8px 8px 3px;
+}
+/* ============================================================
+   FLOATING TOP BAR — top-right floating chrome
+   Houses search, team members popup, theme toggle, notifications, account.
+
+   Tokens flip with .dark (set on <html> by next-themes attribute="class").
+   ============================================================ */
+
+:root {
+  --ftb-bg: rgba(255,255,255,0.85);
+  --ftb-border: rgba(0,0,0,0.08);
+  --ftb-text-strong: rgba(0,0,0,0.92);
+  --ftb-text: rgba(0,0,0,0.7);
+  --ftb-text-muted: rgba(0,0,0,0.55);
+  --ftb-text-dim: rgba(0,0,0,0.45);
+  --ftb-tint-faint: rgba(0,0,0,0.04);
+  --ftb-tint-soft: rgba(0,0,0,0.06);
+  --ftb-tint: rgba(0,0,0,0.07);
+  --ftb-tint-strong: rgba(0,0,0,0.1);
+  --ftb-tint-stronger: rgba(0,0,0,0.12);
+  --ftb-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  --ftb-shadow-strong: 0 12px 32px rgba(0,0,0,0.18);
+  --ftb-popover-bg: rgba(255,255,255,0.98);
+  --ftb-popover-border: rgba(0,0,0,0.12);
+  --ftb-av-border: rgba(255,255,255,0.92);
+}
+
+.dark {
+  --ftb-bg: rgba(8,8,8,0.82);
+  --ftb-border: rgba(255,255,255,0.08);
+  --ftb-text-strong: rgba(255,255,255,0.95);
+  --ftb-text: rgba(255,255,255,0.85);
+  --ftb-text-muted: rgba(255,255,255,0.5);
+  --ftb-text-dim: rgba(255,255,255,0.4);
+  --ftb-tint-faint: rgba(255,255,255,0.04);
+  --ftb-tint-soft: rgba(255,255,255,0.06);
+  --ftb-tint: rgba(255,255,255,0.07);
+  --ftb-tint-strong: rgba(255,255,255,0.1);
+  --ftb-tint-stronger: rgba(255,255,255,0.15);
+  --ftb-shadow: 0 4px 24px rgba(0,0,0,0.45);
+  --ftb-shadow-strong: 0 12px 32px rgba(0,0,0,0.55);
+  --ftb-popover-bg: rgba(20,20,20,0.98);
+  --ftb-popover-border: rgba(255,255,255,0.1);
+  --ftb-av-border: rgba(8,8,8,0.92);
+}
+
+.ftb-root {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ftb-bg);
+  border: 1px solid var(--ftb-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 12px;
+  padding: 5px 5px 5px 10px;
+  box-shadow: var(--ftb-shadow);
+}
+
+.ftb-breadcrumb {
+  font-size: 12px;
+  color: var(--ftb-text-dim);
+  padding: 2px 6px;
+}
+
+.ftb-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--ftb-tint-faint);
+  border: 1px solid var(--ftb-tint);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ftb-text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ftb-search:hover {
+  background: var(--ftb-tint);
+  color: var(--ftb-text);
+}
+
+.ftb-kbd {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: var(--ftb-tint-strong);
+  border: 1px solid var(--ftb-tint-stronger);
+  border-radius: 4px;
+  line-height: 16px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Team members button */
+.ftb-team-wrap { position: relative; }
+
+.ftb-team-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  background: var(--ftb-tint-faint);
+  border: 1px solid var(--ftb-tint);
+  border-radius: 18px;
+  cursor: pointer;
+  font-family: inherit;
+  height: 30px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ftb-team-btn:hover, .ftb-team-btn.open {
+  background: var(--ftb-tint);
+  border-color: var(--ftb-tint-stronger);
+}
+
+.ftb-team-stack { display: inline-flex; align-items: center; }
+
+.ftb-team-av {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  border: 2px solid var(--ftb-av-border);
+  margin-left: -8px;
+  box-sizing: border-box;
+}
+
+.ftb-team-av-more {
+  background: var(--ftb-tint-strong);
+  color: var(--ftb-text);
+  font-size: 9px;
+}
+
+/* Team popup menu */
+.ftb-team-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--ftb-popover-bg);
+  border: 1px solid var(--ftb-popover-border);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: var(--ftb-shadow-strong);
+  z-index: 500;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--ftb-text-strong);
+}
+
+.ftb-team-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 8px;
+  border-bottom: 1px solid var(--ftb-tint);
+  margin-bottom: 6px;
+}
+
+.ftb-team-menu-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ftb-text-strong);
+}
+
+.ftb-team-menu-sub {
+  font-size: 11px;
+  color: var(--ftb-text-muted);
+}
+
+.ftb-team-invite {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.ftb-team-invite:hover { filter: brightness(1.08); }
+
+.ftb-team-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.ftb-team-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.ftb-team-row:hover { background: var(--ftb-tint-faint); }
+
+.ftb-team-row-av {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ftb-team-row-info { flex: 1; min-width: 0; }
+
+.ftb-team-row-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ftb-text-strong);
+}
+
+.ftb-team-row-role {
+  font-size: 11px;
+  color: var(--ftb-text-muted);
+}
+
+.ftb-team-manage {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 8px;
+  background: transparent;
+  border: 1px solid var(--ftb-tint);
+  border-radius: 6px;
+  color: var(--ftb-text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.ftb-team-manage:hover {
+  background: var(--ftb-tint-faint);
+  color: var(--color-primary);
+  border-color: var(--ftb-tint-stronger);
+}
+
+/* Theme toggle */
+.ftb-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: var(--ftb-tint-faint);
+  border: 1px solid var(--ftb-tint);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ftb-text);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ftb-theme-toggle:hover {
+  background: var(--ftb-tint);
+  color: var(--color-primary);
+  border-color: var(--ftb-tint-stronger);
+}
+
+/* User avatar / login */
+.ftb-user, .ftb-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 50%;
+  text-decoration: none;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.ftb-login {
+  background: var(--ftb-tint-faint);
+  border-color: var(--ftb-tint);
+  color: var(--ftb-text-muted);
+}
+
+.ftb-user:hover, .ftb-login:hover { filter: brightness(1.1); }

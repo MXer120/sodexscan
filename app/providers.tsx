@@ -1,0 +1,34 @@
+'use client'
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { SessionContextProvider } from './lib/SessionContext'
+import { CmsEditProvider } from './lib/CmsEditContext'
+import { ThemeProvider } from './lib/ThemeContext'
+import { supabase } from './lib/supabaseClient'
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 30 * 60 * 1000,   // keep unused cache 30 min
+            refetchOnWindowFocus: false,
+            refetchIntervalInBackground: false, // stop polling when tab hidden
+            retry: 2,
+            retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+        },
+    },
+})
+
+export function Providers({ children }: { children: React.ReactNode }) {
+    return (
+        <ThemeProvider>
+            <SessionContextProvider supabaseClient={supabase}>
+                <QueryClientProvider client={queryClient}>
+                    <CmsEditProvider>
+                        {children}
+                    </CmsEditProvider>
+                </QueryClientProvider>
+            </SessionContextProvider>
+        </ThemeProvider>
+    )
+}

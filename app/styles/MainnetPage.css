@@ -30,13 +30,13 @@
 }
 
 .tab-switch-btn.active {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
 
 .tab-switch-btn:hover:not(.active) {
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 /* Top 10 Grid */
@@ -262,33 +262,33 @@
 
 .leaderboard-toggle {
   display: flex;
-  background: var(--color-bg-card);
+  background: var(--muted);
   border-radius: 8px;
   gap: 4px;
   padding: 2px;
-  border: 1px solid var(--color-overlay-medium);
+  border: 1px solid var(--border);
 }
 
 .leaderboard-toggle button {
   padding: 10px 20px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--color-text-muted);
+  color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
   border-radius: 6px;
 }
 
 .leaderboard-toggle button.active {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
 
 .leaderboard-toggle button:hover:not(.active) {
-  color: var(--color-text-main);
+  color: var(--foreground);
 }
 
 /* Leaderboard Table */
@@ -588,7 +588,7 @@
 .leaderboard-checkbox .custom-check svg {
   width: 10px;
   height: 10px;
-  stroke: #fff;
+  stroke: var(--background);
   stroke-width: 3;
   opacity: 0;
   transform: scale(0.5);
@@ -942,7 +942,7 @@
   transform: translateY(-5px);
   background: var(--color-overlay-subtle);
   border-color: rgba(var(--color-primary-rgb), 0.2);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px -10px var(--color-overlay-medium);
 }
 
 .feature-icon {
@@ -972,7 +972,7 @@
 
 .signup-cta-button {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--primary-foreground);
   font-size: 16px;
   font-weight: 600;
   padding: 16px 40px;
@@ -1053,7 +1053,7 @@
   padding: 3px;
   border-radius: 8px;
   border: 1px solid var(--color-overlay-medium);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 2px 4px var(--color-overlay-light);
 }
 
 .op-btn {
@@ -1064,7 +1064,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  color: #666;
+  color: var(--muted-foreground);
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
@@ -1073,13 +1073,13 @@
 }
 
 .op-btn:hover {
-  color: #aaa;
+  color: var(--foreground);
   background: var(--color-overlay-subtle);
 }
 
 .op-btn.active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--primary-foreground);
   box-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.4);
 }
 
@@ -1108,7 +1108,7 @@
 }
 
 .filter-input::placeholder {
-  color: #444;
+  color: var(--muted-foreground);
 }
 
 .custom-result {
@@ -1141,7 +1141,7 @@
   display: flex;
   gap: 12px;
   font-size: 11px;
-  color: #666;
+  color: var(--muted-foreground);
   margin-top: 4px;
 }
 
@@ -1248,7 +1248,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: color-mix(in oklch, var(--foreground) 70%, transparent);
   backdrop-filter: blur(8px);
   z-index: 9999;
   display: flex;
@@ -1259,12 +1259,13 @@
 }
 
 .platform-modal-content {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-visible);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
   border-radius: 20px;
   width: 100%;
   max-width: 500px;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 30px 60px var(--color-overlay-medium);
   padding: 0;
   overflow: hidden;
   animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1342,7 +1343,7 @@
 
 .modal-note {
   font-size: 13px;
-  color: #555;
+  color: var(--muted-foreground);
   margin: 0;
   text-align: center;
   line-height: 1.5;

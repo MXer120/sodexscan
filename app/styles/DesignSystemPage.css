@@ -24,9 +24,8 @@
   --ds-text-tertiary: #777777;
   --ds-text-muted: #555555;
 
-  --ds-accent: #f26b1f;
-  --ds-accent-hover: #ff7d33;
-  --ds-accent-soft: rgba(242, 107, 31, 0.15);
+  /* Accent tokens are intentionally NOT overridden here — they inherit from the
+     global theme so the primary color picker is observable on this page. */
 
   --ds-success: #22c55e;
   --ds-success-soft: rgba(34, 197, 94, 0.12);
@@ -43,14 +42,13 @@
   --ds-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --ds-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
 
-  /* Override ALL app theme vars so no selected theme bleeds in */
+  /* Override surface/text vars so design-system bg/text stay isolated from the
+     selected color scheme, but leave --color-primary alone (driven by picker). */
   --theme-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --theme-radius: 8px;
   --theme-radius-sm: 6px;
   --theme-radius-lg: 12px;
   --theme-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  --color-primary: #f26b1f;
-  --color-primary-rgb: 242, 107, 31;
   --color-bg-main: #141414;
   --color-bg-secondary: #1a1a1a;
   --color-bg-tertiary: #1f1f1f;
@@ -1638,4 +1636,233 @@
   width: 100%;
   border: none;
   background: #141414;
+}
+
+/* ── Theme customizer ─────────────────────────────────────── */
+.ds-theme-customizer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ds-tc-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ds-tc-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary);
+}
+
+.ds-tc-badge {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--ds-r-sm);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ds-tc-mode-toggle {
+  display: inline-flex;
+  background: var(--ds-bg-2);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-r-md);
+  padding: 3px;
+  gap: 2px;
+  width: fit-content;
+}
+
+.ds-tc-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--ds-r-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.ds-tc-mode-btn:hover { color: var(--ds-text-primary); }
+
+.ds-tc-mode-btn.active {
+  background: var(--ds-bg-4);
+  color: var(--ds-text-primary);
+}
+
+.ds-tc-color-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ds-tc-swatch-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 36px;
+  border-radius: var(--ds-r-md);
+  border: 1px solid var(--ds-border-default);
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--ds-bg-2);
+  flex-shrink: 0;
+}
+
+.ds-tc-swatch-input:hover { border-color: var(--ds-border-strong); }
+
+.ds-tc-swatch-input input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.ds-tc-swatch-preview {
+  width: 30px;
+  height: 22px;
+  border-radius: var(--ds-r-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.ds-tc-hex-input {
+  background: var(--ds-bg-2);
+  border: 1px solid var(--ds-border-default);
+  color: var(--ds-text-primary);
+  padding: 8px 12px;
+  border-radius: var(--ds-r-md);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  width: 110px;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ds-tc-hex-input:focus { border-color: var(--ds-accent); }
+
+.ds-tc-reset-btn {
+  background: var(--ds-bg-2);
+  border: 1px solid var(--ds-border-default);
+  color: var(--ds-text-secondary);
+  padding: 8px 14px;
+  border-radius: var(--ds-r-md);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+
+.ds-tc-reset-btn:hover:not(:disabled) {
+  background: var(--ds-bg-3);
+  color: var(--ds-text-primary);
+  border-color: var(--ds-border-strong);
+}
+
+.ds-tc-reset-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ds-tc-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ds-tc-preset {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--ds-r-sm);
+  border: 2px solid var(--ds-border-subtle);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.ds-tc-preset:hover {
+  transform: translateY(-1px);
+  border-color: var(--ds-text-tertiary);
+}
+
+.ds-tc-preset.active {
+  border-color: var(--ds-text-primary);
+  box-shadow: 0 0 0 2px var(--ds-bg-1), 0 0 0 4px var(--ds-text-primary);
+}
+
+.ds-tc-schemes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.ds-tc-scheme {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--ds-bg-2);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-r-md);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-family: inherit;
+  text-align: left;
+}
+
+.ds-tc-scheme:hover {
+  background: var(--ds-bg-3);
+  color: var(--ds-text-primary);
+}
+
+.ds-tc-scheme.active {
+  background: var(--ds-bg-3);
+  border-color: var(--ds-accent);
+  color: var(--ds-text-primary);
+}
+
+.ds-tc-scheme-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.ds-tc-scheme-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-tc-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  line-height: 1.5;
 }

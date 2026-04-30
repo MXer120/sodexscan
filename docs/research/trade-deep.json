@@ -1,0 +1,809 @@
+{
+  "layoutContainers": [
+    {
+      "classes": "scrollbar-thin layout-container z-[100] _container_ymxoj_1 flex flex-col h-screen mobile:h-dvh overf",
+      "display": "flex",
+      "gridTemplate": "1fr",
+      "flexDir": "column",
+      "gap": "1px",
+      "width": "1440px",
+      "height": "900px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 3,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 1440,
+        "h": 900
+      }
+    },
+    {
+      "classes": "flex items-center",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "32px",
+      "width": "777.547px",
+      "height": "53px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 24,
+        "y": 0,
+        "w": 778,
+        "h": 53
+      }
+    },
+    {
+      "classes": "_menu-row_1obfy_1",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "657.25px",
+      "height": "53px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 144,
+        "y": 0,
+        "w": 657,
+        "h": 53
+      }
+    },
+    {
+      "classes": "flex items-center gap-1 px-1 py-0.5 rounded border",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "4px",
+      "width": "56.875px",
+      "height": "18px",
+      "bg": "rgb(26, 44, 38)",
+      "childCount": 3,
+      "rect": {
+        "x": 400,
+        "y": 2,
+        "w": 57,
+        "h": 18
+      }
+    },
+    {
+      "classes": "flex flex-row font-medium gap-x-1 items-center ant-dropdown-trigger cursor-pointer h-full px-3",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal 4px",
+      "width": "78.6094px",
+      "height": "53px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 723,
+        "y": 0,
+        "w": 79,
+        "h": 53
+      }
+    },
+    {
+      "classes": "flex items-center",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "12px",
+      "width": "452.062px",
+      "height": "53px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 5,
+      "rect": {
+        "x": 964,
+        "y": 0,
+        "w": 452,
+        "h": 53
+      }
+    },
+    {
+      "classes": "flex items-center gap-x-0",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal 0px",
+      "width": "auto",
+      "height": "auto",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    {
+      "classes": "flex flex-col overflow-x-hidden h-full",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "column",
+      "gap": "normal",
+      "width": "1440px",
+      "height": "1064px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 0,
+        "y": 55,
+        "w": 1440,
+        "h": 1064
+      }
+    },
+    {
+      "classes": "_container_11b30_1 layout market-layout grid grid-cols-[1fr_300px] flex-1 scrollbar-thin overflow-y-",
+      "display": "grid",
+      "gridTemplate": "1140px 300px",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "1440px",
+      "height": "1064px",
+      "bg": "rgb(18, 18, 18)",
+      "childCount": 2,
+      "rect": {
+        "x": 0,
+        "y": 55,
+        "w": 1440,
+        "h": 1064
+      }
+    },
+    {
+      "classes": "grid mobile:grid-rows-[auto_auto] pc:overflow-x-hidden grid-rows-[640px_1fr]",
+      "display": "grid",
+      "gridTemplate": "1140px",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "1140px",
+      "height": "1040px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 0,
+        "y": 55,
+        "w": 1140,
+        "h": 1040
+      }
+    },
+    {
+      "classes": "overflow-hidden flex flex-col",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "column",
+      "gap": "normal",
+      "width": "1140px",
+      "height": "640px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 0,
+        "y": 55,
+        "w": 1140,
+        "h": 640
+      }
+    },
+    {
+      "classes": "border-b border-[#262626] h-11 flex items-center overflow-hidden",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "1140px",
+      "height": "44px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 0,
+        "y": 55,
+        "w": 1140,
+        "h": 44
+      }
+    },
+    {
+      "classes": "flex items-center bg-[#262626] rounded-[8px] p-[4px] mx-[16px]",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "64px",
+      "height": "28px",
+      "bg": "rgb(38, 38, 38)",
+      "childCount": 2,
+      "rect": {
+        "x": 16,
+        "y": 63,
+        "w": 64,
+        "h": 28
+      }
+    },
+    {
+      "classes": "flex items-center [&>*]:flex-1 gap-x-5 mobile:grid-cols-4 mobile:gap-x-3",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal 20px",
+      "width": "1191.66px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 6,
+      "rect": {
+        "x": 96,
+        "y": 62,
+        "w": 1192,
+        "h": 30
+      }
+    },
+    {
+      "classes": "relative group flex items-center p-[4px] pr-[18px] cursor-pointer hover:bg-[#383838] rounded-[4px] w",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "174.031px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 96,
+        "y": 62,
+        "w": 174,
+        "h": 30
+      }
+    },
+    {
+      "classes": "relative group flex items-center p-[4px] pr-[18px] cursor-pointer hover:bg-[#383838] rounded-[4px] w",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "174.578px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 290,
+        "y": 62,
+        "w": 175,
+        "h": 30
+      }
+    },
+    {
+      "classes": "relative group flex items-center p-[4px] pr-[18px] cursor-pointer hover:bg-[#383838] rounded-[4px] w",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "183.969px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 485,
+        "y": 62,
+        "w": 184,
+        "h": 30
+      }
+    },
+    {
+      "classes": "relative group flex items-center p-[4px] pr-[18px] cursor-pointer hover:bg-[#383838] rounded-[4px] w",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "201.719px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 689,
+        "y": 62,
+        "w": 202,
+        "h": 30
+      }
+    },
+    {
+      "classes": "relative group flex items-center p-[4px] pr-[18px] cursor-pointer hover:bg-[#383838] rounded-[4px] w",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "174.359px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 910,
+        "y": 62,
+        "w": 174,
+        "h": 30
+      }
+    },
+    {
+      "classes": "relative group flex items-center p-[4px] pr-[18px] cursor-pointer hover:bg-[#383838] rounded-[4px] w",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "183px",
+      "height": "30px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 4,
+      "rect": {
+        "x": 1105,
+        "y": 62,
+        "w": 183,
+        "h": 30
+      }
+    },
+    {
+      "classes": "grid grid-cols-[1fr_300px] mobile:grid-cols-1 h-full overflow-hidden",
+      "display": "grid",
+      "gridTemplate": "840px 300px",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "1140px",
+      "height": "596px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 0,
+        "y": 99,
+        "w": 1140,
+        "h": 596
+      }
+    },
+    {
+      "classes": "_wrapper_10s5g_16 px-6 flex items-center space-x-8 w-full mobile:px-4 mobile:py-2 mobile:flex-col mo",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "840px",
+      "height": "55px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 0,
+        "y": 99,
+        "w": 840,
+        "h": 55
+      }
+    },
+    {
+      "classes": "_container_uqfof_1",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "232.5px",
+      "height": "36px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 24,
+        "y": 109,
+        "w": 233,
+        "h": 36
+      }
+    },
+    {
+      "classes": "flex items-center",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "232.5px",
+      "height": "36px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 3,
+      "rect": {
+        "x": 24,
+        "y": 109,
+        "w": 233,
+        "h": 36
+      }
+    },
+    {
+      "classes": "flex items-center cursor-pointer",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "188.5px",
+      "height": "36px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 68,
+        "y": 109,
+        "w": 189,
+        "h": 36
+      }
+    },
+    {
+      "classes": "flex-center mobile:leading-[normal] p-2 rounded-lg cursor-pointer mobile:p-0 mobile:text-lg",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "188.5px",
+      "height": "36px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 68,
+        "y": 109,
+        "w": 189,
+        "h": 36
+      }
+    },
+    {
+      "classes": "flex flex-row font-medium gap-x-1 items-center ml-1 mobile:hidden",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal 4px",
+      "width": "36px",
+      "height": "16px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 174,
+        "y": 119,
+        "w": 36,
+        "h": 16
+      }
+    },
+    {
+      "classes": "_value_1jbnk_83 flex space-x-0.5",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal",
+      "width": "auto",
+      "height": "auto",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 3,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      }
+    },
+    {
+      "classes": "flex items-center [&>*]:flex-1 gap-x-5 mobile:grid-cols-4 mobile:gap-x-3 overscroll-y-contain",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "row",
+      "gap": "normal 20px",
+      "width": "527.5px",
+      "height": "32px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 8,
+      "rect": {
+        "x": 289,
+        "y": 111,
+        "w": 528,
+        "h": 32
+      }
+    },
+    {
+      "classes": "flex flex-col",
+      "display": "flex",
+      "gridTemplate": "none",
+      "flexDir": "column",
+      "gap": "normal",
+      "width": "61.1562px",
+      "height": "31px",
+      "bg": "rgba(0, 0, 0, 0)",
+      "childCount": 2,
+      "rect": {
+        "x": 289,
+        "y": 111,
+        "w": 61,
+        "h": 31
+      }
+    }
+  ],
+  "visibleText": "Trade\nVault\nPortfolio\nWEEK 9\nRewards\nReferrals\nStaking\nLeaderboard\nMore\nConnect Wallet\nResearch Terminal\nBTC/USDC\nSpot\n-0.59%\nETH/USDC\nSpot\n-0.88%\nSOSO/USDC\nSpot\n+2.28%\nMAG7ssi/USDC\nSpot\n-1.17%\nSOL/USDC\nSpot\n-1.32%\nXAUT/USDC\nSpot\n+0.26%\nBTC-USD\n25x\nMark Price\n66,350\nIndex Price\n66,379\n24H Change\n-371.3640\n/\n-0.55%\n24h Volume\n$12.47M\nOpen Interest\n$5.87M\nFunding / Countdown\n-0.0063%\n/\n00:25:01\nTime\n1m\n5m\n15m\n30m\n1h\n4h\n1D\n1W\nTools\nIndicators\nOrder Book\nMarket Trades\nBTC\nAll\n1\nPrice(USDC)\nAmount(BTC)\nTotal(BTC)\n66,336\n0.002\n1.5582\n66,335\n0.2691\n1.5561\n66,331\n0.243\n1.287\n66,328\n0.2383\n1.044\n66,326\n0.2171\n0.8056\n66,324\n0.1992\n0.5884\n66,323\n0.0016\n0.3892\n66,322\n0.204\n0.3875\n66,315\n0.1731\n0.1834\n66,313\n0.0063\n0.0103\n66,312\n0.004\n0.004\n1\nSpread\n0.001%\n66,311\n0.1811\n0.1811\n66,304\n0.1873\n0.3684\n66,303\n0.1945\n0.563\n66,301\n0.2168\n0.7799\n66,298\n0.2246\n1.0046\n66,295\n0.2495\n1.2541\n66,292\n0.2497\n1.5038\n66,287\n0.2708\n1.7747\n66,283\n< 0.0001\n1.7747\n66,282\n0.2909\n2.0656\n66,275\n0.3036\n2.3693\nBalances\nPosition\nOpen Orders\nTrade History\nFunding History\nOrder History\nPosition History\nDeposits and Withdrawals\nHide Small Balances\nConnect Wallet\nMarket\nLimit\nAdvanced\nCross\n1x\nBuy/Long\nSell/Short\nCurrent Position\n0 BTC\nAvailable to Trade\n0 USDC\nAmount\nBTC\n​\n0%\n25%\n50%\n75%\n100%\n%\n​\nReduce Only\nTIF\nIOC\nTake Profit / Stop Loss\nConnect Wallet\nOrder Value\n- USDC\nMargin Required\n- USDC\nLiquidation Price\n- USDC\nFee\n0.04% / 0.012%\nFutures Overview\nAvailable Balance\n0.00\nUnrealized PnL\n0.00\nCross Margin Ratio\n0.00%\nMaintenance Margin\n0.00\nCross Account Leverage\nx\nDeposit Funds\nTransfer\nWithdraw\nADA:\n$0.24053\n-3.25%\nBTC:\n$66340\n-0.59%\nUSSI:\n$1.021\n-%\nAVAX:\n$8.67\n-2.8%\nTON:\n$1.226\n-1.28%\nMEMEssi:\n$0.2137\n-1.29%\nSHIB:\n$0.00000581\n-1.02%\nETH:\n$1992.5\n-0.88%\nDEFIssi:\n$0.2956\n-2.44%\nXAUt:\n$4502.3\n+0.26%\nXLM:\n$0.1645\n-2.94%\nAAVE:\n$95.46\n-2.06%\nSUI:\n$0.8438\n-4.76%\nARB:\n$0.0891\n-1.76%\nDOGE:\n$0.09065\n-1.14%\nSOL:\n$81.62\n-1.32%\nUNI:\n$3.378\n-1.08%\nMAG7ssi:\n$0.4717\n-1.17%\nPEPE:\n$0.00000327\n-1.2%\nSOSO:\n$0.4156\n+2.28%\nBNB:\n$608\n-1.25%\nXRP:\n$1.3181\n-1.74%\nLTC:\n$53.48\n-0.99%\nHYPE:\n$38.339\n-3.59%\nLINK:\n$8.423\n-1.63%\nADA:\n$0.24053\n-3.25%\nBTC:\n$66340\n-0.59%\nUSSI:\n$1.021\n-%\nAVAX:\n$8.67\n-2.8%\nTON:\n$1.226\n-1.28%\nMEMEssi:\n$0.2137\n-1.29%\nSHIB:\n$0.00000581\n-1.02%\nETH:\n$1992.5\n-0.88%\nDEFIssi:\n$0.2956\n-2.44%\nXAUt:\n$4502.3\n+0.26%\nXLM:\n$0.1645\n-2.94%\nAAVE:\n$95.46\n-2.06%\nSUI:\n$0.8438\n-4.76%\nARB:\n$0.0891\n-1.76%\nDOGE:\n$0.09065\n-1.14%\nSOL:\n$81.62\n-1.32%\nUNI:\n$3.378\n-1.08%\nMAG7ssi:\n$0.4717\n-1.17%\nPEPE:\n$0.00000327\n-1.2%\nSOSO:\n$0.4156\n+2.28%\nBNB:\n$608\n-1.25%\nXRP:\n$1.3181\n-1.74%\nLTC:\n$53.48\n-0.99%\nHYPE:\n$38.339\n-3.59%\nLINK:\n$8.423\n-1.63%\nBTC Overview\nDocs\nSupport\nAnnouncement\nNew Listing：Enabled Perps $SKHX,$ORCL,$TSM,$EWY,$COPPER-2026-03-19\nLink Mobile Device is now live on SoDEX\nSoDEX Mainnet Upgrade Completed -March 18, 2026",
+  "allTabs": [
+    {
+      "text": "Order BookMarket Trades",
+      "classes": "MuiTabs-root h-11 min-h-[unset] px-4 border-b border-solid border-[#262626] css-",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "1px solid rgb(38, 38, 38)"
+    },
+    {
+      "text": "Order BookMarket Trades",
+      "classes": "MuiTabs-scroller MuiTabs-fixed css-w94xpu",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "Order BookMarket Trades",
+      "classes": "MuiTabs-list space-x-4 h-full MuiTabs-flexContainer css-162tvoi",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "Order Book",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary normal-case text-sm p-0 m",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(255, 255, 255)"
+    },
+    {
+      "text": "Market Trades",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary normal-case text-sm text-",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "",
+      "classes": "MuiTabs-indicator bg-text-primary-900-white h-[1px] css-1q41tqe",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "Price(USDC)Amount(BTC)Total(BTC)",
+      "classes": "_table-header-wrapper_qjt7y_37 mobile:hidden",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "BalancesBalancesPositionPositionOpen OrdersOpen Or",
+      "classes": "_tab-wrapper_1uvh0_22 relative flex items-center justify-between overflow-hidden",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "BalancesBalancesPositionPositionOpen OrdersOpen Or",
+      "classes": "MuiTabs-root css-opugjj",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "",
+      "classes": "MuiTabs-scrollableX MuiTabs-hideScrollbar css-i8yde5",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "BalancesBalancesPositionPositionOpen OrdersOpen Or",
+      "classes": "MuiTabs-scroller MuiTabs-hideScrollbar MuiTabs-scrollableX css-jb8z7h",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "BalancesBalancesPositionPositionOpen OrdersOpen Or",
+      "classes": "MuiTabs-list MuiTabs-flexContainer css-162tvoi",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "BalancesBalances",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary Mui-selected text-sm tran",
+      "active": false,
+      "color": "rgb(255, 118, 55)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(255, 118, 55)"
+    },
+    {
+      "text": "PositionPosition",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Open OrdersOpen Orders",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Trade HistoryTrade History",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Funding HistoryFunding History",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Order HistoryOrder History",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Position HistoryPosition History",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Deposits and WithdrawalsDeposits and Withdrawals",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-sm transition-colors",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "",
+      "classes": "MuiTabs-indicator css-1q41tqe",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 118, 55)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "MarketLimitAdvanced",
+      "classes": "MuiTabs-root relative min-h-[unset] text-text-primary-100-700 css-1tfef",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "MarketLimitAdvanced",
+      "classes": "MuiTabs-scroller MuiTabs-fixed css-w94xpu",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "MarketLimitAdvanced",
+      "classes": "MuiTabs-list inline-flex space-x-2 MuiTabs-flexContainer css-162tvoi",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "Market",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary Mui-selected text-sm norm",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(35, 35, 38)",
+      "borderBottom": "0px none rgb(255, 255, 255)"
+    },
+    {
+      "text": "Limit",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-text-secondary-500-3",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "Advanced",
+      "classes": "MuiButtonBase-root MuiTab-root MuiTab-textColorPrimary text-text-secondary-500-3",
+      "active": false,
+      "color": "rgb(163, 163, 163)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px none rgb(163, 163, 163)"
+    },
+    {
+      "text": "",
+      "classes": "MuiTabs-indicator bg-text-primary-900-white h-[1px] transition-none hidden css-1",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(255, 255, 255)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "Buy/LongSell/Short",
+      "classes": "MuiTabs-root h-8 min-h-[unset] bg-background-hover-50-700 p-1 rounded-lg mb-0 fl",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgb(38, 38, 38)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    },
+    {
+      "text": "Buy/LongSell/Short",
+      "classes": "MuiTabs-scroller MuiTabs-fixed css-w94xpu",
+      "active": false,
+      "color": "rgb(255, 255, 255)",
+      "bg": "rgba(0, 0, 0, 0)",
+      "borderBottom": "0px solid rgb(255, 255, 255)"
+    }
+  ],
+  "orderTypes": [
+    {
+      "text": "Connect Wallet",
+      "active": false,
+      "bg": "rgb(255, 118, 55)"
+    },
+    {
+      "text": "Order Book",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "Market Trades",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "BalancesBalances",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "PositionPosition",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "Open OrdersOpen Orders",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "Trade HistoryTrade History",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "Funding HistoryFunding History",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "Order HistoryOrder History",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "text": "Position HistoryPosition History",
+      "active": false,
+      "bg": "rgba(0, 0, 0, 0)"
+    }
+  ]
+}
