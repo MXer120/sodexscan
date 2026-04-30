@@ -276,7 +276,7 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
       <SidebarFooter className="px-5 pb-5">
         {showUpgradeModal && (
           <div className="relative p-5 rounded-2xl border bg-card shadow-lg mb-2">
-            <Button variant="ghost" size="icon-xs" className="absolute right-3 top-3 bg-muted" onClick={() => setShowUpgradeModal(false)}>
+            <Button variant="ghost" size="icon" className="absolute right-3 top-3 bg-muted" onClick={() => setShowUpgradeModal(false)}>
               <X className="size-3" />
             </Button>
             <p className="font-semibold text-sm mb-2">5 Days left!</p>
