@@ -46,7 +46,7 @@ export function ChatWelcomeScreen({
 
         <div className="space-y-4 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Hey! I&apos;m Square.ai
+            Hey! I&apos;m CommunityScan AI
           </h1>
           <p className="text-2xl text-foreground">
             Tell me everything you need
