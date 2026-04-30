@@ -16,6 +16,8 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/lib/utils";
 import { GradientAvatar } from "@/app/components/ui/gradient-avatar";
+import { useSessionContext } from "@/app/lib/SessionContext";
+import { Auth } from "@/app/components/Auth";
 import {
   LayoutDashboard, Search, Trophy, Star, BookmarkCheck, Bell, Repeat2,
   Folder, ChevronDown, ChevronRight, X, MessageSquare, Settings, HelpCircle,
@@ -129,6 +131,19 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
   const pathname = usePathname();
   const [favoritesOpen, setFavoritesOpen] = React.useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(true);
+  const [showAuth, setShowAuth] = React.useState(false);
+  const { setAuthModalCallback } = useSessionContext();
+
+  React.useEffect(() => {
+    setAuthModalCallback(() => () => setShowAuth(true));
+    return () => setAuthModalCallback(null);
+  }, [setAuthModalCallback]);
+
+  React.useEffect(() => {
+    const handler = () => setShowAuth(true);
+    window.addEventListener('openAuthModal', handler);
+    return () => window.removeEventListener('openAuthModal', handler);
+  }, []);
 
   const isActive = (href: string, exact = false) =>
     exact ? pathname === href : pathname.startsWith(href) && href !== "/";
@@ -294,5 +309,16 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
       </SidebarFooter>
 
     </Sidebar>
+
+    {showAuth && createPortal(
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowAuth(false)} />
+        <div style={{ position: 'relative', background: 'var(--color-bg-modal, #1a1a1a)', border: '1px solid var(--color-border-visible, rgba(255,255,255,0.1))', borderRadius: '16px', padding: '32px', maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+          <button onClick={() => setShowAuth(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}>×</button>
+          <Auth />
+        </div>
+      </div>,
+      document.body
+    )}
   );
 }
