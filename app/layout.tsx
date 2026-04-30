@@ -9,6 +9,7 @@ import { GlobalHeader } from './components/dashboard/global-header'
 import CmsEditToggle from './components/CmsEditToggle'
 import CommandPalette from './components/CommandPalette'
 import AlertNotifier from './components/AlertNotifier'
+import AuthModal from './components/AuthModal'
 import { SidebarProvider } from './components/ui/sidebar'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }) {
               </div>
               <CommandPalette />
               <AlertNotifier />
+              <AuthModal />
             </SidebarProvider>
           </Providers>
         </ThemeProvider>

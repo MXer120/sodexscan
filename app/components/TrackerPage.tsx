@@ -4,8 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import MainnetTracker from './MainnetTracker'
 import { useWalletTags } from '../hooks/useWalletTags'
-import { useSessionContext } from '../lib/SessionContext'
-import { configCache, loadPageConfigs, isConfigLoaded } from '../lib/pageConfig'
 import SearchAndAddBox, { FilterType } from './SearchAndAddBox'
 import '../styles/TrackerPage.css'
 
@@ -14,21 +12,7 @@ function TrackerPage() {
   const [searchInput, setSearchInput] = useState('')
   const [filterType, setFilterType] = useState<FilterType>('all')
   const [walletAddress, setWalletAddress] = useState(null)
-  const { user, loading: authLoading, openAuthModal } = useSessionContext()
   const { data: tags } = useWalletTags()
-  const [configReady, setConfigReady] = useState(isConfigLoaded())
-
-  useEffect(() => {
-    if (!isConfigLoaded()) loadPageConfigs().then(() => setConfigReady(true))
-  }, [])
-
-  const pagePermission = configReady ? (configCache['/tracker']?.permission || 'anon') : 'anon'
-  const needsAuth = pagePermission !== 'anon' && !user
-
-  // ALL hooks MUST be above any conditional return
-  useEffect(() => {
-    if (!authLoading && needsAuth && openAuthModal) openAuthModal()
-  }, [authLoading, needsAuth, openAuthModal])
 
   useEffect(() => {
     document.title = walletAddress
@@ -61,19 +45,6 @@ function TrackerPage() {
   const handleSearchResult = useCallback(({ wallet_address }) => {
     handleWalletChange(wallet_address)
   }, [handleWalletChange])
-
-  // Conditional returns AFTER all hooks
-  if (authLoading) return null
-  if (needsAuth) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', gap: '16px' }}>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Sign in to access the Scanner</p>
-        <button onClick={openAuthModal} style={{ padding: '10px 24px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-          Sign In
-        </button>
-      </div>
-    )
-  }
 
   const sharedSearchBox = (
     <SearchAndAddBox
