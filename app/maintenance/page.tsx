@@ -1,6 +1,7 @@
 'use client'
 
 import { CSSProperties, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import '../styles/MaintenancePage.css'
 
 // Allow CSS custom properties in inline styles
@@ -30,6 +31,9 @@ export default function MaintenancePage() {
         setSubmitting(false)
         return
       }
+
+      // Also sign into Supabase so app auth is established in the same step
+      await supabase.auth.signInWithPassword({ email, password })
 
       // Cookie is set server-side (httpOnly, 24h) — hard reload so middleware re-checks
       window.location.href = '/'
