@@ -16,6 +16,7 @@ ROADMAP.md
 .mcp.json
 .github/workflows/
 /docs/
+/scripts/
 
 # next.js
 /.next/
