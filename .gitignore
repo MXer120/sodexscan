@@ -15,6 +15,7 @@ CLAUDE.md
 ROADMAP.md
 .mcp.json
 .github/workflows/
+/docs/
 
 # next.js
 /.next/
