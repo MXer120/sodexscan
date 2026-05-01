@@ -11,6 +11,10 @@
 /.claude-flow
 /.swarm
 /.playwright-mcp
+CLAUDE.md
+ROADMAP.md
+.mcp.json
+.github/workflows/
 
 # next.js
 /.next/
