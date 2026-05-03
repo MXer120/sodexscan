@@ -1,5 +1,4 @@
 
-import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -7,46 +6,40 @@ export const dynamic = 'force-dynamic'
 export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const metric = searchParams.get('metric') || 'realized_profit'
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100)
 
-    let orderBy = 'cumulative_pnl'
-    if (metric === 'volume') orderBy = 'cumulative_volume'
+    const sortBy = metric === 'volume' ? 'volume' : 'pnl'
+    const pageSize = limit
 
-    // Only realized_profit and volume seem supported by the table columns shown in MainnetPage.jsx
+    const apiRes = await fetch(
+        `https://mainnet-data.sodex.dev/api/v1/leaderboard?window_type=ALL_TIME&sort_by=${sortBy}&sort_order=desc&page=1&pageSize=${pageSize}`
+    )
 
-    const { data, error } = await supabase
-        .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at')
-        .order(orderBy, { ascending: false })
-        .limit(limit)
-
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!apiRes.ok) {
+        return NextResponse.json({ error: 'Upstream API error' }, { status: 502 })
     }
+
+    const apiJson = await apiRes.json()
+    const items: { rank: number; wallet_address: string; pnl_usd: number; volume_usd: number }[] = apiJson?.data?.items || []
 
     const responseDate = new Date().toISOString()
 
-    const formattedData = data.map(row => ({
+    const formattedData = items.map(row => ({
         wallet_address: row.wallet_address,
         metrics: {
             realized_profit: {
-                value: parseFloat(row.cumulative_pnl),
+                value: parseFloat(String(row.pnl_usd)),
                 unit: 'USD'
             },
             volume: {
-                value: parseFloat(row.cumulative_volume),
-                unit: 'USD'
-            },
-            unrealized_profit: {
-                value: parseFloat(row.unrealized_pnl),
+                value: parseFloat(String(row.volume_usd)),
                 unit: 'USD'
             }
         },
         ranks: {
-            pnl: row.pnl_rank,
-            volume: row.volume_rank
-        },
-        last_updated: row.last_synced_at
+            pnl: row.rank,
+            volume: row.rank
+        }
     }))
 
     return NextResponse.json({

@@ -435,6 +435,7 @@ export default function MainnetTracker({ walletAddress = null, accountId: propAc
   const [leverageBrackets, setLeverageBrackets] = useState({})
   const [leaderboardStats, setLeaderboardStats] = useState({ rank: null, volumeRank: null })
   const [overviewStats, setOverviewStats] = useState({ volume: 0, cumulativePnl: 0 })
+  const [spotStats, setSpotStats] = useState<{ spot_pnl: number; spot_volume: number } | null>(null)
   const [markPrices, setMarkPrices] = useState({})
   const [socialData, setSocialData] = useState({ dc_username: null, tg_username: null, tg_displayname: null, ref_code: null })
   const [socialTooltip, setSocialTooltip] = useState(null) // 'refcode' | 'discord' | 'telegram' | 'x' | null
@@ -908,20 +909,25 @@ export default function MainnetTracker({ walletAddress = null, accountId: propAc
     // Shared metadata fetch (symbol maps, leaderboard, overview)
     const fetchMetadata = async () => {
       try {
-        const [lbRes, bracketRes, symbolListRes, overviewRes] = await Promise.all([
-          supabase.from('leaderboard_smart')
-            .select('pnl_rank, volume_rank')
-            .eq('account_id', accountId)
-            .maybeSingle(),
+        const [bracketRes, symbolListRes, overviewRes, rankRes, pnlRankRes, summaryRes] = await Promise.all([
           fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/leverage/bracket/list'),
           fetch('https://mainnet-gw.sodex.dev/futures/fapi/market/v1/public/symbol/list'),
-          fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`)
+          fetch(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
+          walletAddress
+            ? fetch(`https://mainnet-data.sodex.dev/api/v1/leaderboard/rank?window_type=ALL_TIME&sort_by=volume&wallet_address=${walletAddress}`).then(r => r.json()).catch(() => null)
+            : Promise.resolve(null),
+          walletAddress
+            ? fetch(`https://mainnet-data.sodex.dev/api/v1/leaderboard/rank?window_type=ALL_TIME&sort_by=pnl&wallet_address=${walletAddress}`).then(r => r.json()).catch(() => null)
+            : Promise.resolve(null),
+          fetch(`https://mainnet-data.sodex.dev/api/v1/account/${accountId}/summary`).then(r => r.json()).catch(() => null)
         ])
 
-        if (lbRes.data) {
+        const pnlRank = pnlRankRes?.data?.rank ?? null
+        const volumeRank = rankRes?.data?.rank ?? null
+        if (pnlRank !== null || volumeRank !== null) {
           setLeaderboardStats({
-            rank: lbRes.data.pnl_rank,
-            volumeRank: lbRes.data.volume_rank
+            rank: pnlRank,
+            volumeRank: volumeRank
           })
         }
 
@@ -960,6 +966,20 @@ export default function MainnetTracker({ walletAddress = null, accountId: propAc
             }
           })
           coinRegistry = registry
+        }
+
+        // Compute spot stats: cumulative all-time minus futures all-time
+        try {
+          const cumPnl = parseFloat(rankRes?.data?.item?.pnl_usd ?? rankRes?.data?.pnl_usd ?? 0)
+          const cumVol = parseFloat(rankRes?.data?.item?.volume_usd ?? rankRes?.data?.volume_usd ?? 0)
+          const futuresPnl = parseFloat(summaryRes?.data?.total_pnl ?? 0)
+          const futuresVol = parseFloat(summaryRes?.data?.total_volume ?? 0)
+          setSpotStats({
+            spot_pnl: cumPnl - futuresPnl,
+            spot_volume: cumVol - futuresVol,
+          })
+        } catch (e) {
+          console.error('Spot stats computation failed:', e)
         }
       } catch (e) {
         console.error('Metadata fetch failed:', e)
@@ -2031,6 +2051,28 @@ export default function MainnetTracker({ walletAddress = null, accountId: propAc
         </div>
 
         <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
+
+        {/* Section: Spot */}
+        {spotStats && (
+          <>
+            <div style={{ marginBottom: '0' }}>
+              <h4 style={{ color: 'var(--foreground)', fontSize: '11px', fontWeight: '700', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Spot</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                  <span style={{ color: 'var(--muted-foreground)' }}>All time PnL</span>
+                  <span style={{ color: spotStats.spot_pnl >= 0 ? BULLISH_COLOR : BEARISH_COLOR, fontWeight: '600' }}>
+                    {spotStats.spot_pnl >= 0 ? '+' : ''}${formatNumber(spotStats.spot_pnl)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                  <span style={{ color: 'var(--muted-foreground)' }}>All time Volume</span>
+                  <span style={{ color: 'var(--foreground)', fontWeight: '600' }}>${formatNumber(spotStats.spot_volume)}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ height: '1px', background: 'var(--color-overlay-subtle)', margin: '10px 0' }} />
+          </>
+        )}
 
         {/* Section 4: Futures Performance */}
         <div style={{ marginBottom: '0' }}>

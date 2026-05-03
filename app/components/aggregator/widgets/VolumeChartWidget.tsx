@@ -3,11 +3,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../../../lib/supabaseClient'
 import { useUserProfile } from '../../../hooks/useProfile'
-import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
 
 const BROKEN_SPOT_WEEK = 4
 const WEEK1_START = new Date('2026-02-02T00:00:00Z')
 const WEEK_DURATION = 7 * 24 * 60 * 60 * 1000
+
+// Derive current week number from wall clock (no leaderboard_meta needed)
+function computeCurrentWeek(): number {
+    const elapsed = Date.now() - WEEK1_START.getTime()
+    return Math.max(1, Math.ceil(elapsed / WEEK_DURATION))
+}
 
 const formatVol = (num) => {
     const absNum = Math.abs(num)
@@ -26,7 +31,7 @@ const getWeekDateRange = (weekNum) => {
 export default function VolumeChartWidget({ config, onUpdateConfig }) {
     const { data: profileData } = useUserProfile()
     const ownWallet = profileData?.profile?.own_wallet
-    const { data: lbMeta } = useLeaderboardMeta()
+    const lbMeta = useMemo(() => ({ current_week_number: computeCurrentWeek() }), [])
 
     const [platformVolume, setPlatformVolume] = useState({ all: null, spot: null, futures: null })
     const [platformVolumeLoading, setPlatformVolumeLoading] = useState(false)
@@ -59,45 +64,20 @@ export default function VolumeChartWidget({ config, onUpdateConfig }) {
         })()
     }, [])
 
-    // Load all chart data once we have wallet + meta
+    // Load futures volume map once we have a wallet
     useEffect(() => {
-        if (!ownWallet || !lbMeta || chartDataLoaded) return
-        const currentWeek = (lbMeta as { current_week_number: number }).current_week_number
-        const walletLow = ownWallet.toLowerCase()
+        if (!ownWallet || chartDataLoaded) return
         ;(async () => {
             try {
-                // Fetch user's weekly data from leaderboard_weekly
-                const [userWeeklyRes, futRes] = await Promise.all([
-                    supabase
-                        .from('leaderboard_weekly')
-                        .select('week_number, sodex_total_volume, cumulative_volume')
-                        .eq('wallet_address', walletLow)
-                        .lte('week_number', currentWeek),
-                    supabase.rpc('get_all_futures_volume_maps', { p_max_week: currentWeek - 1, p_exclude_sodex: true })
-                ])
-
-                // Build user weekly data map: { weekNum: { spot, futures } }
-                // week_number=0 is live data → map it to currentWeek
-                const weeklyMap = {}
-                if (userWeeklyRes.data) {
-                    for (const row of userWeeklyRes.data) {
-                        const sodexVol = parseFloat(row.sodex_total_volume) || 0
-                        const futVol = parseFloat(row.cumulative_volume) || 0
-                        const key = row.week_number === 0 ? currentWeek : row.week_number
-                        weeklyMap[key] = {
-                            spot: Math.max(sodexVol - futVol, 0),
-                            futures: futVol
-                        }
-                    }
-                }
-                setUserWeeklyData(weeklyMap)
+                const currentWeek = computeCurrentWeek()
+                const futRes = await supabase.rpc('get_all_futures_volume_maps', { p_max_week: currentWeek - 1, p_exclude_sodex: true })
                 setFuturesDataByWeek(futRes.data && typeof futRes.data === 'object' ? futRes.data : {})
                 setChartDataLoaded(true)
             } catch (err) {
                 console.error('VolumeChartWidget: chart data error', err)
             }
         })()
-    }, [ownWallet, lbMeta, chartDataLoaded])
+    }, [ownWallet, chartDataLoaded])
 
     const volumeChartData = useMemo(() => {
         if (!lbMeta) return []

@@ -1,5 +1,5 @@
-﻿import { cn } from "@/app/lib/utils";
-import { Logo } from "@/app/components/ui/logo";
+import { cn } from "@/app/lib/utils";
+import { AiLogo } from "@/app/components/ui/ai-logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 
 interface Message {
@@ -24,7 +24,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {message.sender === "ai" && (
         <div className="shrink-0">
           <div className="size-8 rounded-full bg-secondary flex items-center justify-center">
-            <Logo className="size-6" />
+            <AiLogo className="size-6 mt-0" />
           </div>
         </div>
       )}
@@ -43,7 +43,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {message.sender === "user" && (
         <div className="shrink-0">
           <Avatar className="size-8">
-            <AvatarImage src="/ln.png" alt="User" />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
         </div>
@@ -51,5 +50,3 @@ export function ChatMessage({ message }: ChatMessageProps) {
     </div>
   );
 }
-
-

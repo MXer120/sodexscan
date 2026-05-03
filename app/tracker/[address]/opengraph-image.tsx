@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og'
-import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
 
 export const runtime = 'edge'
 export const alt = 'Wallet Performance Card'
@@ -9,17 +8,26 @@ export const contentType = 'image/png'
 export default async function Image({ params }) {
     const { address } = params
 
-    const { data } = await supabase
-        .from('leaderboard_smart')
-        .select('pnl_rank, cumulative_pnl, cumulative_volume, win_rate')
-        .ilike('wallet_address', address)
-        .maybeSingle()
+    let pnl = 0
+    let rankNum: number | null = null
+    let volumeNum = 0
+    try {
+        const res = await fetch(`https://mainnet-data.sodex.dev/api/v1/leaderboard/rank?window_type=ALL_TIME&sort_by=pnl&wallet_address=${address}`)
+        if (res.ok) {
+            const json = await res.json()
+            const d = json?.data
+            if (d) {
+                pnl = parseFloat(d.pnl_usd || 0)
+                rankNum = d.rank ?? null
+                volumeNum = parseFloat(d.volume_usd || 0)
+            }
+        }
+    } catch { /* gracefully show zeros */ }
 
-    const pnl = data ? parseFloat(data.cumulative_pnl || 0) : 0
     const isPositive = pnl >= 0
     const pnlStr = pnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-    const rank = data?.pnl_rank ? `#${data.pnl_rank}` : 'Unranked'
-    const volume = data ? parseFloat(data.cumulative_volume || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '$0.00'
+    const rank = rankNum ? `#${rankNum}` : 'Unranked'
+    const volume = volumeNum.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
     return new ImageResponse(
         (

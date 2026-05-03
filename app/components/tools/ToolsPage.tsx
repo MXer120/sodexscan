@@ -61,7 +61,13 @@ function ToolCard({ tool, onOpen }) {
   )
 }
 
-export default function ToolsPage() {
+export default function ToolsPage({
+  categoryFilter = null,
+  onCategoriesLoaded = null,
+}: {
+  categoryFilter?: string | null;
+  onCategoriesLoaded?: ((cats: { name: string; count: number }[]) => void) | null;
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -73,6 +79,9 @@ export default function ToolsPage() {
   const [kindFilter, setKindFilter] = useState('all')
   const [category, setCategory] = useState('all')
   const [openId, setOpenId] = useState(null)
+
+  // Use external filter when provided
+  const effectiveCategory = categoryFilter ?? category
 
   // Load manifest
   useEffect(() => {
@@ -118,12 +127,23 @@ export default function ToolsPage() {
     return { available, planned }
   }, [tools])
 
+  // Notify parent of available categories when tools load
+  useEffect(() => {
+    if (!onCategoriesLoaded || tools.length === 0) return
+    const seen = new Map<string, number>()
+    for (const t of tools) {
+      const cats = (t.categories?.length) ? t.categories : [t.category]
+      for (const c of cats) seen.set(c, (seen.get(c) ?? 0) + 1)
+    }
+    onCategoriesLoaded([...seen.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([name, count]) => ({ name, count })))
+  }, [tools, onCategoriesLoaded])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return tools.filter(t => {
       if (tab === 'available' && t.status !== 'available') return false
       if (tab === 'planned' && t.status !== 'planned') return false
-      if (category !== 'all' && t.category !== category) return false
+      if (effectiveCategory !== 'all' && t.category !== effectiveCategory) return false
       if (tierFilter !== 'all' && (t.tier ?? 'public') !== tierFilter) return false
       if (tab === 'available') {
         if (kindFilter === 'read' && t.mutates) return false
@@ -201,23 +221,6 @@ export default function ToolsPage() {
       </div>
 
       <div className="tp-layout">
-        <aside className="tp-toc">
-          <div className="tp-toc-title">Categories</div>
-          {sections.map(([cat, tools]) => (
-            <button
-              key={cat}
-              className="tp-toc-item"
-              onClick={() => {
-                const el = document.getElementById(categorySlug(cat))
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-            >
-              <span>{cat}</span>
-              <span className="tp-toc-count">{tools.length}</span>
-            </button>
-          ))}
-        </aside>
-
         <div>
           {tools.length > 0 && filtered.length === 0 && (
             <div className="tp-empty">No tools match your filters.</div>

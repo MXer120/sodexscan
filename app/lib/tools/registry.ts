@@ -16,7 +16,7 @@ import { get_symbols } from './handlers/get_symbols'
 import { resolve_refcode } from './handlers/resolve_refcode'
 import { get_alias } from './handlers/get_alias'
 import { list_alerts } from './handlers/list_alerts'
-import { get_leaderboard } from './handlers/get_leaderboard'
+import { get_account_id } from './handlers/get_account_id'
 import { get_incoming_listings } from './handlers/get_incoming_listings'
 import { watchlist_add } from './handlers/watchlist_add'
 import { watchlist_remove } from './handlers/watchlist_remove'
@@ -283,7 +283,7 @@ const AVAILABLE = [
       { name: 'sort', type: 'enum', enum: ['pnl', 'volume', 'both'], default: 'both' },
     ],
     returns: { type: 'object', shape: { address: 'string', window: 'string', sort: 'string', pnl_rank: 'number|null', volume_rank: 'number|null', cumulative_pnl: 'number', cumulative_volume: 'number' } },
-    relatedTools: ['get_account_overview', 'get_leaderboard'],
+    relatedTools: ['get_account_overview', 'get_account_id'],
     demo: 'RankDemo',
     verified: true,
     handler: get_rank,
@@ -483,19 +483,24 @@ const AVAILABLE = [
     handler: get_symbols,
   },
   {
-    id: 'get_leaderboard',
-    name: 'Leaderboard',
-    category: 'Traders',
-    status: 'available', tier: 'public',
-    shortDescription: 'PnL/volume ranked leaderboard across the platform.',
-    params: [
-      { name: 'sort', type: 'enum', enum: ['pnl', 'volume'], default: 'pnl' },
-      { name: 'limit', type: 'integer', min: 1, max: 200, default: 25 },
-      { name: 'offset', type: 'integer', min: 0, default: 0 },
-    ],
-    returns: { type: 'array', shape: '[{wallet_address,account_id,cumulative_pnl,cumulative_volume,pnl_rank,volume_rank}]' },
-    demo: 'LeaderboardDemo',
-    handler: get_leaderboard,
+    id: 'get_account_id',
+    name: 'Get Account ID',
+    handler: get_account_id,
+    category: 'Wallet',
+    categories: ['Wallet'],
+    shortDescription: 'Resolve account ID for a wallet address',
+    longDescription: 'Returns the numeric Sodex account ID (aid) for any wallet address by calling the perps state endpoint.',
+    status: 'available',
+    tier: 'public',
+    mutates: false,
+    verified: true,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: { type: 'string', description: 'Wallet address (0x...)', pattern: '^0x[a-fA-F0-9]{40}$' }
+      },
+      required: ['address']
+    }
   },
   {
     id: 'get_incoming_listings',
@@ -781,7 +786,7 @@ const PLANNED = [
   { id: 'get_liquidations', name: 'Liquidations Feed', category: 'Market Data', status: 'planned', tier: 'public', shortDescription: 'Recent liquidations stream.' },
   { id: 'get_etf_flows', name: 'ETF Flows', category: 'Market Data', status: 'planned', tier: 'public', shortDescription: 'BTC/ETH ETF net flows.' },
   { id: 'get_soso_index', name: 'SoSo Index', category: 'Market Data', status: 'planned', tier: 'public', shortDescription: 'Sentiment index.' },
-  { id: 'get_weekly_leaderboard', name: 'Weekly Leaderboard', category: 'Traders', status: 'planned', tier: 'public', shortDescription: 'Weekly slice with deltas.' },
+
   { id: 'compare_traders', name: 'Compare Traders', category: 'Traders', status: 'planned', tier: 'public', shortDescription: 'Side-by-side stats for N wallets.' },
   { id: 'reverse_search', name: 'Reverse Search', category: 'Search & Identity', status: 'planned', tier: 'public', shortDescription: 'Identity → wallet (ENS, handle, ref code).' },
   { id: 'resolve_any', name: 'Resolve Any', category: 'Search & Identity', status: 'planned', tier: 'public', shortDescription: 'Best-effort classify+resolve any input string.' },

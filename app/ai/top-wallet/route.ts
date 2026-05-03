@@ -1,22 +1,22 @@
 
-import { supabaseAdmin as supabase } from '../../lib/supabaseServer'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-    const { data, error } = await supabase
-        .from('leaderboard_smart')
-        .select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at')
-        .order('cumulative_pnl', { ascending: false })
-        .limit(1)
-        .single()
+    const apiRes = await fetch(
+        'https://mainnet-data.sodex.dev/api/v1/leaderboard?window_type=ALL_TIME&sort_by=pnl&sort_order=desc&page=1&pageSize=1'
+    )
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!apiRes.ok) {
+        return NextResponse.json({ error: 'Upstream API error' }, { status: 502 })
     }
 
-    if (!data) {
+    const apiJson = await apiRes.json()
+    const items: { rank: number; wallet_address: string; pnl_usd: number; volume_usd: number }[] = apiJson?.data?.items || []
+    const row = items[0]
+
+    if (!row) {
         return NextResponse.json({ error: 'No data found' }, { status: 404 })
     }
 
@@ -24,26 +24,21 @@ export async function GET() {
 
     return NextResponse.json({
         data: {
-            wallet_address: data.wallet_address,
+            wallet_address: row.wallet_address,
             metrics: {
                 realized_profit: {
-                    value: parseFloat(data.cumulative_pnl),
+                    value: parseFloat(String(row.pnl_usd)),
                     unit: 'USD'
                 },
                 volume: {
-                    value: parseFloat(data.cumulative_volume),
-                    unit: 'USD'
-                },
-                unrealized_profit: {
-                    value: parseFloat(data.unrealized_pnl),
+                    value: parseFloat(String(row.volume_usd)),
                     unit: 'USD'
                 }
             },
             ranks: {
-                pnl: data.pnl_rank,
-                volume: data.volume_rank
-            },
-            last_updated: data.last_synced_at
+                pnl: row.rank,
+                volume: row.rank
+            }
         },
         meta: {
             query: 'top-wallet-by-profit',
@@ -52,7 +47,6 @@ export async function GET() {
         }
     }, {
         headers: {
-            'Last-Modified': data.last_synced_at || responseDate,
             'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
         }
     })

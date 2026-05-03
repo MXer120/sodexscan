@@ -1,5 +1,5 @@
-﻿import { Button } from "@/app/components/ui/button";
-import { Logo } from "@/app/components/ui/logo";
+import { Button } from "@/app/components/ui/button";
+import { AiLogo } from "@/app/components/ui/ai-logo";
 import { cn } from "@/app/lib/utils";
 import {
   ZapIcon,
@@ -24,23 +24,20 @@ interface ChatWelcomeScreenProps {
   onModeChange: (modeId: string) => void;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
+  usePersonalKB?: boolean;
+  onPersonalKBChange?: (v: boolean) => void;
 }
 
 export function ChatWelcomeScreen({
-  message,
-  onMessageChange,
-  onSend,
-  selectedMode,
-  onModeChange,
-  selectedModel,
-  onModelChange,
+  message, onMessageChange, onSend, selectedMode, onModeChange,
+  selectedModel, onModelChange, usePersonalKB, onPersonalKBChange,
 }: ChatWelcomeScreenProps) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4 md:px-8">
       <div className="w-full max-w-[640px] space-y-9 -mt-12">
         <div className="flex justify-center">
           <div className="flex items-center justify-center size-8 rounded-full">
-            <Logo className="size-20" />
+            <AiLogo className="size-20" />
           </div>
         </div>
 
@@ -59,6 +56,8 @@ export function ChatWelcomeScreen({
           onSend={onSend}
           selectedModel={selectedModel}
           onModelChange={onModelChange}
+          usePersonalKB={usePersonalKB}
+          onPersonalKBChange={onPersonalKBChange}
           showTools={true}
         />
 
@@ -90,5 +89,3 @@ export function ChatWelcomeScreen({
     </div>
   );
 }
-
-

@@ -41,21 +41,15 @@ export default function ReverseSearchWidget({ config, editMode = true }) {
       const toPattern = (block) => block.map(c => (c && c.trim()) ? c : '_').join('')
       const pattern = `0x${toPattern(startBlock)}%${toPattern(inputChars.slice(4, 8))}`
       const { data: wallets, error: searchError } = await supabase
-        .from('leaderboard')
-        .select('wallet_address, first_trade_ts_ms')
+        .from('publicdns')
+        .select('wallet_address, dc_username, tg_username, ref_code')
         .ilike('wallet_address', pattern)
         .limit(50)
       if (searchError) throw searchError
       if (!wallets || wallets.length === 0) { setError('No matches found.'); setLoading(false); return }
-      const addrs = wallets.map(w => w.wallet_address)
-      const { data: socialData } = await supabase
-        .from('publicdns')
-        .select('wallet_address, dc_username, tg_username, ref_code')
-        .in('wallet_address', addrs)
-      const combined = wallets.map(row => {
-        const social = socialData?.find(s => s.wallet_address.toLowerCase() === row.wallet_address.toLowerCase())
-        return { wallet: row.wallet_address, referralCode: social?.ref_code, telegram: social?.tg_username, discord: social?.dc_username }
-      })
+      const combined = wallets.map(row => ({
+        wallet: row.wallet_address, referralCode: row.ref_code, telegram: row.tg_username, discord: row.dc_username
+      }))
       setResults(combined)
     } catch (err) { setError(err.message) }
     setLoading(false)

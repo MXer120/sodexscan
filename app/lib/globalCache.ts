@@ -57,10 +57,6 @@ interface CacheStore {
   tickers: TickersEntry
   newestTraders: NewestTradersEntry
   coinLogos: Map<string, CoinLogoEntry>
-  weeklyLeaderboardPages: Map<string, TimestampedPage<unknown>>
-  weeklyTotalCounts: Map<string, TimestampedCount>
-  leaderboardMeta: TimestampedData<unknown>
-  weeklyRewardEstimate: TimestampedData<unknown>
 }
 
 interface TTLStore {
@@ -68,8 +64,6 @@ interface TTLStore {
   tracker: number
   platform: number
   logos: number
-  meta: number
-  weeklyLb: number
 }
 
 class GlobalCache {
@@ -104,12 +98,6 @@ class GlobalCache {
 
       // Coin logos cache (long TTL, logos don't change often)
       coinLogos: new Map(), // url -> { loaded: bool, timestamp }
-
-      // Weekly leaderboard caches
-      weeklyLeaderboardPages: new Map(), // key: "weekNum_page_sort_excludeSodex"
-      weeklyTotalCounts: new Map(),      // key: "weekNum_sort_excludeSodex"
-      leaderboardMeta: { data: null, timestamp: 0 },
-      weeklyRewardEstimate: { data: null, timestamp: 0 },
     }
 
     this.TTL = {
@@ -117,8 +105,6 @@ class GlobalCache {
       tracker: 2 * 60 * 1000,       // 2 minutes
       platform: 5 * 60 * 1000,      // 5 minutes for tickers & new traders
       logos: 24 * 60 * 60 * 1000,   // 24 hours for logos
-      meta: 30 * 60 * 1000,         // 30 minutes for leaderboard meta
-      weeklyLb: 30 * 60 * 1000      // 30 minutes for weekly leaderboard
     }
 
     // Load persistent caches from localStorage
@@ -132,9 +118,6 @@ class GlobalCache {
       const stored = localStorage.getItem('leaderboardCache')
       if (stored) {
         const parsed = JSON.parse(stored)
-        if (parsed.meta && Date.now() - parsed.meta.timestamp < this.TTL.meta) {
-          this.caches.leaderboardMeta = parsed.meta
-        }
         if (parsed.pages) {
           Object.entries(parsed.pages).forEach(([key, value]) => {
             const v = value as TimestampedPage<unknown>
@@ -151,22 +134,6 @@ class GlobalCache {
             }
           })
         }
-        if (parsed.weeklyPages) {
-          Object.entries(parsed.weeklyPages).forEach(([key, value]) => {
-            const v = value as TimestampedPage<unknown>
-            if (Date.now() - v.timestamp < this.TTL.weeklyLb) {
-              this.caches.weeklyLeaderboardPages.set(key, v)
-            }
-          })
-        }
-        if (parsed.weeklyCounts) {
-          Object.entries(parsed.weeklyCounts).forEach(([key, value]) => {
-            const v = value as TimestampedCount
-            if (Date.now() - v.timestamp < this.TTL.weeklyLb) {
-              this.caches.weeklyTotalCounts.set(key, v)
-            }
-          })
-        }
       }
     } catch (e) { /* ignore */ }
   }
@@ -178,14 +145,7 @@ class GlobalCache {
       this.caches.leaderboardPages.forEach((v, k) => { pages[k] = v })
       const counts: Record<string, TimestampedCount> = {}
       this.caches.totalCounts.forEach((v, k) => { counts[k] = v })
-      const weeklyPages: Record<string, TimestampedPage<unknown>> = {}
-      this.caches.weeklyLeaderboardPages.forEach((v, k) => { weeklyPages[k] = v })
-      const weeklyCounts: Record<string, TimestampedCount> = {}
-      this.caches.weeklyTotalCounts.forEach((v, k) => { weeklyCounts[k] = v })
-      localStorage.setItem('leaderboardCache', JSON.stringify({
-        meta: this.caches.leaderboardMeta,
-        pages, counts, weeklyPages, weeklyCounts
-      }))
+      localStorage.setItem('leaderboardCache', JSON.stringify({ pages, counts }))
     } catch (e) { /* ignore quota errors */ }
   }
 
@@ -357,76 +317,16 @@ class GlobalCache {
     })
   }
 
-  // Weekly leaderboard page cache
-  getWeeklyLeaderboardPage(weekNum: number | string, page: number | string, sort: string, excludeSodex: boolean | string) {
-    const key = `${weekNum}_${page}_${sort}_${excludeSodex}`
-    const cached = this.caches.weeklyLeaderboardPages.get(key)
-    if (!cached) return null
-    const age = Date.now() - cached.timestamp
-    if (age >= this.TTL.weeklyLb) {
-      this.caches.weeklyLeaderboardPages.delete(key)
-      return null
-    }
-    return cached.data
-  }
-
-  setWeeklyLeaderboardPage(weekNum: number | string, page: number | string, sort: string, excludeSodex: boolean | string, data: unknown) {
-    const key = `${weekNum}_${page}_${sort}_${excludeSodex}`
-    this.caches.weeklyLeaderboardPages.set(key, { data, timestamp: Date.now() })
-    this._savePersistentLeaderboardCache()
-  }
-
-  // Weekly total count cache
-  getWeeklyTotalCount(weekNum: number | string, sort: string, excludeSodex: boolean | string) {
-    const key = `${weekNum}_${sort}_${excludeSodex}`
-    const cached = this.caches.weeklyTotalCounts.get(key)
-    if (!cached) return null
-    const age = Date.now() - cached.timestamp
-    if (age >= this.TTL.weeklyLb) {
-      this.caches.weeklyTotalCounts.delete(key)
-      return null
-    }
-    return cached.count
-  }
-
-  setWeeklyTotalCount(weekNum: number | string, sort: string, excludeSodex: boolean | string, count: number) {
-    const key = `${weekNum}_${sort}_${excludeSodex}`
-    this.caches.weeklyTotalCounts.set(key, { count, timestamp: Date.now() })
-    this._savePersistentLeaderboardCache()
-  }
-
-  // Leaderboard meta cache (long TTL, rarely changes)
-  getLeaderboardMeta() {
-    const cached = this.caches.leaderboardMeta
-    if (!cached.data) return null
-    const age = Date.now() - cached.timestamp
-    if (age >= this.TTL.meta) {
-      this.caches.leaderboardMeta = { data: null, timestamp: 0 }
-      return null
-    }
-    return cached.data
-  }
-
-  setLeaderboardMeta(data: unknown) {
-    this.caches.leaderboardMeta = { data, timestamp: Date.now() }
-    this._savePersistentLeaderboardCache()
-  }
-
-  // Weekly reward estimate cache
-  getWeeklyRewardEstimate() {
-    const cached = this.caches.weeklyRewardEstimate
-    if (!cached.data) return null
-    const age = Date.now() - cached.timestamp
-    if (age >= this.TTL.tracker) { // 2 min TTL
-      this.caches.weeklyRewardEstimate = { data: null, timestamp: 0 }
-      return null
-    }
-    return cached.data
-  }
-
-  setWeeklyRewardEstimate(data: unknown) {
-    this.caches.weeklyRewardEstimate = { data, timestamp: Date.now() }
-  }
+  // ── Removed methods (stubs kept for backward compatibility) ──
+  // These tables have been dropped; methods are no-ops / return null.
+  getWeeklyLeaderboardPage(_weekNum: number | string, _page: number | string, _sort: string, _excludeSodex: boolean | string) { return null }
+  setWeeklyLeaderboardPage(_weekNum: number | string, _page: number | string, _sort: string, _excludeSodex: boolean | string, _data: unknown) {}
+  getWeeklyTotalCount(_weekNum: number | string, _sort: string, _excludeSodex: boolean | string) { return null }
+  setWeeklyTotalCount(_weekNum: number | string, _sort: string, _excludeSodex: boolean | string, _count: number) {}
+  getLeaderboardMeta() { return null }
+  setLeaderboardMeta(_data: unknown) {}
+  getWeeklyRewardEstimate() { return null }
+  setWeeklyRewardEstimate(_data: unknown) {}
 
   // Clear all caches
   clear() {
@@ -438,10 +338,6 @@ class GlobalCache {
     this.caches.tickers = { spot: [], futures: [], timestamp: 0 }
     this.caches.newestTraders = { data: [], timestamp: 0 }
     this.caches.coinLogos.clear()
-    this.caches.weeklyLeaderboardPages.clear()
-    this.caches.weeklyTotalCounts.clear()
-    this.caches.leaderboardMeta = { data: null, timestamp: 0 }
-    this.caches.weeklyRewardEstimate = { data: null, timestamp: 0 }
     if (typeof window !== 'undefined') {
       try { localStorage.removeItem('socialLeaderboardCache') } catch (e) { }
       try { localStorage.removeItem('leaderboardCache') } catch (e) { }

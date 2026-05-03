@@ -156,10 +156,10 @@ const ReverseSearchPage = () => {
             // pattern: 0x + start + % + end
             const pattern = `0x${startPatternStr}%${endPatternStr}`
 
-            // Limit to 100 to avoid huge queries
+            // Search publicdns for wallet pattern match
             const { data: wallets, error: searchError } = await supabase
-                .from('leaderboard')
-                .select('wallet_address, first_trade_ts_ms')
+                .from('publicdns')
+                .select('wallet_address, dc_username, tg_username, tg_displayname, ref_code')
                 .ilike('wallet_address', pattern)
                 .limit(100)
 
@@ -167,33 +167,19 @@ const ReverseSearchPage = () => {
 
             if (!wallets || wallets.length === 0) {
                 setLoading(false)
-                setError('No matching wallets found in leaderboard.')
+                setError('No matching wallets found.')
                 return
             }
 
-            const matchingWallets = wallets.map(w => w.wallet_address)
-
-            // 2. Fetch details for these wallets
-            const { data: socialData, error: socialError } = await supabase
-                .from('publicdns')
-                .select('wallet_address, dc_username, tg_username, tg_displayname, ref_code')
-                .in('wallet_address', matchingWallets)
-
-            if (socialError) console.error("Social data fetch error:", socialError)
-
             // Merge data
-            const combinedResults = wallets.map(row => {
-                const social = socialData?.find(s => s.wallet_address.toLowerCase() === row.wallet_address.toLowerCase())
-
-                return {
-                    wallet: row.wallet_address,
-                    firstTrade: row.first_trade_ts_ms,
-                    referralCode: social?.ref_code,
-                    telegram: social?.tg_username || social?.tg_displayname,
-                    discord: social?.dc_username,
-                    x: null
-                }
-            })
+            const combinedResults = wallets.map(row => ({
+                wallet: row.wallet_address,
+                firstTrade: null,
+                referralCode: row.ref_code,
+                telegram: row.tg_username || row.tg_displayname,
+                discord: row.dc_username,
+                x: null
+            }))
 
             setResults(combinedResults)
 

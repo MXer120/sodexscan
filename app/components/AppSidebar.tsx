@@ -21,7 +21,7 @@ import {
   Folder, ChevronDown, ChevronRight, X, MessageSquare, Settings, HelpCircle,
   Plus, Check, User, LogOut, Sparkles, Share2, GitMerge, BarChart3,
   Wrench, FileBarChart, FolderSearch, ShieldAlert, FlaskConical, Globe,
-  Palette, MoreHorizontal,
+  Palette, MoreHorizontal, Map, Languages,
 } from "lucide-react";
 
 const menuItems = [
@@ -46,6 +46,7 @@ const moreItems = [
   { icon: FolderSearch, label: "Reverse Search", href: "/reverse-search" },
   { icon: FlaskConical, label: "Incoming",       href: "/incoming"       },
   { icon: Palette,      label: "Design System",  href: "/design-system"  },
+  { icon: Map,          label: "Roadmap",        href: "/roadmap"        },
 ];
 
 const favorites = [
@@ -54,11 +55,6 @@ const favorites = [
   { icon: Folder, label: "Overtime Logs"  },
 ];
 
-const footerItems = [
-  { icon: MessageSquare, label: "Feedback",    href: undefined  },
-  { icon: Settings,      label: "Settings",    href: "/profile" },
-  { icon: HelpCircle,    label: "Help Center", href: undefined  },
-];
 
 // Portal-based hover popup — escapes sidebar overflow clipping
 function MoreMenu({ pathname }: { pathname: string }) {
@@ -138,7 +134,7 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
 
       {/* ── Header ── */}
       <SidebarHeader className="p-5 pb-0">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
               <div className="size-7 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 flex items-center justify-center ring-1 ring-white/40 shadow-lg" />
@@ -162,13 +158,11 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
               <DropdownMenuSeparator />
               <DropdownMenuItem><Plus className="size-4 mr-2" />Create Workspace</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem><User className="size-4 mr-2" />Account Settings</DropdownMenuItem>
               <DropdownMenuItem><Settings className="size-4 mr-2" />Workspace Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive"><LogOut className="size-4 mr-2" />Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <GradientAvatar storageKey="sidebar-user-avatar" size={28} rounded="full" />
         </div>
       </SidebarHeader>
 
@@ -249,26 +243,6 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
           )}
         </SidebarGroup>
 
-        {/* Footer links */}
-        <SidebarGroup className="p-0">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {footerItems.map((item) => (
-                <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton asChild={!!item.href} className="h-[38px]">
-                    {item.href ? (
-                      <Link href={item.href}>
-                        <item.icon className="size-5" /><span>{item.label}</span>
-                      </Link>
-                    ) : (
-                      <><item.icon className="size-5" /><span>{item.label}</span></>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
       </SidebarContent>
 
@@ -291,6 +265,45 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
             </Link>
           </div>
         )}
+
+        {/* Profile row */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-accent transition-colors text-left outline-none">
+              <GradientAvatar storageKey="sidebar-user-avatar" size={32} rounded="full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate leading-none mb-0.5">My Account</p>
+                <p className="text-xs text-muted-foreground truncate">lutz@steinfartz.de</p>
+              </div>
+              <MoreHorizontal className="size-4 text-muted-foreground shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
+            <DropdownMenuLabel className="font-normal pb-1">
+              <p className="text-sm font-medium">My Account</p>
+              <p className="text-xs text-muted-foreground font-normal">lutz@steinfartz.de</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/profile"><User className="size-4 mr-2" />Profile</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/profile"><Settings className="size-4 mr-2" />Settings</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+              <Languages className="size-4 mr-2" />
+              Language
+              <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">Soon</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem><HelpCircle className="size-4 mr-2" />Help Center</DropdownMenuItem>
+            <DropdownMenuItem><MessageSquare className="size-4 mr-2" />Feedback</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <LogOut className="size-4 mr-2" />Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
 
     </Sidebar>

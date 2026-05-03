@@ -1,9 +1,8 @@
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../lib/supabaseClient'
 
-// Full data load (initial) — includes supabase + external APIs
+// Full data load (initial) — includes external APIs
 export function useWalletData(address: string | null) {
   return useQuery({
     queryKey: ['wallet-data', address],
@@ -26,7 +25,7 @@ function useResolvedAccountId(address: string | null): string | null {
   return cached?.account_id ?? null
 }
 
-// 5s polling — external APIs only, no supabase
+// 5s polling — external APIs only
 export function useWalletSlowData(address: string | null, accountIdOverride?: string | null) {
   const resolved = useResolvedAccountId(address)
   const accountId = accountIdOverride ?? resolved
@@ -45,7 +44,7 @@ export function useWalletSlowData(address: string | null, accountIdOverride?: st
   })
 }
 
-// 1s polling — external APIs only, no supabase
+// 1s polling — external APIs only
 export function useWalletLiveData(address: string | null, accountIdOverride?: string | null) {
   const resolved = useResolvedAccountId(address)
   const accountId = accountIdOverride ?? resolved
@@ -64,20 +63,26 @@ export function useWalletLiveData(address: string | null, accountIdOverride?: st
   })
 }
 
-export function useWalletLeaderboard(accountId: string | null) {
+export function useWalletLeaderboard(address: string | null) {
   return useQuery({
-    queryKey: ['wallet-leaderboard', accountId],
+    queryKey: ['wallet-leaderboard', address],
     queryFn: async () => {
-      if (!accountId) return null
-      const { data, error } = await supabase
-        .from('leaderboard_smart')
-        .select('pnl_rank, volume_rank, cumulative_pnl, cumulative_volume')
-        .eq('account_id', accountId)
-        .maybeSingle()
-      if (error) return null
-      return data
+      if (!address) return null
+      const [pnlRes, volRes] = await Promise.all([
+        fetch(`/api/sodex-leaderboard/rank?wallet_address=${address}&sort_by=pnl&window_type=ALL_TIME`).then(r => r.json()),
+        fetch(`/api/sodex-leaderboard/rank?wallet_address=${address}&sort_by=volume&window_type=ALL_TIME`).then(r => r.json()),
+      ])
+      const pnlData = pnlRes?.data
+      const volData = volRes?.data
+      if (!pnlData && !volData) return null
+      return {
+        pnl_rank: pnlData?.rank ?? null,
+        volume_rank: volData?.rank ?? null,
+        cumulative_pnl: pnlData?.pnl_usd ?? null,
+        cumulative_volume: volData?.volume_usd ?? null,
+      }
     },
-    enabled: !!accountId,
+    enabled: !!address,
     staleTime: 5 * 60 * 1000,
   })
 }

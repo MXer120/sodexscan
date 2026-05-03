@@ -173,42 +173,35 @@ export default function CopyLeaderboard({ externalFilter, onFilterChange }) {
 
       try {
         if (tab === 'top100' || tab === 'inv100') {
-          const asc = tab === 'inv100'
-          const col = sortBy === 'cumulative_volume' ? 'cumulative_volume'
-                    : sortBy === 'cumulative_pnl'    ? 'cumulative_pnl'
-                    : 'sodex_pnl'
-          const { data } = await supabase
-            .from('leaderboard')
-            .select('wallet_address, sodex_pnl, cumulative_pnl, cumulative_volume, pnl_rank')
-            .not('sodex_pnl', 'eq', 0)
-            .not('is_sodex_owned', 'is', true)
-            .order(col, { ascending: asc })
-            .limit(100)
-          next = (data ?? []).map((r, i) => ({
+          const sortOrder = tab === 'inv100' ? 'asc' : 'desc'
+          const sortField = sortBy === 'cumulative_volume' ? 'volume' : 'pnl'
+          const res = await fetch(
+            `/api/sodex-leaderboard?page=1&page_size=100&sort_by=${sortField}&sort_order=${sortOrder}&window_type=ALL_TIME`
+          )
+          const json = await res.json()
+          next = ((json?.data?.items) ?? []).map((r, i) => ({
             wallet: r.wallet_address,
-            pnl30d: parseFloat(r.sodex_pnl ?? 0),
-            pnlAll: parseFloat(r.cumulative_pnl ?? 0),
-            volume: parseFloat(r.cumulative_volume ?? 0),
-            rank: r.pnl_rank,
+            pnl30d: parseFloat(r.pnl_usd ?? 0),
+            pnlAll: parseFloat(r.pnl_usd ?? 0),
+            volume: parseFloat(r.volume_usd ?? 0),
+            rank: r.rank,
             displayRank: i + 1,
             _type: 'real',
           }))
         }
 
         else if (tab === 'best' || tab === 'worst') {
-          const { data } = await supabase
-            .from('leaderboard')
-            .select('wallet_address, sodex_pnl, cumulative_pnl, cumulative_volume, pnl_rank')
-            .not('sodex_pnl', 'eq', 0)
-            .not('is_sodex_owned', 'is', true)
-            .order('sodex_pnl', { ascending: tab === 'worst' })
-            .limit(10)
-          next = (data ?? []).map((r, i) => ({
+          const sortOrder = tab === 'worst' ? 'asc' : 'desc'
+          const res = await fetch(
+            `/api/sodex-leaderboard?page=1&page_size=10&sort_by=pnl&sort_order=${sortOrder}&window_type=ALL_TIME`
+          )
+          const json = await res.json()
+          next = ((json?.data?.items) ?? []).map((r, i) => ({
             wallet: r.wallet_address,
-            pnl30d: parseFloat(r.sodex_pnl ?? 0),
-            pnlAll: parseFloat(r.cumulative_pnl ?? 0),
-            volume: parseFloat(r.cumulative_volume ?? 0),
-            rank: r.pnl_rank,
+            pnl30d: parseFloat(r.pnl_usd ?? 0),
+            pnlAll: parseFloat(r.pnl_usd ?? 0),
+            volume: parseFloat(r.volume_usd ?? 0),
+            rank: r.rank,
             displayRank: i + 1,
             _type: 'real',
           }))
@@ -223,21 +216,26 @@ export default function CopyLeaderboard({ externalFilter, onFilterChange }) {
               .eq('user_id', user.id)
               .order('added_at', { ascending: false })
             if (wl?.length) {
-              const { data: lb } = await supabase
-                .from('leaderboard')
-                .select('wallet_address, sodex_pnl, cumulative_pnl, cumulative_volume')
-                .in('wallet_address', wl.map(r => r.wallet_address))
-              const map = {}
-              for (const r of lb ?? []) map[r.wallet_address] = r
-              next = wl.map((w, i) => ({
-                wallet: w.wallet_address,
-                pnl30d: parseFloat(map[w.wallet_address]?.sodex_pnl ?? 0),
-                pnlAll: parseFloat(map[w.wallet_address]?.cumulative_pnl ?? 0),
-                volume: parseFloat(map[w.wallet_address]?.cumulative_volume ?? 0),
-                tag: w.tag,
-                displayRank: i + 1,
-                _type: 'watch',
-              }))
+              const rankResults = await Promise.allSettled(
+                wl.map(w =>
+                  fetch(`/api/sodex-leaderboard/rank?wallet_address=${w.wallet_address}&sort_by=pnl&window_type=ALL_TIME`)
+                    .then(r => r.json())
+                )
+              )
+              next = wl.map((w, i) => {
+                const r = rankResults[i]
+                const d = r.status === 'fulfilled' ? r.value?.data : null
+                return {
+                  wallet: w.wallet_address,
+                  pnl30d: parseFloat(d?.pnl_usd ?? 0),
+                  pnlAll: parseFloat(d?.pnl_usd ?? 0),
+                  volume: parseFloat(d?.volume_usd ?? 0),
+                  rank: d?.rank ?? null,
+                  tag: w.tag,
+                  displayRank: i + 1,
+                  _type: 'watch',
+                }
+              })
             }
           }
         }
@@ -252,20 +250,25 @@ export default function CopyLeaderboard({ externalFilter, onFilterChange }) {
               .eq('cohort_id', cohortId)
               .order('added_at', { ascending: false })
             if (cw?.length) {
-              const { data: lb } = await supabase
-                .from('leaderboard')
-                .select('wallet_address, sodex_pnl, cumulative_pnl, cumulative_volume')
-                .in('wallet_address', cw.map(r => r.wallet_address))
-              const map = {}
-              for (const r of lb ?? []) map[r.wallet_address] = r
-              next = cw.map((w, i) => ({
-                wallet: w.wallet_address,
-                pnl30d: parseFloat(map[w.wallet_address]?.sodex_pnl ?? 0),
-                pnlAll: parseFloat(map[w.wallet_address]?.cumulative_pnl ?? 0),
-                volume: parseFloat(map[w.wallet_address]?.cumulative_volume ?? 0),
-                displayRank: i + 1,
-                _type: 'cohort',
-              }))
+              const rankResults = await Promise.allSettled(
+                cw.map(w =>
+                  fetch(`/api/sodex-leaderboard/rank?wallet_address=${w.wallet_address}&sort_by=pnl&window_type=ALL_TIME`)
+                    .then(r => r.json())
+                )
+              )
+              next = cw.map((w, i) => {
+                const r = rankResults[i]
+                const d = r.status === 'fulfilled' ? r.value?.data : null
+                return {
+                  wallet: w.wallet_address,
+                  pnl30d: parseFloat(d?.pnl_usd ?? 0),
+                  pnlAll: parseFloat(d?.pnl_usd ?? 0),
+                  volume: parseFloat(d?.volume_usd ?? 0),
+                  rank: d?.rank ?? null,
+                  displayRank: i + 1,
+                  _type: 'cohort',
+                }
+              })
             }
           }
         }
@@ -274,17 +277,17 @@ export default function CopyLeaderboard({ externalFilter, onFilterChange }) {
           const walletAddr = externalFilter?.id
           if (!walletAddr) { next = [] }
           else {
-            const { data: lb } = await supabase
-              .from('leaderboard')
-              .select('wallet_address, sodex_pnl, cumulative_pnl, cumulative_volume, pnl_rank')
-              .eq('wallet_address', walletAddr)
-              .maybeSingle()
-            next = lb ? [{
-              wallet: lb.wallet_address,
-              pnl30d: parseFloat(lb.sodex_pnl ?? 0),
-              pnlAll: parseFloat(lb.cumulative_pnl ?? 0),
-              volume: parseFloat(lb.cumulative_volume ?? 0),
-              rank: lb.pnl_rank,
+            const res = await fetch(
+              `/api/sodex-leaderboard/rank?wallet_address=${walletAddr}&sort_by=pnl&window_type=ALL_TIME`
+            )
+            const json = await res.json()
+            const d = json?.data
+            next = d ? [{
+              wallet: d.wallet_address,
+              pnl30d: parseFloat(d.pnl_usd ?? 0),
+              pnlAll: parseFloat(d.pnl_usd ?? 0),
+              volume: parseFloat(d.volume_usd ?? 0),
+              rank: d.rank,
               displayRank: 1,
               _type: 'real',
             }] : []

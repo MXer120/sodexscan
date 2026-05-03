@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../../../lib/supabaseClient'
 import CopyableAddress from '../../ui/CopyableAddress'
 import { SkeletonLeaderboard } from '../../Skeleton'
 
@@ -16,27 +15,29 @@ const formatNum = (num) => {
 export default function SpotLeaderboardWidget() {
   const [page, setPage] = useState(1)
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['spot-leaderboard-db'],
+  const { data: leaderboardData = { items: [], total: 0 }, isLoading } = useQuery({
+    queryKey: ['spot-leaderboard', page],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('leaderboard_smart')
-        .select('wallet_address, spot_volume')
-        .gt('spot_volume', 0)
-        .not('is_sodex_owned', 'is', true)
-        .order('spot_volume', { ascending: false })
-        .limit(1000)
-      if (error) throw error
-      return (data || []).map(r => ({
-        wallet: r.wallet_address,
-        volume: parseFloat(r.spot_volume) || 0
-      }))
+      const res = await fetch(
+        `/api/sodex-leaderboard?page=${page}&page_size=${PAGE_SIZE}&sort_by=volume&sort_order=desc&window_type=ALL_TIME`
+      )
+      if (!res.ok) throw new Error('Failed to fetch leaderboard')
+      const json = await res.json()
+      if (json.code !== 0) throw new Error('Leaderboard API error')
+      return {
+        items: (json.data?.items || []).map(r => ({
+          wallet: r.wallet_address,
+          volume: parseFloat(r.volume_usd) || 0,
+          rank: r.rank,
+        })),
+        total: json.data?.total || 0
+      }
     },
     staleTime: 5 * 60 * 1000,
   })
 
-  const totalPages = Math.ceil(rows.length / PAGE_SIZE)
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const { items: pageRows, total } = leaderboardData
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   if (isLoading) return <table style={{width:'100%'}}><SkeletonLeaderboard rows={10} cols={3} /></table>
 
@@ -51,9 +52,9 @@ export default function SpotLeaderboardWidget() {
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((u, idx) => (
+          {pageRows.map((u) => (
             <tr key={u.wallet}>
-              <td className="rank">#{(page - 1) * PAGE_SIZE + idx + 1}</td>
+              <td className="rank">#{u.rank}</td>
               <td><CopyableAddress address={u.wallet} /></td>
               <td className="text-right">${formatNum(u.volume)}</td>
             </tr>

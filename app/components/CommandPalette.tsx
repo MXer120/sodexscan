@@ -184,17 +184,17 @@ export default function CommandPalette() {
 
     const loadStats = async () => {
         try {
-            const [{ count: totalUsers }, { data: rpcData }] = await Promise.all([
-                supabase.from('leaderboard_smart').select('account_id', { count: 'exact', head: true }),
-                supabase.rpc('get_leaderboard_stats')
-            ])
-            const parsed = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData
-            setStats({
-                totalUsers: totalUsers || 0,
-                activeTraders: parsed?.totalUsers || 0,
-                tradersGt2k: parsed?.gt2kVol || 0,
-                usersGt1kVol: parsed?.gt1kVol || 0
-            })
+            const res = await fetch('/api/sodex-leaderboard?sort_by=volume&page_size=1&window_type=ALL_TIME')
+            if (res.ok) {
+                const json = await res.json()
+                const total = json?.data?.total || 0
+                setStats({
+                    totalUsers: total,
+                    activeTraders: total,
+                    tradersGt2k: 0,
+                    usersGt1kVol: 0
+                })
+            }
         } catch (err) {
             console.error('Failed stats load', err)
         }
@@ -303,23 +303,26 @@ export default function CommandPalette() {
             // Rank Lookups - only if term is present and number
             if ((filter === 'pnl_rank' || filter === 'volume_rank') && !isNaN(parseInt(term)) && !isEmpty) {
                 const rank = parseInt(term)
-                const col = filter === 'pnl_rank' ? 'pnl_rank' : 'volume_rank'
-                const { data: rankData } = await supabase
-                    .from('leaderboard_smart')
-                    .select('wallet_address')
-                    .eq(col, rank)
-                    .maybeSingle()
-
-                if (rankData) {
-                    results.push({
-                        type: 'rank',
-                        label: `${filter === 'pnl_rank' ? 'PnL' : 'Vol'} Rank #${rank}`,
-                        value: rankData.wallet_address,
-                        detail: rankData.wallet_address,
-                        icon: <Icons.Chart />,
-                        group: 'Rankings'
-                    })
-                }
+                const sortBy = filter === 'pnl_rank' ? 'pnl' : 'volume'
+                try {
+                    const page = Math.ceil(rank / 20)
+                    const rankRes = await fetch(`/api/sodex-leaderboard?page=${page}&page_size=20&sort_by=${sortBy}&sort_order=desc&window_type=ALL_TIME`)
+                    if (rankRes.ok) {
+                        const rankJson = await rankRes.json()
+                        const items: { rank: number; wallet_address: string }[] = rankJson?.data?.items || []
+                        const match = items.find(item => item.rank === rank)
+                        if (match) {
+                            results.push({
+                                type: 'rank',
+                                label: `${filter === 'pnl_rank' ? 'PnL' : 'Vol'} Rank #${rank}`,
+                                value: match.wallet_address,
+                                detail: match.wallet_address,
+                                icon: <Icons.Chart />,
+                                group: 'Rankings'
+                            })
+                        }
+                    }
+                } catch { /* ignore */ }
             }
 
             // --- 6. Socials / DNS ---

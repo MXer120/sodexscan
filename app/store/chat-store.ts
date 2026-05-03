@@ -5,6 +5,7 @@ interface ChatState {
   chats: Chat[];
   selectedChatId: string | null;
   selectChat: (chatId: string) => void;
+  setChats: (chats: Chat[]) => void;
   addMessage: (chatId: string, message: Omit<Message, "id" | "timestamp">) => void;
   createNewChat: () => void;
   archiveChat: (chatId: string) => void;
@@ -17,7 +18,8 @@ export const useChatStore = create<ChatState>((set) => ({
   selectedChatId: null,
   
   selectChat: (chatId) => set({ selectedChatId: chatId }),
-  
+  setChats: (chats) => set({ chats }),
+
   addMessage: (chatId, message) =>
     set((state) => ({
       chats: state.chats.map((chat) =>

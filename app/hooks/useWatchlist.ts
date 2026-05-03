@@ -14,6 +14,7 @@ export interface WatchlistItem {
     group_name: string | null
     group_color: string | null
   } | null
+  /** @deprecated leaderboard_smart table has been dropped; always null */
   leaderboard: {
     pnl_rank: number | null
     volume_rank: number | null
@@ -75,10 +76,9 @@ export function useWatchlist() {
       }
 
       // 2. Fetch related data
-      const [tagsData, groupsData, leaderboardData] = await Promise.all([
+      const [tagsData, groupsData] = await Promise.all([
         fetchWithILike('wallet_tags', 'wallet_address, tag_name, group_name', watchlistAddresses, (q) => q.eq('is_group', false)),
         supabase.from('wallet_tags').select('group_name, group_color').eq('is_group', true).then(res => res.data || []),
-        fetchWithILike('leaderboard_smart', 'wallet_address, account_id, pnl_rank, volume_rank', watchlistAddresses)
       ])
 
       // Build maps for efficient lookup
@@ -100,82 +100,9 @@ export function useWatchlist() {
         }
       })
 
-      const leaderboardMap = new Map<string, {
-        account_id: string | null,
-        pnl_rank: number | null,
-        volume_rank: number | null
-      }>()
-      leaderboardData.forEach((entry: any) => {
-        if (entry.wallet_address) {
-          leaderboardMap.set(entry.wallet_address.toLowerCase(), {
-            account_id: entry.account_id,
-            pnl_rank: entry.pnl_rank,
-            volume_rank: entry.volume_rank
-          })
-        }
-      })
-
-      // Fetch positions from Sodex API
-      const accountIds = Array.from(new Set(
-        leaderboardData
-          .filter((e: any) => e.account_id)
-          .map((e: any) => e.account_id)
-      ))
-
-      const positionsMap = new Map<string, { symbol: string, position_side: string }>()
-
-      // Fetch positions in batches
-      const batchSize = 20
-      for (let i = 0; i < accountIds.length; i += batchSize) {
-        const batch = accountIds.slice(i, i + batchSize)
-        await Promise.all(
-          batch.map(async (accountId) => {
-            try {
-              // Fetch Account Details to get OPEN positions (includes symbol strings)
-              const res = await fetch(
-                `https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`
-              )
-              const data = await res.json()
-
-              let positions = []
-              if (data.code === 0 && data.data && data.data.positions) {
-                positions = data.data.positions
-              }
-
-              if (positions && positions.length > 0) {
-                // Find biggest position by size (margin * leverage. e.g. usd value)
-                const sorted = positions.sort((a: any, b: any) => {
-                  const valA = (parseFloat(a.isolatedMargin) || 0) * (parseFloat(a.leverage) || 0)
-                  const valB = (parseFloat(b.isolatedMargin) || 0) * (parseFloat(b.leverage) || 0)
-                  return valB - valA
-                })
-
-                // Only keep first position per account (biggest)
-                const pos = sorted[0]
-                const symbol = pos.symbol
-                // API returns 'LONG' / 'SHORT'
-                const side = pos.positionSide
-
-                if (symbol) {
-                  positionsMap.set(String(accountId), {
-                    symbol: symbol,
-                    position_side: side
-                  })
-                }
-              }
-            } catch (err) {
-              console.error(`Failed to fetch positions for account ${accountId}:`, err)
-            }
-          })
-        )
-      }
-
       return watchlistRows.map((item) => {
         const walletLower = item.wallet_address.toLowerCase()
         const tagInfo = tagMap.get(walletLower)
-        const leaderboardInfo = leaderboardMap.get(walletLower)
-        const accountId = leaderboardInfo?.account_id
-        const positionInfo = accountId ? positionsMap.get(String(accountId)) : null
 
         return {
           id: item.id,
@@ -186,11 +113,8 @@ export function useWatchlist() {
             group_name: tagInfo.group_name,
             group_color: tagInfo.group_name ? groupColorMap.get(tagInfo.group_name) || null : null
           } : null,
-          leaderboard: leaderboardInfo ? {
-            pnl_rank: leaderboardInfo.pnl_rank,
-            volume_rank: leaderboardInfo.volume_rank
-          } : null,
-          current_position: positionInfo || null
+          leaderboard: null,
+          current_position: null
         }
       }) as WatchlistItem[]
     },

@@ -5,6 +5,20 @@ import { fetchUserTags, WalletTag } from '../lib/walletTags'
 import { supabase } from '../lib/supabaseClient'
 import '../styles/SearchBox.css'
 
+async function getWalletAtRank(sortBy: 'pnl' | 'volume', rank: number): Promise<string | null> {
+    try {
+        const page = Math.ceil(rank / 20)
+        const res = await fetch(`/api/sodex-leaderboard?page=${page}&page_size=20&sort_by=${sortBy}&sort_order=desc&window_type=ALL_TIME`)
+        if (!res.ok) return null
+        const json = await res.json()
+        const items: { rank: number; wallet_address: string }[] = json?.data?.items || []
+        const match = items.find(item => item.rank === rank)
+        return match?.wallet_address ?? null
+    } catch {
+        return null
+    }
+}
+
 export type FilterType = 'all' | 'address' | 'tag' | 'socials' | 'discord' | 'telegram' | 'refcode' | 'pnl_rank' | 'volume_rank'
 
 interface SearchAndAddBoxProps {
@@ -140,17 +154,12 @@ export default function SearchAndAddBox({
                     setError('Enter a valid rank number')
                     return
                 }
-                const { data, error: lbError } = await supabase
-                    .from('leaderboard_smart')
-                    .select('wallet_address')
-                    .eq('pnl_rank', rank)
-                    .maybeSingle()
-
-                if (lbError || !data) {
+                const walletAddress = await getWalletAtRank('pnl', rank)
+                if (!walletAddress) {
                     setError(`No wallet at PnL rank #${rank}`)
                     return
                 }
-                await onAction({ wallet_address: data.wallet_address })
+                await onAction({ wallet_address: walletAddress })
                 if (searchValue === undefined) setInternalValue('')
                 return
             }
@@ -162,17 +171,12 @@ export default function SearchAndAddBox({
                     setError('Enter a valid rank number')
                     return
                 }
-                const { data, error: lbError } = await supabase
-                    .from('leaderboard_smart')
-                    .select('wallet_address')
-                    .eq('volume_rank', rank)
-                    .maybeSingle()
-
-                if (lbError || !data) {
+                const walletAddress = await getWalletAtRank('volume', rank)
+                if (!walletAddress) {
                     setError(`No wallet at Volume rank #${rank}`)
                     return
                 }
-                await onAction({ wallet_address: data.wallet_address })
+                await onAction({ wallet_address: walletAddress })
                 if (searchValue === undefined) setInternalValue('')
                 return
             }

@@ -1,6 +1,6 @@
 
-import { supabaseAdmin as supabase } from '../../../../lib/supabaseServer'
 import { NextResponse } from 'next/server'
+import { getSodexIdFromWallet } from '../../../../lib/accountResolver'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,15 +12,6 @@ const BRACKET_TTL = 60 * 60 * 1000 // 1 hour
 const walletCache = new Map()
 const WALLET_CACHE_TTL = 60 * 1000 // 60 seconds
 const MAX_WALLET_CACHE = 200 // prevent unbounded growth
-
-async function getSodexId(address) {
-    const { data } = await supabase
-        .from('leaderboard_smart')
-        .select('account_id')
-        .eq('wallet_address', address.toLowerCase())
-        .maybeSingle()
-    return data?.account_id
-}
 
 async function getBracketList() {
     if (bracketCache.data && Date.now() - bracketCache.timestamp < BRACKET_TTL) {
@@ -49,7 +40,7 @@ export async function GET(request: Request, { params }: { params: { address: str
         })
     }
 
-    const accountId = await getSodexId(address)
+    const accountId = await getSodexIdFromWallet(address)
 
     if (!accountId) {
         return NextResponse.json({ error: 'Wallet not found' }, { status: 404 })
@@ -68,23 +59,25 @@ export async function GET(request: Request, { params }: { params: { address: str
 
     // Parallel fetch of all data points used in UI
     const [
-        leaderboard,
         overview,
         details,
         balances,
         dailyPnl,
         positions,
         fundTransfers,
-        bracketList
+        bracketList,
+        rankData,
+        summaryData
     ] = await Promise.all([
-        supabase.from('leaderboard_smart').select('account_id, wallet_address, cumulative_pnl, cumulative_volume, unrealized_pnl, pnl_rank, volume_rank, last_synced_at, first_trade_ts_ms').eq('account_id', accountId).maybeSingle(),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
         fetchJson(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
         fetchJson(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/daily_stats?account_id=${accountId}`),
         fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/positions?account_id=${accountId}&limit=500`),
         fetchJson(`https://sodex.dev/mainnet/chain/user/${accountId}/fund-transfers?userId=${accountId}&page=1&size=200`),
-        getBracketList()
+        getBracketList(),
+        fetchJson(`https://mainnet-data.sodex.dev/api/v1/leaderboard/rank?window_type=ALL_TIME&sort_by=volume&wallet_address=${address}`),
+        fetchJson(`https://mainnet-data.sodex.dev/api/v1/account/${accountId}/summary`)
     ])
 
     // Build symbolId → symbol string map from bracket list
@@ -103,6 +96,18 @@ export async function GET(request: Request, { params }: { params: { address: str
         }))
     }
 
+    // Compute spot stats (cumulative all-time minus futures all-time)
+    const cumPnl = parseFloat(rankData?.data?.item?.pnl_usd ?? rankData?.data?.pnl_usd ?? 0)
+    const cumVol = parseFloat(rankData?.data?.item?.volume_usd ?? rankData?.data?.volume_usd ?? 0)
+    const futuresPnl = parseFloat(summaryData?.data?.total_pnl ?? 0)
+    const futuresVol = parseFloat(summaryData?.data?.total_volume ?? 0)
+    const spotStats = {
+        spot_pnl: cumPnl - futuresPnl,
+        spot_volume: cumVol - futuresVol,
+        cumulative_pnl: cumPnl,
+        cumulative_volume: cumVol,
+    }
+
     // Post request for account flow (withdrawals)
     const accountFlow = await fetchJson('https://alpha-biz.sodex.dev/biz/mirror/account_flow', {
         method: 'POST',
@@ -113,8 +118,9 @@ export async function GET(request: Request, { params }: { params: { address: str
     const responseBody = {
         wallet_address: address,
         account_id: accountId,
+        spotStats,
         data: {
-            leaderboard_entry: leaderboard.data,
+            leaderboard_entry: null,
             overview: overview,
             account_details: details,
             balances: balances,

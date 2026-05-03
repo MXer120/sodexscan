@@ -1,8 +1,5 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../../../lib/supabaseClient'
-import { useLeaderboardMeta } from '../../../hooks/useLeaderboardMeta'
-import { fetchHistoricalWeek, queryHistoricalWeek } from '../../../lib/weeklyLeaderboardLoader'
 import CopyableAddress from '../../ui/CopyableAddress'
 
 const PAGE_SIZE = 20
@@ -15,81 +12,81 @@ const formatNum = (num) => {
 }
 
 export default function WeeklyPerpsLBWidget({ config }) {
-  const sortBy = config?.sortBy || 'volume'
+  const sortBy = config?.sortBy || 'pnl'
   const weekOffset = parseInt(config?.weekOffset ?? 0)
-  const { data: meta } = useLeaderboardMeta()
   const [page, setPage] = useState(1)
 
-  const weekNum = meta?.current_week_number || 0
-  const p_week = weekOffset === 0 ? 0 : weekNum - weekOffset
-  const rpcSort = sortBy === 'pnl' ? 'pnl' : 'futures_volume'
+  // Historical weekly data is unavailable; always show current week
+  const isHistorical = weekOffset !== 0
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['weekly-perps-lb', weekNum, weekOffset, rpcSort, page],
+  const { data: leaderboardData = { items: [], total: 0 }, isLoading } = useQuery({
+    queryKey: ['weekly-perps-lb', sortBy, page],
     queryFn: async () => {
-      // Historical weeks: static JSON from GitHub
-      if (p_week >= 1) {
-        const weekData = await fetchHistoricalWeek(p_week)
-        const { rows } = queryHistoricalWeek(weekData, {
-          sort: rpcSort, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE, excludeSodex: true
-        })
-        return rows
+      if (isHistorical) return { items: [], total: 0 }
+      const apiSortBy = sortBy === 'pnl' ? 'pnl' : 'volume'
+      const res = await fetch(
+        `/api/sodex-leaderboard?page=${page}&page_size=${PAGE_SIZE}&sort_by=${apiSortBy}&sort_order=desc&window_type=WEEKLY`
+      )
+      if (!res.ok) throw new Error('Failed to fetch weekly leaderboard')
+      const json = await res.json()
+      if (json.code !== 0) throw new Error('Leaderboard API error')
+      return {
+        items: (json.data?.items || []).map(r => ({
+          wallet: r.wallet_address,
+          pnl: parseFloat(r.pnl_usd) || 0,
+          volume: parseFloat(r.volume_usd) || 0,
+          rank: r.rank,
+        })),
+        total: json.data?.total || 0
       }
-      // Current week: Supabase RPC
-      const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-        p_week,
-        p_sort: rpcSort,
-        p_limit: PAGE_SIZE,
-        p_offset: (page - 1) * PAGE_SIZE,
-        p_exclude_sodex: true
-      })
-      if (error) throw error
-      return data || []
     },
-    enabled: !!weekNum,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   })
 
-  const displayWeek = weekOffset === 0 ? weekNum : weekNum - weekOffset
-  const weekLabel = weekOffset === 0
-    ? `Week ${weekNum} (Live)`
-    : displayWeek === 1 ? 'CA + Week 1' : `Week ${displayWeek}`
+  const { items: rows, total } = leaderboardData
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
     <div>
       <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 6 }}>
-        {weekLabel}
+        {isHistorical ? 'Historical weekly data unavailable' : 'This week (Live)'}
       </div>
-      <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Wallet</th>
-              <th className="text-right">PnL</th>
-              <th className="text-right">Volume</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(rows || []).map((row, idx) => (
-              <tr key={row.wallet_address}>
-                <td className="rank">#{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                <td><CopyableAddress address={row.wallet_address} /></td>
-                <td className={`text-right ${parseFloat(row.weekly_pnl) > 0 ? 'positive' : parseFloat(row.weekly_pnl) < 0 ? 'negative' : ''}`}>
-                  ${formatNum(parseFloat(row.weekly_pnl) || 0)}
-                </td>
-                <td className="text-right">${formatNum(parseFloat(row.weekly_volume) || 0)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="agg-pagination">
-        <button className="agg-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>&lt; Prev</button>
-        <span className="agg-page-info">Page {page}</span>
-        <button className="agg-page-btn" onClick={() => setPage(p => p + 1)} disabled={(rows || []).length < PAGE_SIZE}>Next &gt;</button>
-      </div>
+      {isHistorical ? null : (
+        <>
+          <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Wallet</th>
+                  <th className="text-right">PnL</th>
+                  <th className="text-right">Volume</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.wallet}>
+                    <td className="rank">#{row.rank}</td>
+                    <td><CopyableAddress address={row.wallet} /></td>
+                    <td className={`text-right ${row.pnl > 0 ? 'positive' : row.pnl < 0 ? 'negative' : ''}`}>
+                      ${formatNum(row.pnl)}
+                    </td>
+                    <td className="text-right">${formatNum(row.volume)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="agg-pagination">
+              <button className="agg-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>&lt; Prev</button>
+              <span className="agg-page-info">Page {page} / {totalPages}</span>
+              <button className="agg-page-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next &gt;</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

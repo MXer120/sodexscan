@@ -20,6 +20,7 @@ const TITLES: Record<string, string> = {
   '/reverse-search': 'Reverse Search',
   '/incoming': 'Incoming',
   '/design-system': 'Design System',
+  '/roadmap': 'Roadmap',
   '/ai': 'CommunityScan AI',
   '/chat': 'CommunityScan AI',
   '/profile': 'Profile',

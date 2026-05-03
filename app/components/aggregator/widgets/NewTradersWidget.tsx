@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabaseClient'
 import { globalCache } from '../../../lib/globalCache'
 import { SkeletonNewTradersTable } from '../../Skeleton'
 
@@ -34,17 +33,17 @@ export default function NewTradersWidget() {
       if (cached) { setTraders(cached); setLoading(false); return }
       setLoading(true)
       try {
-        const { data, error } = await supabase
-          .from('leaderboard')
-          .select('wallet_address, first_trade_ts_ms')
-          .not('first_trade_ts_ms', 'is', null)
-          .order('first_trade_ts_ms', { ascending: false })
-          .limit(10)
-        if (error) throw error
-        const results = data || []
+        const res = await fetch('/api/sodex-leaderboard?sort_by=volume&page_size=10&window_type=ALL_TIME')
+        if (!res.ok) throw new Error('API error')
+        const json = await res.json()
+        const items = json?.data?.items || []
+        const results = items.map((item: { wallet_address: string }) => ({
+          wallet_address: item.wallet_address,
+          first_trade_ts_ms: null,
+        }))
         globalCache.setNewestTraders(results)
         setTraders(results)
-      } catch (err) {
+      } catch (err: any) {
         if (err?.name !== 'AbortError') console.error(err)
       }
       setLoading(false)

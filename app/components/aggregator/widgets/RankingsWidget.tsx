@@ -1,12 +1,42 @@
 'use client'
 
-import { useWalletData } from '../../../hooks/useWalletData'
+import { useQuery } from '@tanstack/react-query'
 import { SkeletonWidget } from '../../Skeleton'
 
 export default function RankingsWidget({ config, onUpdateConfig }) {
-  const { data, isLoading } = useWalletData(config.walletAddress || null)
+  const address = config.walletAddress || null
 
-  if (!config.walletAddress) {
+  const { data: pnlRankData, isLoading: pnlLoading } = useQuery({
+    queryKey: ['rank-pnl', address],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/sodex-leaderboard/rank?wallet_address=${address}&sort_by=pnl&window_type=ALL_TIME`
+      )
+      if (!res.ok) throw new Error('Failed to fetch PnL rank')
+      const json = await res.json()
+      if (json.code !== 0) return null
+      return json.data
+    },
+    enabled: !!address,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: volRankData, isLoading: volLoading } = useQuery({
+    queryKey: ['rank-volume', address],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/sodex-leaderboard/rank?wallet_address=${address}&sort_by=volume&window_type=ALL_TIME`
+      )
+      if (!res.ok) throw new Error('Failed to fetch volume rank')
+      const json = await res.json()
+      if (json.code !== 0) return null
+      return json.data
+    },
+    enabled: !!address,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  if (!address) {
     return (
       <div className="agg-widget-address">
         <input placeholder="Enter wallet address..." onKeyDown={e => {
@@ -18,11 +48,10 @@ export default function RankingsWidget({ config, onUpdateConfig }) {
     )
   }
 
-  if (isLoading) return <SkeletonWidget />
+  if (pnlLoading || volLoading) return <SkeletonWidget />
 
-  const lb = data?.data?.leaderboard_entry
-  const pnlRank = lb?.pnl_rank ?? null
-  const volumeRank = lb?.volume_rank ?? null
+  const pnlRank = pnlRankData?.rank ?? null
+  const volumeRank = volRankData?.rank ?? null
 
   return (
     <div className="agg-widget-stats">

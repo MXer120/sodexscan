@@ -16,7 +16,6 @@ export async function POST(request: Request) {
     if (!type || type === 'all') {
       const syncFuncs = [
         syncAccounts,
-        syncLeaderboard,
         syncPositions,
         syncHistory,
         syncWithdrawals,
@@ -36,7 +35,6 @@ export async function POST(request: Request) {
       // Sync specific type
       const syncMap = {
         accounts: syncAccounts,
-        leaderboard: syncLeaderboard,
         positions: syncPositions,
         history: syncHistory,
         withdrawals: syncWithdrawals,
@@ -100,50 +98,6 @@ async function syncAccounts() {
   }
 
   return { success: true, inserted }
-}
-
-async function syncLeaderboard() {
-  const { data: accounts } = await supabase
-    .from('account_mapping')
-    .select('account_id, wallet_address')
-
-  if (!accounts || accounts.length === 0) {
-    return { success: true, updated: 0 }
-  }
-
-  const leaderboardData = []
-
-  for (let i = 0; i < accounts.length; i += 5) {
-    const batch = accounts.slice(i, i + 5)
-
-    await Promise.all(batch.map(async (account) => {
-      try {
-        const res = await fetch(`${MAINNET_API}/account/${account.account_id}/summary`)
-        const data = await res.json()
-
-        if (data?.code === 0 && data?.data) {
-          leaderboardData.push({
-            account_id: account.account_id,
-            wallet_address: account.wallet_address,
-            cumulative_pnl: parseFloat(data.data.total_pnl || 0),
-            cumulative_volume: parseFloat(data.data.total_volume || 0)
-          })
-        }
-      } catch (err) {
-        console.error(`Error syncing leaderboard for ${account.account_id}:`, err)
-      }
-    }))
-  }
-
-  // Use RPC that skips no-op updates to avoid dead tuple bloat
-  if (leaderboardData.length > 0) {
-    const { error } = await supabase.rpc('upsert_leaderboard_batch', {
-      rows: leaderboardData
-    })
-    if (error) throw error
-  }
-
-  return { success: true, updated: leaderboardData.length }
 }
 
 async function syncPositions() {

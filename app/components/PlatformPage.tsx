@@ -42,27 +42,15 @@ export default function PlatformPage() {
     setPlatformLoading(true)
 
     try {
-      // Fetch total users from leaderboard (excluding sodex-owned) — matches LB/SoPoints page
-      const { count: totalUsersCount, error: usersErr } = await supabase
-        .from('leaderboard')
-        .select('account_id', { count: 'exact', head: true })
-        .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
+      // Fetch total traders from official leaderboard API
+      const res = await fetch('/api/sodex-leaderboard?sort_by=volume&page_size=1&window_type=ALL_TIME')
+      let totalCount = 0
+      if (res.ok) {
+        const json = await res.json()
+        totalCount = json?.data?.total || 0
+      }
 
-      if (usersErr) console.error('users query error:', usersErr)
-
-      // Fetch total "Traders" (non-zero activity, excluding sodex-owned)
-      const activityFilter = excludeSodexOwned
-        ? 'and(cumulative_volume.gt.0,or(is_sodex_owned.is.null,is_sodex_owned.eq.false)),and(cumulative_pnl.neq.0,or(is_sodex_owned.is.null,is_sodex_owned.eq.false))'
-        : 'cumulative_pnl.neq.0,cumulative_volume.gt.0'
-
-      const { count: tradersCount, error: tradersErr } = await supabase
-        .from('leaderboard_smart')
-        .select('account_id', { count: 'exact', head: true })
-        .or(activityFilter)
-
-      if (tradersErr) console.error('traders query error:', tradersErr)
-
-      setPlatformStats({ totalUsers: totalUsersCount || 0, totalTraders: tradersCount || 0 })
+      setPlatformStats({ totalUsers: totalCount, totalTraders: totalCount })
 
       setPlatformLoading(false)
     } catch (err) {
@@ -84,75 +72,8 @@ export default function PlatformPage() {
       return
     }
 
-    setCustomLoading(true)
-    try {
-      const getOp = (op) => {
-        if (op === 'gt') return 'gte'
-        if (op === 'lt') return 'lte'
-        return 'eq'
-      }
-
-      const applyOp = (query: any, op: string, col: string, val: number) => {
-        const fn = getOp(op)
-        if (fn === 'gte') return query.gte(col, val)
-        if (fn === 'lte') return query.lte(col, val)
-        return query.eq(col, val)
-      }
-
-      let volRes = { count: 0 }
-      let pnlRes = { count: 0 }
-      let combinedRes = { count: 0 }
-      const promises = []
-
-      // 1. Independent Volume Count
-      if (!isNaN(v)) {
-        let volQuery = applyOp(
-          supabase.from('leaderboard').select('id', { count: 'exact', head: true }),
-          volOp, 'cumulative_volume', v
-        )
-        if (excludeSodexOwned) {
-          volQuery = volQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-        }
-        promises.push(volQuery.then((res: any) => { volRes = res }))
-      }
-
-      // 2. Independent Profit Count
-      if (!isNaN(p)) {
-        let pnlQuery = applyOp(
-          supabase.from('leaderboard').select('id', { count: 'exact', head: true }),
-          pnlOp, 'cumulative_pnl', p
-        )
-        if (excludeSodexOwned) {
-          pnlQuery = pnlQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-        }
-        promises.push(pnlQuery.then((res: any) => { pnlRes = res }))
-      }
-
-      // 3. Combined Count
-      let combinedQuery: any = supabase
-        .from('leaderboard')
-        .select('id', { count: 'exact', head: true })
-
-      if (!isNaN(v)) combinedQuery = applyOp(combinedQuery, volOp, 'cumulative_volume', v)
-      if (!isNaN(p)) combinedQuery = applyOp(combinedQuery, pnlOp, 'cumulative_pnl', p)
-
-      if (excludeSodexOwned) {
-        combinedQuery = combinedQuery.or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-      }
-      promises.push(combinedQuery.then(res => { combinedRes = res }))
-
-      await Promise.all(promises)
-
-      setCustomStats({
-        volCount: volRes.count || 0,
-        pnlCount: pnlRes.count || 0,
-        combinedCount: combinedRes.count || 0
-      })
-    } catch (err) {
-      console.error('Failed to fetch custom count:', err)
-    } finally {
-      setCustomLoading(false)
-    }
+    // Calculator feature requires per-threshold filtering which is not supported by the current API.
+    setCustomStats({ volCount: 0, pnlCount: 0, combinedCount: 0 })
   }
 
   const formatNumber = (num, prefix = '') => {

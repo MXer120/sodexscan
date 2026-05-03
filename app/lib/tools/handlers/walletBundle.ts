@@ -2,7 +2,7 @@
 // Reuses the same Sodex endpoints that /api/public/wallet/[address] calls, so
 // multiple tools can slice a single upstream fetch.
 
-import { supabaseAdmin } from '../../supabaseServer'
+import { getSodexIdFromWallet } from '../../accountResolver'
 
 const bundleCache = new Map()
 const TTL = 60 * 1000
@@ -16,15 +16,6 @@ async function fetchJson(url: string, opts?: RequestInit) {
   } catch {
     return null
   }
-}
-
-async function getAccountId(address) {
-  const { data } = await supabaseAdmin
-    .from('leaderboard_smart')
-    .select('account_id')
-    .ilike('wallet_address', address)
-    .maybeSingle()
-  return data?.account_id ?? null
 }
 
 // Mark prices are global (not per-wallet) — cache separately for 30s
@@ -69,14 +60,14 @@ export async function fetchWallet(address) {
   const cached = bundleCache.get(key)
   if (cached && Date.now() - cached.at < TTL) return cached.data
 
-  const accountId = await getAccountId(address)
+  const accountId = await getSodexIdFromWallet(address)
   if (!accountId) {
     const miss = { accountId: null, leaderboard: null, overview: null, details: null, balances: null, dailyPnl: null, positions: null, fundTransfers: null, markPrices: {} }
     return miss
   }
 
-  const [leaderboard, overview, details, balances, dailyPnl, positions, fundTransfers, markPrices] = await Promise.all([
-    supabaseAdmin.from('leaderboard_smart').select('*').eq('account_id', accountId).maybeSingle().then(r => r.data),
+  const [rankData, overview, details, balances, dailyPnl, positions, fundTransfers, markPrices] = await Promise.all([
+    fetchJson(`https://mainnet-data.sodex.dev/api/v1/leaderboard/rank?window_type=ALL_TIME&sort_by=pnl&wallet_address=${address}`),
     fetchJson(`https://mainnet-data.sodex.dev/api/v1/perps/pnl/overview?account_id=${accountId}`),
     fetchJson(`https://mainnet-gw.sodex.dev/futures/fapi/user/v1/public/account/details?accountId=${accountId}`),
     fetchJson(`https://mainnet-gw.sodex.dev/pro/p/user/balance/list?accountId=${accountId}`),
@@ -86,6 +77,9 @@ export async function fetchWallet(address) {
     getMarkPriceMap(),
   ])
 
+  const leaderboard = rankData?.data
+    ? { pnl_usd: rankData.data.pnl_usd, volume_usd: rankData.data.volume_usd, rank: rankData.data.rank }
+    : null
   const data = { accountId, leaderboard, overview, details, balances, dailyPnl, positions, fundTransfers, markPrices }
   if (bundleCache.size >= MAX) bundleCache.delete(bundleCache.keys().next().value)
   bundleCache.set(key, { at: Date.now(), data })

@@ -1,17 +1,18 @@
 
-import { supabaseAdmin as supabase } from './lib/supabaseServer'
-
 export default async function sitemap() {
     const baseUrl = 'https://www.communityscan-sodex.com'
 
     // Fetch top 100 wallets to include in sitemap for AI indexing
-    const { data: topWallets } = await supabase
-        .from('leaderboard_smart')
-        .select('wallet_address')
-        .order('cumulative_pnl', { ascending: false })
-        .limit(100)
+    let topWallets: { wallet_address: string }[] = []
+    try {
+        const res = await fetch('https://mainnet-data.sodex.dev/api/v1/leaderboard?window_type=ALL_TIME&sort_by=pnl&sort_order=desc&page=1&pageSize=100')
+        if (res.ok) {
+            const json = await res.json()
+            topWallets = (json?.data?.items || []).map((item: { wallet_address: string }) => ({ wallet_address: item.wallet_address }))
+        }
+    } catch { /* ignore — sitemap degrades gracefully */ }
 
-    const walletUrls = (topWallets || []).map((w) => ({
+    const walletUrls = topWallets.map((w) => ({
         url: `${baseUrl}/tracker/${w.wallet_address}`,
         lastModified: new Date(),
         changeFrequency: 'hourly',

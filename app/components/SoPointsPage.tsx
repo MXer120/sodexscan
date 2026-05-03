@@ -4,10 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import '../styles/SoPoints.css'
-import { supabase } from '../lib/supabaseClient'
 import { useUserProfile } from '../hooks/useProfile'
-import { useSoPointsConfig } from '../hooks/useSoPointsConfig'
-import { globalCache } from '../lib/globalCache'
 import Link from 'next/link'
 import { SkeletonList, SkeletonBar } from './Skeleton'
 import dynamic from 'next/dynamic'
@@ -16,7 +13,6 @@ const SoPointsEstimator = dynamic(() => import('./SoPointsEstimator'), { ssr: fa
 
 // Spot volume multiplier (spot is harder to get, worth more)
 const SPOT_MULTIPLIER = 2
-const TOTAL_POOL = 1_000_000
 
 const SoPointsPage = () => {
     const [showWarning, setShowWarning] = useState(true)
@@ -28,14 +24,12 @@ const SoPointsPage = () => {
     })
     const [showDiff, setShowDiff] = useState(false)
     const [loading, setLoading] = useState(true)
-    const [lbMeta, setLbMeta] = useState(null)
-    const [rewardEstimate, setRewardEstimate] = useState(null)
-    const [rewardLoading, setRewardLoading] = useState(false)
-    const [weeklyStats, setWeeklyStats] = useState({})
-    const [totalUserCounts, setTotalUserCounts] = useState({})
 
-    // Weekly leaderboard data from RPC (weekNum -> array of {wallet_address, weekly_spot_volume, weekly_volume, ...})
-    const [weeklyLbData, setWeeklyLbData] = useState({}) // weekNum -> RPC result array
+    // Static meta — leaderboard_meta table has been removed
+    const lbMeta = { current_week_number: 1, pool_size: 1000000, total_user_counts: {} }
+
+    // Weekly leaderboard data from official API (weekNum -> array of {wallet_address, volume_usd, rank, ...})
+    const [weeklyLbData, setWeeklyLbData] = useState({}) // weekNum -> API result array
     const [weeklyLbLoading, setWeeklyLbLoading] = useState(false)
 
     // Volume chart state
@@ -56,7 +50,6 @@ const SoPointsPage = () => {
     const [pointsLbPage, setPointsLbPage] = useState(1)
     const POINTS_PAGE_SIZE = 20
 
-    const { getWeekConfig } = useSoPointsConfig()
     const { data: profileData } = useUserProfile()
     const ownWallet = profileData?.profile?.own_wallet
 
@@ -91,11 +84,9 @@ const SoPointsPage = () => {
                 // Week rolled over — reset countdown & reload all data
                 setTargetDate(getNextSaturday())
                 setTimeLeft('DISTRIBUTING...')
-                globalCache.caches.leaderboardMeta = { data: null, timestamp: 0 }
                 setWeeklyLbData({})
                 setChartDataLoaded(false)
                 setSelectedPointsWeek(null)
-                loadMeta()
                 return
             }
             const days = Math.floor(distance / (1000 * 60 * 60 * 24))
@@ -107,9 +98,8 @@ const SoPointsPage = () => {
         return () => clearInterval(timer)
     }, [targetDate])
 
-    // Load meta + stats on mount
+    // Load stats on mount
     useEffect(() => {
-        loadMeta()
         loadStats()
     }, [])
 
@@ -132,11 +122,6 @@ const SoPointsPage = () => {
         }
     }, [selectedPointsWeek])
 
-    // Load reward estimate when wallet available and legacy tab active
-    useEffect(() => {
-        if (ownWallet && legacyVisible) loadRewardEstimate(ownWallet)
-    }, [ownWallet, legacyVisible])
-
     // Load all weeks data for chart + points LB when meta available
     useEffect(() => {
         if (lbMeta && !chartDataLoaded && (activeTab === 'overview' || activeTab === 'legacy')) {
@@ -144,23 +129,23 @@ const SoPointsPage = () => {
         }
     }, [lbMeta, chartDataLoaded, activeTab])
 
-    // ── Load weekly leaderboard data from RPC (spot + futures combined) ──
+    // ── Load leaderboard data from official API ──
     const loadWeeklyLb = async (weekNum) => {
         if (weeklyLbData[weekNum] !== undefined) return weeklyLbData[weekNum]
         try {
-            const { data, error } = await supabase.rpc('get_weekly_leaderboard', {
-                p_week: weekNum,
-                p_sort: 'volume',
-                p_limit: 10000,
-                p_offset: 0,
-                p_exclude_sodex: true
-            })
-            if (error) throw error
-            const rows = data || []
+            const res = await fetch('/api/sodex-leaderboard?sort_by=volume&page_size=50&window_type=ALL_TIME')
+            const json = await res.json()
+            if (json?.code !== 0) throw new Error('API error')
+            const rows = (json?.data?.items ?? []).map((item, i) => ({
+                wallet_address: item.wallet_address,
+                volume_usd: item.volume_usd,
+                pnl_usd: item.pnl_usd,
+                rank: item.rank ?? (i + 1),
+            }))
             setWeeklyLbData(prev => ({ ...prev, [weekNum]: rows }))
             return rows
         } catch (err) {
-            console.error('Failed to load weekly LB:', err)
+            console.error('Failed to load leaderboard:', err)
             return []
         }
     }
@@ -213,214 +198,59 @@ const SoPointsPage = () => {
         setWeeklyLbLoading(false)
     }
 
-    // Load per-week trader counts
-    useEffect(() => {
-        if (lbMeta && lbMeta.current_week_number > 1) {
-            loadWeeklyStats(lbMeta.current_week_number)
-        }
-    }, [lbMeta, totalUserCounts])
-
-    const loadWeeklyStats = async (currentWeek) => {
-        try {
-            const stats = {}
-            for (let w = currentWeek - 1; w >= 1; w--) {
-                const { count: traders } = await supabase
-                    .from('leaderboard_weekly')
-                    .select('account_id', { count: 'exact', head: true })
-                    .eq('week_number', w)
-                    .gt('cumulative_volume', 0)
-                    .not('is_sodex_owned', 'is', true)
-
-                const { count: activeTraders } = await supabase
-                    .from('leaderboard_weekly')
-                    .select('account_id', { count: 'exact', head: true })
-                    .eq('week_number', w)
-                    .gte('cumulative_volume', 5000)
-                    .not('is_sodex_owned', 'is', true)
-
-                const storedCount = totalUserCounts[String(w)]
-                stats[w] = {
-                    traders: traders || 0,
-                    totalUsers: storedCount || 0,
-                    activeTraders: activeTraders || 0
-                }
-            }
-            setWeeklyStats(stats)
-        } catch (err) {
-            console.error('Failed to load weekly stats:', err)
-        }
-    }
-
-    const loadMeta = async () => {
-        const cached = globalCache.getLeaderboardMeta()
-        if (cached) { setLbMeta(cached as any); if ((cached as any).total_user_counts) setTotalUserCounts((cached as any).total_user_counts); return }
-        try {
-            const { data, error } = await supabase
-                .from('leaderboard_meta')
-                .select('id, current_week_number, pool_size, total_user_counts')
-                .eq('id', 1)
-                .single()
-            if (error) throw error
-            if (data) {
-                globalCache.setLeaderboardMeta(data)
-                setLbMeta(data)
-                if (data.total_user_counts) setTotalUserCounts(data.total_user_counts)
-            }
-        } catch (err) {
-            console.error('Failed to load lb meta:', err)
-        }
-    }
-
-    const loadRewardEstimate = async (wallet) => {
-        const cached = globalCache.getWeeklyRewardEstimate()
-        if (cached) { setRewardEstimate(cached); return }
-        setRewardLoading(true)
-        try {
-            const { data, error } = await supabase.rpc('get_user_weekly_reward_estimate', {
-                p_wallet_address: wallet
-            })
-            if (error) throw error
-            if (data) {
-                globalCache.setWeeklyRewardEstimate(data)
-                setRewardEstimate(data)
-            }
-        } catch (err) {
-            console.error('Failed to load reward estimate:', err)
-        }
-        setRewardLoading(false)
-    }
-
     const loadStats = async () => {
         setLoading(true)
-        try {
-            const { count: totalUsers } = await supabase
-                .from('leaderboard')
-                .select('account_id', { count: 'exact', head: true })
-                .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-
-            const { count: traders } = await supabase
-                .from('leaderboard')
-                .select('account_id', { count: 'exact', head: true })
-                .or('cumulative_pnl.neq.0,cumulative_volume.gt.0')
-                .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-
-            const { count: activeTraders } = await supabase
-                .from('leaderboard')
-                .select('account_id', { count: 'exact', head: true })
-                .gte('cumulative_volume', 5000)
-                .or('is_sodex_owned.is.null,is_sodex_owned.eq.false')
-
-            setGlobalStats({
-                totalUsers: totalUsers || 0,
-                traders: traders || 0,
-                activeTraders: activeTraders || 0
-            })
-        } catch (err) {
-            console.error("Failed to load global stats", err)
-        } finally {
-            setLoading(false)
-        }
+        // Global stats from leaderboard table are no longer available.
+        // Use placeholder values.
+        setGlobalStats({ totalUsers: 0, traders: 0, activeTraders: 0 })
+        setLoading(false)
     }
 
-    // ── Points Leaderboard: use weekly LB RPC data (spot + futures), weighted scoring ──
+    // ── Points Leaderboard: use official API data (volume-based ranking) ──
     const pointsLeaderboard = useMemo(() => {
-        if (!lbMeta || !selectedPointsWeek) return null
-        const isLive = selectedPointsWeek === lbMeta.current_week_number
-        const weekKey = isLive ? 0 : selectedPointsWeek
-
-        const weekConfig = getWeekConfig(selectedPointsWeek)
-        const effectiveMultiplier = weekConfig.spot_multiplier
+        if (!selectedPointsWeek) return null
+        const weekKey = 0 // always use the single cached result
 
         const rows = weeklyLbData[weekKey]
         if (!rows && weeklyLbLoading) return null
         if (!rows) return null
 
-        const entries = []
-        for (const row of rows) {
-            const rawWeeklySpot = parseFloat(row.weekly_spot_volume) || 0
-            const rawFuturesVol = parseFloat(row.weekly_volume) || 0
-
-            // Apply per-week config exclusions
-            const weeklySpotVol = weekConfig.include_spot ? rawWeeklySpot : 0
-            const weeklyFuturesVol = weekConfig.include_futures ? rawFuturesVol : 0
-
-            if (weeklySpotVol === 0 && weeklyFuturesVol === 0) continue
-
-            entries.push({
+        const entries = rows
+            .filter(row => parseFloat(row.volume_usd) > 0)
+            .map((row, i) => ({
                 walletAddress: row.wallet_address,
-                userId: '',
-                weeklySpotVol,
-                allTimeSpotVol: 0,
-                weeklyFuturesVol,
-                weightedVolume: weeklySpotVol * effectiveMultiplier + weeklyFuturesVol
-            })
-        }
+                rank: row.rank ?? (i + 1),
+                volume: parseFloat(row.volume_usd) || 0,
+            }))
 
-        entries.sort((a, b) => b.weightedVolume - a.weightedVolume)
-
-        const totalWeighted = entries.reduce((sum, e) => sum + e.weightedVolume, 0)
-        entries.forEach(e => {
-            e.share = totalWeighted > 0 ? e.weightedVolume / totalWeighted : 0
-            e.points = e.share * TOTAL_POOL
-        })
-
-        const qualified = entries.filter(e => e.points >= 1)
-        const qualifiedWeighted = qualified.reduce((sum, e) => sum + e.weightedVolume, 0)
-
-        qualified.forEach((e, i) => {
-            e.rank = i + 1
-            e.share = qualifiedWeighted > 0 ? e.weightedVolume / qualifiedWeighted : 0
-            e.points = Math.round(e.share * TOTAL_POOL)
-        })
-
-        return { entries: qualified, totalWeighted: qualifiedWeighted, weekConfig }
-    }, [weeklyLbData, weeklyLbLoading, selectedPointsWeek, lbMeta, getWeekConfig])
+        return { entries }
+    }, [weeklyLbData, weeklyLbLoading, selectedPointsWeek])
 
     // Find user's position in points LB
     const userPointsEntry = useMemo(() => {
         if (!pointsLeaderboard || !ownWallet) return null
-        return pointsLeaderboard.entries.find(e => e.walletAddress.toLowerCase() === ownWallet.toLowerCase())
+        return pointsLeaderboard.entries.find(e => e.walletAddress?.toLowerCase() === ownWallet.toLowerCase()) ?? null
     }, [pointsLeaderboard, ownWallet])
 
-    // ── Volume chart data ──
+    // ── Volume chart data (all-time, single data point from official API) ──
     const volumeChartData = useMemo(() => {
-        if (!lbMeta) return []
-        const currentWeek = lbMeta.current_week_number
         const walletLow = ownWallet?.toLowerCase()
+        const rows = weeklyLbData[0]
+        if (!rows) return []
 
-        return Array.from({ length: currentWeek }, (_, i) => {
-            const w = i + 1
-            const isLive = w === currentWeek
-            const weekKey = isLive ? 0 : w
-            const rows = weeklyLbData[weekKey]
-
-            let userFuturesVol = 0
-            let userSpotVol = 0
-            let totalPlatformVol = 0
-            if (rows) {
-                for (const r of rows) {
-                    const fv = parseFloat(r.weekly_volume) || 0
-                    const sv = parseFloat(r.weekly_spot_volume) || 0
-                    const rv = chartFilter === 'spot' ? sv : chartFilter === 'futures' ? fv : sv + fv
-                    totalPlatformVol += rv
-                    if (walletLow && r.wallet_address?.toLowerCase() === walletLow) {
-                        userFuturesVol = fv
-                        userSpotVol = sv
-                    }
-                }
+        let userVol = 0
+        let totalPlatformVol = 0
+        for (const r of rows) {
+            const v = parseFloat(r.volume_usd) || 0
+            totalPlatformVol += v
+            if (walletLow && r.wallet_address?.toLowerCase() === walletLow) {
+                userVol = v
             }
+        }
 
-            const userVol = chartFilter === 'spot' ? userSpotVol
-                : chartFilter === 'futures' ? userFuturesVol
-                : userSpotVol + userFuturesVol
-
-            const userWeightedVol = userSpotVol * spotWeight + userFuturesVol
-            const competitiveness = totalPlatformVol > 0 ? (userVol / totalPlatformVol) * 100 : 0
-            const weekLabel = w === 1 ? `CA + W1 (${getWeekDateRange(w)})` : getWeekDateRange(w)
-
-            return { week: w === 1 ? 'CA+W1' : `W${w}`, weekLabel, userVol, userWeightedVol, competitiveness }
-        })
-    }, [lbMeta, chartFilter, weeklyLbData, ownWallet, spotWeight])
+        const competitiveness = totalPlatformVol > 0 ? (userVol / totalPlatformVol) * 100 : 0
+        return [{ week: 'All-time', weekLabel: 'All-time Volume', userVol, userWeightedVol: userVol, competitiveness }]
+    }, [weeklyLbData, ownWallet])
 
     const visibleChartData = useMemo(() => {
         if (!volumeChartData.length) return volumeChartData
@@ -489,15 +319,8 @@ const SoPointsPage = () => {
         return absNum.toFixed(0)
     }
 
-    const poolSize = lbMeta?.pool_size ? parseFloat(lbMeta.pool_size) : 1000000
-    const currentWeekNum = lbMeta?.current_week_number || 1
-
-    const getPrevStats = (weekNum) => {
-        if (weekNum <= 1) return closedAlphaStats
-        const prev = weeklyStats[weekNum - 1]
-        if (prev) return prev
-        return { totalUsers: 0, traders: 0, activeTraders: 0 }
-    }
+    const poolSize = 1000000
+    const currentWeekNum = 1
 
     // Truncate address
     const truncAddr = (addr) => {
@@ -716,49 +539,12 @@ const SoPointsPage = () => {
                                     <span className="week-dates">Ongoing</span>
                                 </div>
                             </td>
-                            <td className="global-stats-value">
-                                {loading ? '...' : renderValue(globalStats.totalUsers, getPrevStats(currentWeekNum).totalUsers)}
-                            </td>
-                            <td className="global-stats-value">
-                                {loading ? '...' : renderValue(globalStats.traders, getPrevStats(currentWeekNum).traders)}
-                            </td>
-                            <td className="global-stats-value">
-                                {loading ? '...' : renderValue(globalStats.activeTraders, getPrevStats(currentWeekNum).activeTraders)}
-                            </td>
-                            <td className="points-cell" style={{ color: 'var(--color-text-main)' }}>
-                                {loading ? '...' : renderAvgReward(poolSize, globalStats.traders, poolSize, getPrevStats(currentWeekNum).traders)}
-                            </td>
+                            <td className="global-stats-value">—</td>
+                            <td className="global-stats-value">—</td>
+                            <td className="global-stats-value">—</td>
+                            <td className="points-cell" style={{ color: 'var(--color-text-main)' }}>—</td>
                             <td className="points-cell">{formatNumber(poolSize)}</td>
                         </tr>
-
-                        {/* Frozen Week Rows */}
-                        {Array.from({ length: Math.max(0, currentWeekNum - 1) }, (_, i) => currentWeekNum - 1 - i).map(weekNum => {
-                            const ws = weeklyStats[weekNum]
-                            const prev = getPrevStats(weekNum)
-                            return (
-                                <tr key={`week-${weekNum}`}>
-                                    <td>
-                                        <div className="week-cell">
-                                            <span className="week-name">{weekNum === 1 ? 'CA + Week 1' : `Week ${weekNum}`}</span>
-                                            <span className="week-dates">{getWeekDateRange(weekNum)}</span>
-                                        </div>
-                                    </td>
-                                    <td className="global-stats-value">
-                                        {ws ? renderValue(ws.totalUsers, prev.totalUsers) : '...'}
-                                    </td>
-                                    <td className="global-stats-value">
-                                        {ws ? renderValue(ws.traders, prev.traders) : '...'}
-                                    </td>
-                                    <td className="global-stats-value">
-                                        {ws ? renderValue(ws.activeTraders, prev.activeTraders) : '...'}
-                                    </td>
-                                    <td className="points-cell" style={{ color: 'var(--color-text-main)' }}>
-                                        {ws ? renderAvgReward(poolSize, ws.traders, poolSize, prev.traders) : '...'}
-                                    </td>
-                                    <td className="points-cell">{formatNumber(poolSize)}</td>
-                                </tr>
-                            )
-                        })}
 
                         {/* Closed Alpha Row */}
                         <tr>
@@ -807,41 +593,19 @@ const SoPointsPage = () => {
                         {/* Estimated Reward */}
                         {ownWallet ? (
                             <div className="sopoints-card cta-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '24px' }}>
-                                <div className="pool-label" style={{ marginBottom: '8px' }}>Your Estimated Reward</div>
-                                {rewardLoading && !userPointsEntry ? (
-                                    <div className="pool-amount" style={{ fontSize: '28px' }}>...</div>
-                                ) : userPointsEntry ? (
-                                    <>
-                                        <div className="pool-amount" style={{ fontSize: '28px' }}>
-                                            ~{formatSoPoints(userPointsEntry.points)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
-                                        </div>
-                                        <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
-                                            <span>Futures: ${formatVol(userPointsEntry.weeklyFuturesVol)}</span>
-                                            <span>Spot: ${formatVol(userPointsEntry.weeklySpotVol)}</span>
-                                            <span>Share: {(userPointsEntry.share * 100).toFixed(2)}%</span>
-                                            <span>Rank: #{userPointsEntry.rank}</span>
-                                        </div>
-                                    </>
-                                ) : rewardEstimate?.found ? (
-                                    <>
-                                        <div className="pool-amount" style={{ fontSize: '28px' }}>
-                                            ~{formatSoPoints(rewardEstimate.estimated_reward)} <span style={{ color: 'var(--color-primary)', fontSize: '18px' }}>SoPoints</span>
-                                        </div>
-                                        <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
-                                            <span>Vol: ${parseFloat(rewardEstimate.weekly_volume || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
-                                            <span>Share: {rewardEstimate.total_weekly_volume > 0
-                                                ? ((parseFloat(rewardEstimate.weekly_volume) / parseFloat(rewardEstimate.total_weekly_volume)) * 100).toFixed(2)
-                                                : '0.00'}%</span>
-                                            <span>Rank: #{rewardEstimate.volume_rank || '-'}</span>
-                                        </div>
-                                    </>
-                                ) : weeklyLbLoading ? (
+                                <div className="pool-label" style={{ marginBottom: '8px' }}>Your Position</div>
+                                {weeklyLbLoading ? (
                                     <div className="pool-amount" style={{ fontSize: '28px' }}>
                                         <SkeletonBar width={60} height={12} style={{ display: 'inline-block' }} />
                                     </div>
+                                ) : userPointsEntry ? (
+                                    <div style={{ marginTop: '4px', display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
+                                        <span>Rank: #{userPointsEntry.rank}</span>
+                                        <span>Volume: ${formatVol(userPointsEntry.volume)}</span>
+                                    </div>
                                 ) : (
                                     <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
-                                        No trading volume this week yet
+                                        Not found in top 50 leaderboard
                                     </div>
                                 )}
                             </div>
@@ -865,22 +629,9 @@ const SoPointsPage = () => {
                         {pointsLeaderboard && (
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Points Leaderboard</h2>
-                                        <select
-                                            value={selectedPointsWeek || currentWeekNum}
-                                            onChange={(e) => setSelectedPointsWeek(parseInt(e.target.value))}
-                                            style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', color: 'var(--color-text-main)', cursor: 'pointer' }}
-                                        >
-                                            {Array.from({ length: currentWeekNum }, (_, i) => currentWeekNum - i).map(w => (
-                                                <option key={w} value={w}>{w === 1 ? 'CA + Week 1' : `Week ${w}`}{w === currentWeekNum ? ' (Live)' : ''}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                        <span>{pointsLeaderboard.entries.length} traders · Spot {pointsLeaderboard.weekConfig.spot_multiplier}x weighted</span>
-                                        {!pointsLeaderboard.weekConfig.include_spot && <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; spot excluded</span>}
-                                        {!pointsLeaderboard.weekConfig.include_futures && <span style={{ color: '#f59e0b', fontSize: '11px' }}>&#9888; futures excluded</span>}
+                                    <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Volume Leaderboard</h2>
+                                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                        {pointsLeaderboard.entries.length} traders · All-time volume
                                     </span>
                                 </div>
                                 <table className="sopoints-table points-lb-table">
@@ -888,17 +639,14 @@ const SoPointsPage = () => {
                                         <tr>
                                             <th>Rank</th>
                                             <th>Wallet</th>
-                                            <th style={{ textAlign: 'right' }}>Total Vol</th>
-                                            <th style={{ textAlign: 'right' }}>Spot Vol</th>
-                                            <th style={{ textAlign: 'right' }}>Futures Vol</th>
-                                            <th style={{ textAlign: 'right' }}>Est. Points</th>
+                                            <th style={{ textAlign: 'right' }}>Volume</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {pointsLeaderboard.entries
                                             .slice((pointsLbPage - 1) * POINTS_PAGE_SIZE, pointsLbPage * POINTS_PAGE_SIZE)
                                             .map((entry) => {
-                                                const isUser = ownWallet && entry.walletAddress.toLowerCase() === ownWallet.toLowerCase()
+                                                const isUser = ownWallet && entry.walletAddress?.toLowerCase() === ownWallet.toLowerCase()
                                                 return (
                                                     <tr key={entry.walletAddress} style={isUser ? { background: 'rgba(var(--color-primary-rgb), 0.08)' } : {}}>
                                                         <td style={{ fontWeight: 600 }}>#{entry.rank}</td>
@@ -909,12 +657,7 @@ const SoPointsPage = () => {
                                                                 </span>
                                                             ) : truncAddr(entry.walletAddress)}
                                                         </td>
-                                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>${formatVol(entry.weeklySpotVol + entry.weeklyFuturesVol)}</td>
-                                                        <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklySpotVol)}</td>
-                                                        <td style={{ textAlign: 'right' }}>${formatVol(entry.weeklyFuturesVol)}</td>
-                                                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)' }}>
-                                                            {formatSoPoints(entry.points)}
-                                                        </td>
+                                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>${formatVol(entry.volume)}</td>
                                                     </tr>
                                                 )
                                             })}
