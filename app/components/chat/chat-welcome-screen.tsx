@@ -33,17 +33,17 @@ const EXAMPLE_PROMPTS = [
   {
     id: "referral",
     icon: UsersIcon,
-    label: "Referral Analysis",
-    description: "Deep-dive a referral code",
-    prompt: "Give me info about referral code ALPHA01 — how many referrals, what's their trading volume, and analyse the performance and strategy behind it.",
+    label: "Referral Lookup",
+    description: "Wallet & strategy behind a code",
+    prompt: "Look up referral code ALPHA01 — what wallet address is behind it? Then pull their PnL history and explain their trading strategy.",
     color: "#10b981",
   },
   {
     id: "traders",
     icon: BarChart3Icon,
     label: "Top Traders",
-    description: "Top wallets this week",
-    prompt: "Who are the top 5 wallets on Sodex this week? Show me their PnL, volume, strategy type, and what's driving their performance.",
+    description: "Live leaderboard — real data",
+    prompt: "Show me the current top traders on Sodex with their live PnL and volume.",
     color: "#f59e0b",
   },
 ] as const;
