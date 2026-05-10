@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useChatStore } from "@/app/store/chat-store";
 import { ChatMain } from "@/app/components/chat/chat-main";
 import { ChatSidebar, type AIView } from "@/app/components/chat/chat-sidebar";
 import { SidebarKB } from "@/app/components/chat/sidebar-kb";
@@ -30,6 +31,8 @@ export default function AIPage() {
     const v = searchParams.get("view");
     return (v === "chat" || v === "kb" || v === "tools" || v === "schedule") ? v : "chat";
   });
+
+  const selectChat = useChatStore(s => s.selectChat);
 
   const [toolCategory, setToolCategory] = useState<string>("all");
   const [toolCategories, setToolCategories] = useState<{ name: string; count: number }[]>([]);
@@ -65,7 +68,10 @@ export default function AIPage() {
           <ChatSidebar
             currentView={view}
             onViewChange={(v) => {
-              if (v === "chat") setChatKey(k => k + 1); // always open a fresh chat
+              if (v === "chat") {
+                selectChat(""); // clear stored selectedChatId so history effect doesn't reload old chat
+                setChatKey(k => k + 1);
+              }
               setView(v);
               if (v !== "tools") setToolCategory("all");
               const sp = new URLSearchParams(searchParams.toString());
@@ -134,7 +140,29 @@ function ScheduleMainView() {
   const [showForm, setShowForm] = useState(false);
   const [prompt,   setPrompt]  = useState("");
   const [date,     setDate]    = useState("");
-  const [time,     setTime]    = useState("");
+  const [timeHour, setTimeHour] = useState(14); // always 24h internally
+  const [timeMin,  setTimeMin]  = useState(0);
+  const [is24h,    setIs24h]    = useState(true);
+  const [ampm,     setAmpm]     = useState<"AM"|"PM">("PM");
+
+  // 12h display value (1-12)
+  const h12display = timeHour % 12 === 0 ? 12 : timeHour % 12;
+
+  const onHour24Change = (v: number) => {
+    const h = Math.max(0, Math.min(23, isNaN(v) ? 0 : v));
+    setTimeHour(h);
+    setAmpm(h >= 12 ? "PM" : "AM");
+  };
+  const onHour12Change = (v: number) => {
+    const h = Math.max(1, Math.min(12, isNaN(v) ? 12 : v));
+    const h24 = h % 12 + (ampm === "PM" ? 12 : 0);
+    setTimeHour(h24);
+  };
+  const toggleAmpm = () => {
+    const next = ampm === "AM" ? "PM" : "AM";
+    setAmpm(next);
+    setTimeHour(h => next === "PM" ? (h < 12 ? h + 12 : h) : (h >= 12 ? h - 12 : h));
+  };
   const [repeat,   setRepeat]  = useState("none");
   const [days,     setDays]    = useState<string[]>([]);
   const [model,    setModel]   = useState("communityscan");
@@ -215,12 +243,42 @@ function ScheduleMainView() {
                   value={date} onChange={e => setDate(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Time <span className="normal-case text-[10px] font-normal bg-muted px-1.5 py-0.5 rounded ml-0.5">UTC</span>
-                </label>
-                <input type="time"
-                  className="w-full h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={time} onChange={e => setTime(e.target.value)} />
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Time <span className="normal-case text-[10px] font-normal bg-muted px-1.5 py-0.5 rounded ml-0.5">UTC</span>
+                  </label>
+                  <button
+                    onClick={() => setIs24h(v => !v)}
+                    className="text-[11px] font-medium text-muted-foreground hover:text-foreground border rounded-md px-2 py-0.5 transition-colors hover:bg-muted/50"
+                  >
+                    {is24h ? "24h" : "AM/PM"}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={is24h ? 0 : 1} max={is24h ? 23 : 12}
+                    value={is24h ? String(timeHour).padStart(2,"0") : String(h12display).padStart(2,"0")}
+                    onChange={e => is24h ? onHour24Change(Number(e.target.value)) : onHour12Change(Number(e.target.value))}
+                    className="w-14 h-9 rounded-lg border bg-background px-0 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  <span className="text-muted-foreground font-bold text-base select-none">:</span>
+                  <input
+                    type="number"
+                    min={0} max={59}
+                    value={String(timeMin).padStart(2,"0")}
+                    onChange={e => setTimeMin(Math.max(0, Math.min(59, isNaN(Number(e.target.value)) ? 0 : Number(e.target.value))))}
+                    className="w-14 h-9 rounded-lg border bg-background px-0 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-ring [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  {!is24h && (
+                    <button
+                      onClick={toggleAmpm}
+                      className="h-9 px-2.5 rounded-lg border bg-muted text-xs font-semibold hover:bg-muted/80 transition-colors min-w-[42px]"
+                    >
+                      {ampm}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
