@@ -8,8 +8,13 @@ import { SidebarKB } from "@/app/components/chat/sidebar-kb";
 import { GridPattern } from "@/app/components/ui/grid-pattern";
 import ToolsPage from "@/app/components/tools/ToolsPage";
 import Link from "next/link";
-import { PanelLeftIcon, PlusIcon, ZapIcon, CalendarClockIcon, FlaskConicalIcon, CheckIcon } from "lucide-react";
+import { PanelLeftIcon, PlusIcon, ZapIcon, CalendarClockIcon, FlaskConicalIcon, CheckIcon, ChevronDownIcon } from "lucide-react";
 import { AI_MODELS } from "@/app/components/chat/chat-input-box";
+import { AiLogo } from "@/app/components/ui/ai-logo";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Button } from "@/app/components/ui/button";
 import { cn } from "@/app/lib/utils";
@@ -20,6 +25,7 @@ export default function AIPage() {
 
   // Initialize view from URL param (supports /ai?view=tools redirect from /tools)
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatKey, setChatKey] = useState(0);
   const [view, setView] = useState<AIView>(() => {
     const v = searchParams.get("view");
     return (v === "chat" || v === "kb" || v === "tools" || v === "schedule") ? v : "chat";
@@ -59,9 +65,9 @@ export default function AIPage() {
           <ChatSidebar
             currentView={view}
             onViewChange={(v) => {
+              if (v === "chat") setChatKey(k => k + 1); // always open a fresh chat
               setView(v);
               if (v !== "tools") setToolCategory("all");
-              // Keep URL in sync
               const sp = new URLSearchParams(searchParams.toString());
               sp.set("view", v);
               sp.delete("tool");
@@ -86,7 +92,7 @@ export default function AIPage() {
         </div>
 
         <div className="relative z-10 h-full">
-          {view === "chat"  && <ChatMain />}
+          {view === "chat"  && <ChatMain key={chatKey} />}
           {view === "kb"    && <KBMainView />}
           {view === "tools" && (
             <div className="h-full overflow-y-auto">
@@ -132,6 +138,11 @@ function ScheduleMainView() {
   const [repeat,   setRepeat]  = useState("none");
   const [days,     setDays]    = useState<string[]>([]);
   const [model,    setModel]   = useState("communityscan");
+
+  const currentModel  = AI_MODELS.find(m => m.id === model) ?? AI_MODELS[0];
+  const csModels      = AI_MODELS.filter(m => m.provider === "communityscan");
+  const groqModels    = AI_MODELS.filter(m => m.provider === "groq");
+  const googleModels  = AI_MODELS.filter(m => m.provider === "google");
   const [telegram, setTelegram] = useState(false);
   const [discord,  setDiscord]  = useState(false);
 
@@ -204,7 +215,9 @@ function ScheduleMainView() {
                   value={date} onChange={e => setDate(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Time</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Time <span className="normal-case text-[10px] font-normal bg-muted px-1.5 py-0.5 rounded ml-0.5">UTC</span>
+                </label>
                 <input type="time"
                   className="w-full h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   value={time} onChange={e => setTime(e.target.value)} />
@@ -252,16 +265,47 @@ function ScheduleMainView() {
             {/* Model */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Model</label>
-              <select
-                className="w-full h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                value={model} onChange={e => setModel(e.target.value)}
-              >
-                {AI_MODELS.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}{m.description ? ` — ${m.description}` : ""}
-                  </option>
-                ))}
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-full h-9 rounded-lg border bg-background px-3 text-sm flex items-center gap-2 hover:bg-muted/40 transition-colors focus:outline-none focus:ring-2 focus:ring-ring text-left">
+                    <AiLogo className="size-4 shrink-0 mt-0" />
+                    <span className="flex-1 truncate">{currentModel.label}</span>
+                    {currentModel.description && (
+                      <span className="text-[11px] text-muted-foreground shrink-0">{currentModel.description}</span>
+                    )}
+                    <ChevronDownIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-72" align="start">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">CommunityScan</DropdownMenuLabel>
+                  {csModels.map(m => (
+                    <DropdownMenuItem key={m.id} onSelect={() => setModel(m.id)} className="flex items-center gap-2 cursor-pointer">
+                      <AiLogo className="size-4 mt-0 shrink-0" />
+                      <span className="flex-1 text-sm">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">{m.description}</span>
+                      {model === m.id && <CheckIcon className="size-3.5 shrink-0" />}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Groq</DropdownMenuLabel>
+                  {groqModels.map(m => (
+                    <DropdownMenuItem key={m.id} onSelect={() => setModel(m.id)} className="flex items-center gap-2 cursor-pointer">
+                      <span className="flex-1 text-sm">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">{m.description}</span>
+                      {model === m.id && <CheckIcon className="size-3.5 shrink-0" />}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Google Gemini</DropdownMenuLabel>
+                  {googleModels.map(m => (
+                    <DropdownMenuItem key={m.id} onSelect={() => setModel(m.id)} className="flex items-center gap-2 cursor-pointer">
+                      <span className="flex-1 text-sm">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">{m.description}</span>
+                      {model === m.id && <CheckIcon className="size-3.5 shrink-0" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Delivery */}
