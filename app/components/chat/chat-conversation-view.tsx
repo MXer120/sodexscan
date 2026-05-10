@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/app/components/ui/button";
-import { XIcon, AlertCircleIcon, HistoryIcon } from "lucide-react";
+import { XIcon, AlertCircleIcon, HistoryIcon, KeyIcon } from "lucide-react";
 import { ChatMessage } from "./chat-message";
 import { ChatInputBox } from "./chat-input-box";
+import { AI_MODELS } from "./chat-input-box";
 import { AiLogo } from "@/app/components/ui/ai-logo";
 import { cn } from "@/app/lib/utils";
+import Link from "next/link";
 
 interface Message {
   id: string;
@@ -166,18 +168,35 @@ export function ChatConversationView({
           )}
 
           {/* Error state */}
-          {error && (
-            <div className={cn(
-              "flex items-start gap-3 rounded-xl border px-4 py-3",
-              "border-destructive/30 bg-destructive/5"
-            )}>
-              <AlertCircleIcon className="size-4 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-destructive">AI unavailable</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
+          {error && (() => {
+            const isLimit = error.includes("Rate limit exceeded") || error.includes("Quota exceeded");
+            if (!isLimit) {
+              return (
+                <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+                  <AlertCircleIcon className="size-4 text-destructive shrink-0" />
+                  <p className="text-sm text-destructive">AI unavailable</p>
+                </div>
+              );
+            }
+            const retryMatch = error.match(/Retry in (\d+)s/i);
+            const retrySecs  = retryMatch ? parseInt(retryMatch[1]) : 60;
+            const modelLabel = AI_MODELS.find(m => m.id === selectedModel)?.label ?? selectedModel;
+            return (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-amber-500 truncate">{modelLabel} — limit reached</p>
+                  <p className="text-xs text-muted-foreground">Resets in ~{retrySecs}s</p>
+                </div>
+                <Link
+                  href="/settings?section=api-keys"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-3 py-1.5 hover:bg-accent transition-colors shrink-0"
+                >
+                  <KeyIcon className="size-3" />
+                  Add API key
+                </Link>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div ref={bottomRef} />
         </div>
