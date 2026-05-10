@@ -360,7 +360,15 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : String(e);
     const status = ((e as Record<string,unknown>)?.statusCode as number) ?? 0;
     if (status===401||msg.includes("API key")) return new Response("Invalid API key.",{status:502});
-    if (isQuotaError(e)) return new Response(`Quota exceeded for "${requestedId}". Switch models.`,{status:429,headers:{"Retry-After":"60"}});
+    if (isQuotaError(e)) {
+      // Extract actual retry-after from upstream provider error if available
+      const err = e as Record<string, unknown>;
+      let retryAfter = 60;
+      const ra = (err?.responseHeaders as Record<string,string>)?.["retry-after"]
+              ?? (err?.headers       as Record<string,string>)?.["retry-after"];
+      if (ra) { const n = parseInt(String(ra)); if (!isNaN(n) && n > 0) retryAfter = n; }
+      return new Response(`Quota exceeded for "${requestedId}". Retry in ${retryAfter}s.`,{status:429,headers:{"Retry-After":String(retryAfter)}});
+    }
     return new Response(msg||"AI error. Please try again.",{status:502});
   }
 }

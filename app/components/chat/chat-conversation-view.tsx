@@ -215,12 +215,17 @@ export function ChatConversationView({
             }
             const retryMatch = error.match(/Retry in (\d+)s/i);
             const retrySecs  = retryMatch ? parseInt(retryMatch[1]) : 60;
+            // Round to nearest 5s; show minutes if ≥ 60s
+            const rounded = Math.ceil(retrySecs / 5) * 5;
+            const retryLabel = rounded >= 120 ? `~${Math.round(rounded / 60)} min`
+                             : rounded >= 60  ? "~1 min"
+                             : `~${rounded}s`;
             const modelLabel = AI_MODELS.find(m => m.id === selectedModel)?.label ?? selectedModel;
             return (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-amber-500 truncate">{modelLabel} — limit reached</p>
-                  <p className="text-xs text-muted-foreground">Resets in ~{retrySecs}s</p>
+                  <p className="text-xs text-muted-foreground">Resets in {retryLabel}</p>
                 </div>
                 <Link
                   href="/settings?section=api-keys"
