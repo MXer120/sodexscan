@@ -94,25 +94,25 @@ export function ChatConversationView({
 
   return (
     <div className="flex h-full flex-col relative">
+
+      {/* Plan indicator — absolute top-right */}
+      {currentPlan && (
+        <button
+          onClick={() => setPlanOpen(v => !v)}
+          className="absolute top-3 right-4 z-20 flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-1 transition-colors hover:bg-accent bg-background/80 backdrop-blur-sm shadow-sm"
+        >
+          <span className="size-1.5 rounded-full bg-primary shrink-0" />
+          {currentPlan.doneCount}/{currentPlan.totalCount} steps
+        </button>
+      )}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
         <div className="max-w-[640px] mx-auto space-y-6">
 
           {/* Header row */}
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {totalMessages} message{totalMessages !== 1 ? "s" : ""}
-              </span>
-              {currentPlan && (
-                <button
-                  onClick={() => setPlanOpen(v => !v)}
-                  className="flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-1 transition-colors hover:bg-accent"
-                >
-                  <span className="size-1.5 rounded-full bg-primary shrink-0" />
-                  {currentPlan.doneCount}/{currentPlan.totalCount} steps
-                </button>
-              )}
-            </div>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {totalMessages} message{totalMessages !== 1 ? "s" : ""}
+            </span>
             <Button
               variant="secondary"
               size="icon-sm"

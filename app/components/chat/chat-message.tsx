@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { EtfInflowsBlock } from "./blocks/EtfInflowsBlock";
 import { TopTradersBlock } from "./blocks/TopTradersBlock";
 import { ReferralAnalysisBlock } from "./blocks/ReferralAnalysisBlock";
+import { PnlChartBlock } from "./blocks/PnlChartBlock";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -91,10 +93,55 @@ function parseSegments(content: string): Segment[] {
   return segments;
 }
 
+const HEX_RE = /\b(0x[0-9a-fA-F]{40,64})\b/g;
+
+function renderWithCopyables(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const re = new RegExp(HEX_RE.source, "g");
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(<CopyableChip key={match.index} value={match[1]} />);
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts.length === 1 && typeof parts[0] === "string" ? parts[0] as React.ReactNode : <>{parts}</>;
+}
+
+function CopyableChip({ value }: { value: string }) {
+  const isAddr = value.length === 42;
+  const display = `${value.slice(0, 6)}…${value.slice(-4)}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(isAddr ? "Address copied" : "Hash copied", { duration: 1500 });
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={value}
+      className="inline-flex items-center gap-1 cursor-pointer font-mono text-[0.82em] bg-muted/70 hover:bg-muted rounded px-1.5 py-0.5 transition-colors mx-0.5 align-middle"
+    >
+      {display}
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+    </button>
+  );
+}
+
 function BlockRenderer({ name, props }: { name: string; props: Record<string, unknown> }) {
   if (name === "etf_inflows")       return <EtfInflowsBlock props={props} />;
   if (name === "top_traders")       return <TopTradersBlock />;
   if (name === "referral_analysis") return <ReferralAnalysisBlock />;
+  if (name === "pnl_chart")         return <PnlChartBlock props={props as { address?: string; days?: number; view?: "daily" | "cumulative" }} />;
   return null;
 }
 
@@ -131,7 +178,7 @@ export function ChatMessage({ message, usingKB = false }: { message: Message; us
         {segments.map((seg, i) => {
           if (seg.type === "text") return (
             <div key={i} className="rounded-2xl px-4 py-3 bg-secondary self-start max-w-[80%]">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{seg.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderWithCopyables(seg.content)}</p>
             </div>
           );
           if (seg.type === "block") return (
