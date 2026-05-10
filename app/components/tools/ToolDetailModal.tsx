@@ -1,10 +1,24 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import TryIt from './TryIt'
 import { toolHttpExamples } from '../../lib/tools/client'
+
+const DETAIL_MODE_KEY = 'tool_detail_mode'
+
+function loadMode(): 'popup' | 'sidebar' {
+  try {
+    const v = localStorage.getItem(DETAIL_MODE_KEY)
+    if (v === 'popup' || v === 'sidebar') return v
+  } catch {}
+  return 'popup'
+}
+
+function saveMode(m: 'popup' | 'sidebar') {
+  try { localStorage.setItem(DETAIL_MODE_KEY, m) } catch {}
+}
 
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false)
@@ -133,17 +147,85 @@ function SupportedTokens({ tokens }) {
   )
 }
 
+// ─── Mode toggle button ───────────────────────────────────────────────────────
+
+function ModeToggle({ mode, onChange }: { mode: 'popup' | 'sidebar'; onChange: (m: 'popup' | 'sidebar') => void }) {
+  return (
+    <button
+      onClick={() => onChange(mode === 'popup' ? 'sidebar' : 'popup')}
+      title={mode === 'popup' ? 'Switch to sidebar' : 'Switch to popup'}
+      style={{
+        padding: '4px 10px',
+        borderRadius: 6,
+        border: '1px solid var(--ds-border-subtle)',
+        background: 'var(--ds-bg-2)',
+        color: 'var(--ds-text-secondary)',
+        fontSize: 11,
+        fontWeight: 500,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        flexShrink: 0,
+      }}
+    >
+      {mode === 'popup' ? (
+        // sidebar icon
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="15" y1="3" x2="15" y2="21"/>
+        </svg>
+      ) : (
+        // popup/center icon
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="5" y="5" width="14" height="14" rx="2"/>
+          <path d="M5 12h3M16 12h3M12 5v3M12 16v3"/>
+        </svg>
+      )}
+      {mode === 'popup' ? 'Sidebar' : 'Popup'}
+    </button>
+  )
+}
+
+// ─── Backdrop with blur tint ──────────────────────────────────────────────────
+
+function Backdrop({ onClick }: { onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        zIndex: 900,
+      }}
+    />
+  )
+}
+
+// ─── Main modal ───────────────────────────────────────────────────────────────
+
 export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const [mode, setMode] = useState<'popup' | 'sidebar'>('popup')
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
+    setMounted(true)
+    setMode(loadMode())
+  }, [])
+
+  const handleModeChange = (m: 'popup' | 'sidebar') => {
+    setMode(m)
+    saveMode(m)
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const pickRelated = useCallback((id) => {
+  const pickRelated = useCallback((id: string) => {
     if (onSwitchTool) onSwitchTool(id)
   }, [onSwitchTool])
 
@@ -153,10 +235,41 @@ export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
   const requestExample = tool.examples?.[0]?.request ?? Object.fromEntries((tool.params ?? []).filter(p => p.default !== undefined).map(p => [p.name, p.default]))
   const responseExample = tool.examples?.[0]?.response
 
+  const panelStyle: React.CSSProperties = mode === 'popup'
+    ? {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 'min(92vw, 760px)',
+        maxHeight: '88vh',
+        borderRadius: 16,
+        right: 'auto',
+        bottom: 'auto',
+        zIndex: 901,
+        overflowY: 'auto',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+        background: 'var(--ds-bg-2)',
+        border: '1px solid var(--ds-border-subtle)',
+        animation: 'tp-fade-in .15s ease',
+      }
+    : {
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 'min(90vw, 560px)',
+        zIndex: 901,
+        overflowY: 'auto',
+        borderRadius: 0,
+        borderLeft: '1px solid var(--ds-border-subtle)',
+        boxShadow: '-8px 0 32px rgba(0,0,0,0.15)',
+      }
+
   const body = (
     <>
-      <div className="tm-backdrop" onClick={onClose} />
-      <div className="tm-panel" role="dialog" aria-label={tool.name}>
+      <Backdrop onClick={onClose} />
+      <div className="tm-panel" role="dialog" aria-label={tool.name} style={panelStyle}>
         <div className="tm-header">
           <div className="tm-title-group">
             <h2 className="tm-title">{tool.name}</h2>
@@ -165,33 +278,25 @@ export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
               <Chips tool={tool} />
             </div>
           </div>
-          {tool.fullPageHref && tool.status === 'available' && (
-            <Link href={tool.fullPageHref.replace('{address}', '')} className="tm-btn" style={{ alignSelf: 'flex-start' }}>
-              Open full page ↗
-            </Link>
-          )}
-          <button className="tm-close" onClick={onClose} aria-label="Close">✕</button>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexShrink: 0 }}>
+            <ModeToggle mode={mode} onChange={handleModeChange} />
+            <button className="tm-close" onClick={onClose} aria-label="Close">✕</button>
+          </div>
         </div>
 
         <div className="tm-body">
-          {/* Overview */}
           <div className="tm-section">
             <h3 className="tm-section-title">Overview</h3>
             <p className="tm-p">{tool.longDescription || tool.shortDescription || '—'}</p>
             {tool.features?.length > 0 && (
-              <ul className="tm-list">
-                {tool.features.map(f => <li key={f}>{f}</li>)}
-              </ul>
+              <ul className="tm-list">{tool.features.map(f => <li key={f}>{f}</li>)}</ul>
             )}
             {tool.limits && <p className="tm-p" style={{ color: 'var(--ds-text-tertiary)' }}>Limits: {tool.limits}</p>}
             {tool.plannedFeatures && (
-              <ul className="tm-list">
-                {tool.plannedFeatures.map(f => <li key={f}>{f}</li>)}
-              </ul>
+              <ul className="tm-list">{tool.plannedFeatures.map(f => <li key={f}>{f}</li>)}</ul>
             )}
           </div>
 
-          {/* Try it */}
           {tool.status === 'available' ? (
             <div className="tm-section">
               <h3 className="tm-section-title">Try it</h3>
@@ -204,7 +309,6 @@ export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
             </div>
           )}
 
-          {/* API spec */}
           <div className="tm-section">
             <h3 className="tm-section-title">Endpoint</h3>
             <Code>{`${http.method} ${http.url}`}</Code>
@@ -222,7 +326,6 @@ export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
             </div>
           )}
 
-          {/* Example */}
           <div className="tm-section">
             <h3 className="tm-section-title">Example</h3>
             <div style={{ fontSize: 11, color: 'var(--ds-text-tertiary)', marginBottom: 4 }}>Request</div>
@@ -235,13 +338,11 @@ export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
             )}
           </div>
 
-          {/* cURL */}
           <div className="tm-section">
             <h3 className="tm-section-title">cURL</h3>
             <Code>{http.curl}</Code>
           </div>
 
-          {/* Errors */}
           {tool.errors && Object.keys(tool.errors).length > 0 && (
             <div className="tm-section">
               <h3 className="tm-section-title">Errors</h3>
@@ -256,18 +357,14 @@ export default function ToolDetailModal({ tool, onClose, onSwitchTool }) {
             </div>
           )}
 
-          {/* Supported tokens */}
           {tool.supportedTokens && <SupportedTokens tokens={tool.supportedTokens} />}
 
-          {/* Related */}
           {tool.relatedTools?.length > 0 && (
             <div className="tm-section">
               <h3 className="tm-section-title">Related tools</h3>
               <div className="tm-related">
                 {tool.relatedTools.map(id => (
-                  <button key={id} className="tm-related-chip" onClick={() => pickRelated(id)}>
-                    {id}
-                  </button>
+                  <button key={id} className="tm-related-chip" onClick={() => pickRelated(id)}>{id}</button>
                 ))}
               </div>
             </div>

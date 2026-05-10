@@ -6,7 +6,9 @@ import {
   PlusIcon, CheckIcon, XIcon, ChevronDownIcon, ChevronRightIcon,
   SendIcon, PencilIcon, Trash2Icon, ClockIcon, FolderPlusIcon,
   TagIcon, RotateCcwIcon, ShieldIcon, BookOpenIcon, WrenchIcon,
+  ExternalLinkIcon, FlaskConicalIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Input } from "@/app/components/ui/input";
@@ -250,6 +252,12 @@ export function SidebarKB() {
         {/* ── SYSTEM PROMPT ──────────────────────────────────────────── */}
         {tab === "system" && !editingSystem && (
           <div className="p-4 space-y-4">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <FlaskConicalIcon className="size-3 shrink-0 text-amber-500" />
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-tight">
+                Quickly generated data for demonstration purposes.
+              </p>
+            </div>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold">System Prompt</h3>
@@ -304,6 +312,12 @@ export function SidebarKB() {
         {/* ── KNOWLEDGE BASE ─────────────────────────────────────────── */}
         {tab === "knowledge" && !editingMerged && (
           <div className="p-4 space-y-6">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <FlaskConicalIcon className="size-3 shrink-0 text-amber-500" />
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-tight">
+                Quickly generated data for demonstration purposes.
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground">
               {chunks.length} entries · top 4 injected per request via semantic search.
               Your customizations override the shared versions for your sessions.
@@ -380,33 +394,30 @@ export function SidebarKB() {
         {/* ── TOOLS ──────────────────────────────────────────────────── */}
         {tab === "tools" && (
           <div className="p-4 space-y-4">
-            <p className="text-xs text-muted-foreground">
-              {tools.length} tools · top 6 injected per request based on semantic relevance.
-            </p>
-            {Object.entries(toolsByNS).map(([ns, items]) => (
-              <div key={ns}>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{ns}</h3>
-                <div className="space-y-1.5">
-                  {items.map(t => (
-                    <div key={t.id} className="rounded-xl border border-border overflow-hidden">
-                      <button onClick={() => setExpanded(expanded===t.id ? null : t.id)}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-accent/50 transition-colors">
-                        {expanded===t.id ? <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground"/>
-                                         : <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground"/>}
-                        <span className="text-sm font-mono flex-1">{t.id}</span>
-                      </button>
-                      {expanded===t.id && (
-                        <div className="px-4 pb-4 border-t border-border bg-muted/20 space-y-2">
-                          <p className="text-xs text-muted-foreground leading-relaxed pt-3">{t.description}</p>
-                          {t.example && <code className="text-xs bg-muted px-2 py-1 rounded block break-all">{t.example}</code>}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Live Tool Calling</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {tools.length > 0 ? `${tools.length} tools registered` : "Tools registered"} — the top 6 most relevant are automatically injected per request based on semantic similarity to your query.
+              </p>
+            </div>
+            <Button asChild className="w-full gap-2" variant="outline">
+              <Link href="/tools" target="_blank">
+                <ExternalLinkIcon className="size-4" />
+                View registered tools
+              </Link>
+            </Button>
+            <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Namespaces</p>
+              {Object.keys(toolsByNS).length === 0 && (
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              )}
+              {Object.entries(toolsByNS).map(([ns, items]) => (
+                <div key={ns} className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-foreground">{ns}</span>
+                  <span className="text-xs text-muted-foreground">{items.length} tools</span>
                 </div>
-              </div>
-            ))}
-            {tools.length === 0 && <p className="text-xs text-muted-foreground text-center py-8">No tools in database. Seed the DB first.</p>}
+              ))}
+            </div>
           </div>
         )}
 

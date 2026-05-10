@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import {
   PaperclipIcon,
   CircleDashedIcon,
@@ -60,15 +60,16 @@ interface ChatInputBoxProps {
   placeholder?: string;
   disabled?: boolean;
   onFileSelect?: (file: File, type: "image" | "file") => void;
+  queue?: string[];
+  onQueueRemove?: (index: number) => void;
 }
 
 export function ChatInputBox({
   message, onMessageChange, onSend, selectedModel, onModelChange,
   usePersonalKB = false, onPersonalKBChange,
   showTools = true, placeholder = "Ask anything...", disabled = false, onFileSelect,
+  queue, onQueueRemove,
 }: ChatInputBoxProps) {
-  const [deepSearch, setDeepSearch] = useState(false);
-  const [think, setThink] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,6 +99,17 @@ export function ChatInputBox({
           disabled={disabled}
           className="min-h-[120px] resize-none border-0 bg-transparent px-4 py-3 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
           onKeyDown={(e) => {
+            if (e.key === "Escape" && queue && queue.length > 0) {
+              e.preventDefault();
+              onQueueRemove?.(queue.length - 1);
+              return;
+            }
+            if (e.key === "ArrowUp" && !message && queue && queue.length > 0) {
+              e.preventDefault();
+              onMessageChange(queue[queue.length - 1]);
+              onQueueRemove?.(queue.length - 1);
+              return;
+            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               if (message.trim() && !disabled) onSend();
@@ -154,19 +166,16 @@ export function ChatInputBox({
 
             {showTools && (
               <>
-                {/* Deep Search toggle */}
+                {/* Deep Search — coming soon */}
                 <button
                   type="button"
-                  onClick={() => setDeepSearch((v) => !v)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border transition-colors",
-                    deepSearch
-                      ? "border-blue-500/60 bg-blue-500/10 text-blue-500 hover:bg-blue-500/15"
-                      : "border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
+                  disabled
+                  title="Coming soon"
+                  className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground/50 cursor-not-allowed"
                 >
                   <CircleDashedIcon className="size-3.5" />
-                  <span className="hidden sm:inline">Deep Search</span>
+                  <span className="hidden sm:inline whitespace-nowrap">Deep Search</span>
+                  <span className="hidden sm:inline text-[10px] opacity-60">soon</span>
                 </button>
 
                 {/* My KB toggle */}
@@ -187,19 +196,16 @@ export function ChatInputBox({
                   </button>
                 )}
 
-                {/* Think toggle */}
+                {/* Think — coming soon */}
                 <button
                   type="button"
-                  onClick={() => setThink((v) => !v)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border transition-colors",
-                    think
-                      ? "border-violet-500/60 bg-violet-500/10 text-violet-500 hover:bg-violet-500/15"
-                      : "border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
+                  disabled
+                  title="Coming soon"
+                  className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground/50 cursor-not-allowed"
                 >
                   <BrainIcon className="size-3.5" />
-                  <span className="hidden sm:inline">Think</span>
+                  <span className="hidden sm:inline whitespace-nowrap">Think</span>
+                  <span className="hidden sm:inline text-[10px] opacity-60">soon</span>
                 </button>
               </>
             )}

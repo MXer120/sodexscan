@@ -30,6 +30,8 @@ interface ChatConversationViewProps {
   error?: string;
   contextLimitActive?: boolean;
   onExpandContext?: () => void;
+  queue?: string[];
+  onQueueRemove?: (index: number) => void;
 }
 
 export function ChatConversationView({
@@ -37,6 +39,7 @@ export function ChatConversationView({
   isLoading = false, selectedModel, onModelChange,
   usePersonalKB = false, onPersonalKBChange,
   error, contextLimitActive = false, onExpandContext,
+  queue, onQueueRemove,
 }: ChatConversationViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -126,6 +129,33 @@ export function ChatConversationView({
         </div>
       </div>
 
+      {/* Message queue */}
+      {queue && queue.length > 0 && (
+        <div className="px-4 md:px-8 pb-2">
+          <div className="max-w-[640px] mx-auto space-y-1.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="size-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
+                Queued · {queue.length}
+              </span>
+            </div>
+            {queue.map((msg, i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/50">
+                <span className="text-[11px] text-muted-foreground w-3.5 shrink-0 text-center">{i + 1}</span>
+                <span className="text-sm flex-1 truncate text-muted-foreground">{msg}</span>
+                <button
+                  onClick={() => onQueueRemove?.(i)}
+                  className="shrink-0 p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors"
+                  title="Remove"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="px-4 md:px-8 py-[17px]">
         <div className="max-w-[640px] mx-auto">
           <ChatInputBox
@@ -139,6 +169,8 @@ export function ChatConversationView({
             showTools={true}
             placeholder="Continue the conversation..."
             disabled={isLoading}
+            queue={queue}
+            onQueueRemove={onQueueRemove}
           />
         </div>
       </div>

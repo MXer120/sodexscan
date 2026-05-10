@@ -14,7 +14,6 @@ const EstimatedRewardWidget = lazy(() => import('./widgets/EstimatedRewardWidget
 const WeekTableWidget = lazy(() => import('./widgets/WeekTableWidget'))
 const VolumeChartWidget = lazy(() => import('./widgets/VolumeChartWidget'))
 const PointsLeaderboardWidget = lazy(() => import('./widgets/PointsLeaderboardWidget'))
-const ReferralCodeWidget = lazy(() => import('./widgets/ReferralCodeWidget'))
 const WatchlistWidget = lazy(() => import('./widgets/WatchlistWidget'))
 const UserGrowthChartWidget = lazy(() => import('./widgets/UserGrowthChartWidget'))
 const MilestoneProjectionWidget = lazy(() => import('./widgets/MilestoneProjectionWidget'))
@@ -36,7 +35,6 @@ const FuturesStatsWidget = lazy(() => import('./widgets/FuturesStatsWidget'))
 const FuturesPerformanceWidget = lazy(() => import('./widgets/FuturesPerformanceWidget'))
 const DepositWithdrawalWidget = lazy(() => import('./widgets/DepositWithdrawalWidget'))
 const RankingsWidget = lazy(() => import('./widgets/RankingsWidget'))
-const SocialInfoWidget = lazy(() => import('./widgets/SocialInfoWidget'))
 const PnlChartWidget = lazy(() => import('./widgets/PnlChartWidget'))
 const PnlCalendarWidget = lazy(() => import('./widgets/PnlCalendarWidget'))
 const ActivityTimelineWidget = lazy(() => import('./widgets/ActivityTimelineWidget'))
@@ -251,20 +249,6 @@ export const WIDGET_REGISTRY = {
   },
 
   // ── Social ─────────────────────────────────────────────────────
-  'referral-codes': {
-    component: ReferralCodeWidget,
-    label: 'Referral Codes',
-    description: 'Browse referral codes',
-    category: 'social',
-    defaultSize: { w: 8, h: 5, minW: 4, minH: 3 }, smH: 14, mdH: 5,
-    defaultSettings: { showCode: true, showDiscord: true, showTelegram: true },
-    settingsSchema: [],
-    visibilitySchema: [
-      { key: 'showCode',     label: 'Code Column',     default: true },
-      { key: 'showDiscord',  label: 'Discord Column',  default: true },
-      { key: 'showTelegram', label: 'Telegram Column', default: true }
-    ]
-  },
   'watchlist': {
     component: WatchlistWidget,
     label: 'Watchlist',
@@ -406,18 +390,6 @@ export const WIDGET_REGISTRY = {
     description: 'PnL & volume rank for a wallet',
     category: 'scanner',
     defaultSize: { w: 6, h: 2, minW: 4, minH: 2 }, smH: 6, mdH: 2,
-    defaultSettings: { walletAddress: '' },
-    settingsSchema: [
-      { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
-    ],
-    visibilitySchema: []
-  },
-  'social-info': {
-    component: SocialInfoWidget,
-    label: 'Social Info',
-    description: 'Referral code, Discord, Telegram, X',
-    category: 'scanner',
-    defaultSize: { w: 6, h: 3, minW: 4, minH: 2 }, smH: 8, mdH: 3,
     defaultSettings: { walletAddress: '' },
     settingsSchema: [
       { key: 'walletAddress', type: 'text', label: 'Wallet Address' }
@@ -757,30 +729,26 @@ export const PRESET_TEMPLATES = [
     id: 'preset-socials',
     name: 'Socials',
     icon: '👥',
-    description: 'Watchlist, referrals & new trader feed',
+    description: 'Watchlist, new traders & reverse search',
     layouts: {
       lg: [
         { i: 'pso-wl',  x: 0,  y: 0, w: 12, h: 5, minW: 4, minH: 2 },
-        { i: 'pso-ref', x: 12, y: 0, w: 12, h: 5, minW: 4, minH: 2 },
-        { i: 'pso-nt',  x: 0,  y: 5, w: 12, h: 5, minW: 4, minH: 2 },
-        { i: 'pso-rs',  x: 12, y: 5, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'pso-nt',  x: 12, y: 0, w: 12, h: 5, minW: 4, minH: 2 },
+        { i: 'pso-rs',  x: 0,  y: 5, w: 12, h: 5, minW: 4, minH: 2 },
       ],
       md: [
         { i: 'pso-wl',  x: 0, y: 0,  w: 12, h: 5 },
-        { i: 'pso-ref', x: 0, y: 5,  w: 12, h: 5 },
-        { i: 'pso-nt',  x: 0, y: 10, w: 12, h: 5 },
-        { i: 'pso-rs',  x: 0, y: 15, w: 12, h: 5 },
+        { i: 'pso-nt',  x: 0, y: 5,  w: 12, h: 5 },
+        { i: 'pso-rs',  x: 0, y: 10, w: 12, h: 5 },
       ],
       sm: [
         { i: 'pso-wl',  x: 0, y: 0,  w: 4, h: 5 },
-        { i: 'pso-ref', x: 0, y: 5,  w: 4, h: 5 },
-        { i: 'pso-nt',  x: 0, y: 10, w: 4, h: 5 },
-        { i: 'pso-rs',  x: 0, y: 15, w: 4, h: 5 },
+        { i: 'pso-nt',  x: 0, y: 5,  w: 4, h: 5 },
+        { i: 'pso-rs',  x: 0, y: 10, w: 4, h: 5 },
       ],
     },
     widgets: {
       'pso-wl':  { type: 'watchlist',      settings: {} },
-      'pso-ref': { type: 'referral-codes', settings: {} },
       'pso-nt':  { type: 'new-traders',    settings: {} },
       'pso-rs':  { type: 'reverse-search', settings: {} },
     },

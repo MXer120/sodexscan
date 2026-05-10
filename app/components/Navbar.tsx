@@ -49,8 +49,6 @@ function Navbar() {
                 : <button className="text-link highlight-link" onClick={() => { setMobileActiveTab(null); setShowAuth(true) }}>Login</button>
               }
               <div className="menu-divider" />
-              <Link href="/referral" onClick={() => setMobileActiveTab(null)}>Referral</Link>
-              <div className="menu-divider" />
               <Link href="/watchlist" onClick={() => setMobileActiveTab(null)}>Watchlist</Link>
               <Link href="/platform" onClick={() => setMobileActiveTab(null)}>Platform Stats</Link>
               <Link href="/incoming" onClick={() => setMobileActiveTab(null)}>Incoming</Link>

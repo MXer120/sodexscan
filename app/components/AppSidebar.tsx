@@ -8,7 +8,6 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/app/components/ui/sidebar";
-import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -18,10 +17,10 @@ import { cn } from "@/app/lib/utils";
 import { GradientAvatar } from "@/app/components/ui/gradient-avatar";
 import {
   LayoutDashboard, Search, Trophy, Star, BookmarkCheck, Bell, Repeat2,
-  Folder, ChevronDown, ChevronRight, X, MessageSquare, Settings, HelpCircle,
-  Plus, Check, User, LogOut, Sparkles, Share2, GitMerge, BarChart3,
+  Folder, ChevronDown, ChevronRight, MessageSquare, Settings, HelpCircle,
+  Plus, Check, User, LogOut, Sparkles, GitMerge, BarChart3,
   Wrench, FileBarChart, FolderSearch, ShieldAlert, FlaskConical, Globe,
-  Palette, MoreHorizontal, Map, Languages,
+  Palette, MoreHorizontal, Map, Languages, Key,
 } from "lucide-react";
 
 const menuItems = [
@@ -36,7 +35,6 @@ const menuItems = [
 
 // All additional pages shown in the "More" hover popup
 const moreItems = [
-  { icon: Share2,       label: "Referral",       href: "/referral"       },
   { icon: GitMerge,     label: "Workflows",      href: "/workflow"       },
   { icon: BarChart3,    label: "Aggregator",     href: "/aggregator"     },
   { icon: FileBarChart, label: "Reports",        href: "/reports"        },
@@ -124,7 +122,6 @@ function MoreMenu({ pathname }: { pathname: string }) {
 export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const [favoritesOpen, setFavoritesOpen] = React.useState(true);
-  const [showUpgradeModal, setShowUpgradeModal] = React.useState(true);
 
   const isActive = (href: string, exact = false) =>
     exact ? pathname === href : pathname.startsWith(href) && href !== "/";
@@ -248,28 +245,10 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
 
       {/* ── Footer ── */}
       <SidebarFooter className="px-5 pb-5">
-        {showUpgradeModal && (
-          <div className="relative p-5 rounded-2xl border bg-card shadow-lg mb-2">
-            <Button variant="ghost" size="icon" className="absolute right-3 top-3 bg-muted" onClick={() => setShowUpgradeModal(false)}>
-              <X className="size-3" />
-            </Button>
-            <p className="font-semibold text-sm mb-2">5 Days left!</p>
-            <div className="w-full bg-muted rounded-sm h-1.5 mb-2">
-              <div className="bg-foreground h-full rounded-sm w-[60%]" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Select best plan now and unlock all special features
-            </p>
-            <Link href="#" className="flex items-center gap-1 text-sm font-medium">
-              Select plan <ChevronRight className="size-3.5" />
-            </Link>
-          </div>
-        )}
-
         {/* Profile row */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-accent transition-colors text-left outline-none">
+            <button className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-accent transition-colors text-left outline-none cursor-pointer">
               <GradientAvatar storageKey="sidebar-user-avatar" size={32} rounded="full" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate leading-none mb-0.5">My Account</p>
@@ -288,7 +267,10 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
               <Link href="/profile"><User className="size-4 mr-2" />Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/profile"><Settings className="size-4 mr-2" />Settings</Link>
+              <Link href="/settings"><Settings className="size-4 mr-2" />Settings</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings?section=api-keys"><Key className="size-4 mr-2" />API Keys</Link>
             </DropdownMenuItem>
             <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
               <Languages className="size-4 mr-2" />
@@ -296,8 +278,12 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
               <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">Soon</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem><HelpCircle className="size-4 mr-2" />Help Center</DropdownMenuItem>
-            <DropdownMenuItem><MessageSquare className="size-4 mr-2" />Feedback</DropdownMenuItem>
+            <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+              <HelpCircle className="size-4 mr-2" />Help Center
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+              <MessageSquare className="size-4 mr-2" />Feedback
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive">
               <LogOut className="size-4 mr-2" />Log out

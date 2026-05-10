@@ -8,6 +8,7 @@ import { supabaseAdmin } from '../../../lib/supabaseServer'
 import {
   etfBtcFlows,
   etfEthFlows,
+  etfTickerHistory,
   etfSnapshot,
   indicesList,
   newsTrending,
@@ -15,13 +16,19 @@ import {
 } from '../../../lib/sosoValueApi'
 
 const ENDPOINTS = [
-  { module: 'etf', key: 'btc_flows',  fetch: () => etfBtcFlows() },
-  { module: 'etf', key: 'eth_flows',  fetch: () => etfEthFlows() },
-  { module: 'etf', key: 'btc_snapshot', fetch: () => etfSnapshot('BTC') },
-  { module: 'etf', key: 'eth_snapshot', fetch: () => etfSnapshot('ETH') },
-  { module: 'index', key: 'list',     fetch: () => indicesList() },
-  { module: 'news', key: 'trending',  fetch: () => newsTrending(1, 15) },
-  { module: 'macro', key: 'events',   fetch: () => macroEvents() },
+  { module: 'etf', key: 'btc_flows',     fetch: () => etfBtcFlows() },
+  { module: 'etf', key: 'eth_flows',     fetch: () => etfEthFlows() },
+  { module: 'etf', key: 'ibit_history',  fetch: () => etfTickerHistory('IBIT') },
+  { module: 'etf', key: 'fbtc_history',  fetch: () => etfTickerHistory('FBTC') },
+  { module: 'etf', key: 'arkb_history',  fetch: () => etfTickerHistory('ARKB') },
+  { module: 'etf', key: 'gbtc_history',  fetch: () => etfTickerHistory('GBTC') },
+  { module: 'etf', key: 'ibit_snapshot', fetch: () => etfSnapshot('IBIT') },
+  { module: 'etf', key: 'fbtc_snapshot', fetch: () => etfSnapshot('FBTC') },
+  { module: 'etf', key: 'arkb_snapshot', fetch: () => etfSnapshot('ARKB') },
+  { module: 'etf', key: 'gbtc_snapshot', fetch: () => etfSnapshot('GBTC') },
+  { module: 'index', key: 'list',        fetch: () => indicesList() },
+  { module: 'news',  key: 'trending',    fetch: () => newsTrending(1, 15) },
+  { module: 'macro', key: 'events',      fetch: () => macroEvents() },
 ]
 
 export async function GET(request) {

@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
   const verified = request.cookies.get('mnt-verified')?.value
   if (verified === '1') return NextResponse.next()
 
-  return rewriteToMaintenance(request)
+return rewriteToMaintenance(request)
 }
 
 export const config = {

@@ -30,18 +30,27 @@ async function gw(path, opts = {}) {
 //  ETF
 // ═══════════════════════════════════════
 
-/** All ETF fund summaries */
-export const etfSummary = () => gw('/etf/summary')
+/** Aggregate daily flows across all ETFs for a symbol */
+export const etfSummaryHistory = (symbol: string, limit = 90) =>
+  gw(`/etfs/summary-history?symbol=${symbol}&country_code=US&limit=${limit}`)
 
-/** BTC spot-ETF daily net flows (inflow/outflow in USD) */
-export const etfBtcFlows = () => gw('/etf/flows?assetType=BTC')
+/** BTC spot-ETF aggregate daily net flows */
+export const etfBtcFlows = () => etfSummaryHistory('BTC')
 
-/** ETH spot-ETF daily net flows */
-export const etfEthFlows = () => gw('/etf/flows?assetType=ETH')
+/** ETH spot-ETF aggregate daily net flows */
+export const etfEthFlows = () => etfSummaryHistory('ETH')
 
-/** ETF snapshot (latest AUM, volume, flows) */
-export const etfSnapshot = (assetType = 'BTC') =>
-  gw(`/etf/snapshot?assetType=${assetType}`)
+/** Per-ETF daily history — returns [{date, ticker, net_inflow, cum_inflow, net_assets, ...}] */
+export const etfTickerHistory = (ticker: string, limit = 90) =>
+  gw(`/etfs/${ticker}/history?limit=${limit}`)
+
+/** Per-ETF current snapshot — returns {net_assets, cum_inflow, net_inflow, mkt_price, ...} */
+export const etfSnapshot = (ticker: string) =>
+  gw(`/etfs/${ticker}/market-snapshot`)
+
+/** List all ETFs for a symbol */
+export const etfList = (symbol: string) =>
+  gw(`/etfs?symbol=${symbol}&country_code=US`)
 
 // ═══════════════════════════════════════
 //  SoSoValue Index

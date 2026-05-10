@@ -56,13 +56,20 @@ function isQuotaError(e: unknown): boolean {
 
 // ── CommunityScan slot list ────────────────────────────────────────────────────
 // Builds the priority-ordered list of {label, model} to try.
-// Google first (best quality), then Groq keys × models in quality order.
+// User keys (if provided) are tried first; then platform keys.
 interface CSSlot { label: string; model: ReturnType<typeof resolveModel> }
 
-function getCSSLots(): CSSlot[] {
+function buildCSSlots(userGroqKey?: string, userGoogleKey?: string): CSSlot[] {
   const slots: CSSlot[] = [];
 
-  // Google — best quality + highest free limits (1500 req/day)
+  // User-provided Google key — highest priority
+  if (userGoogleKey) {
+    const g = createGoogleGenerativeAI({ apiKey: userGoogleKey });
+    slots.push({ label: "user-google/gemini-2.5-flash", model: g("gemini-2.5-flash") });
+    slots.push({ label: "user-google/gemini-2.0-flash", model: g("gemini-2.0-flash") });
+  }
+
+  // Platform Google key
   const gKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (gKey) {
     const g = createGoogleGenerativeAI({ apiKey: gKey });
@@ -70,7 +77,14 @@ function getCSSLots(): CSSlot[] {
     slots.push({ label: "gemini-2.0-flash", model: g("gemini-2.0-flash") });
   }
 
-  // Groq: each model tried across all keys before moving to the next model
+  // User-provided Groq key
+  if (userGroqKey) {
+    for (const modelId of ["llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct"]) {
+      slots.push({ label: `user-groq/${modelId}`, model: createGroq({ apiKey: userGroqKey })(modelId) });
+    }
+  }
+
+  // Platform Groq keys
   const groqModels = [
     "llama-3.3-70b-versatile",
     "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -91,9 +105,11 @@ function getCSSLots(): CSSlot[] {
 let _csIdx = 0;
 
 async function communityScanGenerate(
-  opts: Omit<Parameters<typeof generateText>[0], "model">
+  opts: Omit<Parameters<typeof generateText>[0], "model">,
+  userGroqKey?: string,
+  userGoogleKey?: string,
 ): Promise<Awaited<ReturnType<typeof generateText>>> {
-  const slots = getCSSLots();
+  const slots = buildCSSlots(userGroqKey, userGoogleKey);
   if (!slots.length) throw new Error("No API keys configured");
   const start = _csIdx;
   for (let i = 0; i < slots.length; i++) {
@@ -112,9 +128,11 @@ async function communityScanGenerate(
 }
 
 async function communityScanStream(
-  opts: Omit<Parameters<typeof streamText>[0], "model">
+  opts: Omit<Parameters<typeof streamText>[0], "model">,
+  userGroqKey?: string,
+  userGoogleKey?: string,
 ): Promise<ReturnType<typeof streamText>> {
-  const slots = getCSSLots();
+  const slots = buildCSSlots(userGroqKey, userGoogleKey);
   if (!slots.length) throw new Error("No API keys configured");
   const start = _csIdx;
   for (let i = 0; i < slots.length; i++) {
@@ -163,6 +181,10 @@ export async function POST(req: NextRequest) {
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return new Response("Sign in to use CommunityScan AI.", { status: 401 });
+
+  // User-provided keys forwarded from localStorage — never logged or stored
+  const userGroqKey   = req.headers.get("X-User-Groq-Key")   || undefined;
+  const userGoogleKey = req.headers.get("X-User-Google-Key") || undefined;
 
   const [profileRole, userCtx, systemPrompt] = await Promise.all([
     getUserRole(user.id),
@@ -283,10 +305,10 @@ export async function POST(req: NextRequest) {
 
   async function callGenerate(msgs: CoreMessage[]) {
     const opts = { ...baseOpts, messages: msgs };
-    if (isCS) return communityScanGenerate(opts);
+    if (isCS) return communityScanGenerate(opts, userGroqKey, userGoogleKey);
     try { return await generateText({ model: model!, maxRetries: isGoogle?0:1, ...opts }); }
     catch (e) {
-      if (isGoogle && isQuotaError(e)) return communityScanGenerate(opts);
+      if (isGoogle && isQuotaError(e)) return communityScanGenerate(opts, userGroqKey, userGoogleKey);
       throw e;
     }
   }
@@ -294,10 +316,10 @@ export async function POST(req: NextRequest) {
   async function callStream(msgs: CoreMessage[], extraSystem?: string) {
     const sys = extraSystem ? `${fullSystem}\n\n${extraSystem}` : fullSystem;
     const opts = { ...baseOpts, system: sys, messages: msgs };
-    if (isCS) return communityScanStream(opts);
+    if (isCS) return communityScanStream(opts, userGroqKey, userGoogleKey);
     try { return await streamText({ model: model!, maxRetries: isGoogle?0:1, ...opts }); }
     catch (e) {
-      if (isGoogle && isQuotaError(e)) return communityScanStream(opts);
+      if (isGoogle && isQuotaError(e)) return communityScanStream(opts, userGroqKey, userGoogleKey);
       throw e;
     }
   }

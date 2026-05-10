@@ -64,9 +64,17 @@ function ToolCard({ tool, onOpen }) {
 export default function ToolsPage({
   categoryFilter = null,
   onCategoriesLoaded = null,
+  basePath = '/tools',
+  extraParams = {},
+  onOpenTool: onOpenToolProp,
+  onCloseTool: onCloseToolProp,
 }: {
   categoryFilter?: string | null;
   onCategoriesLoaded?: ((cats: { name: string; count: number }[]) => void) | null;
+  basePath?: string;
+  extraParams?: Record<string, string>;
+  onOpenTool?: (id: string) => void;
+  onCloseTool?: () => void;
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -106,17 +114,20 @@ export default function ToolsPage({
     else setOpenId(null)
   }, [searchParams, toolById])
 
-  const openTool = useCallback((id) => {
+  const openTool = useCallback((id: string) => {
+    if (onOpenToolProp) { onOpenToolProp(id); return }
     const sp = new URLSearchParams(searchParams?.toString() ?? '')
+    Object.entries(extraParams).forEach(([k, v]) => sp.set(k, v))
     sp.set('tool', id)
-    router.replace(`/tools?${sp.toString()}`, { scroll: false })
-  }, [router, searchParams])
+    router.replace(`${basePath}?${sp.toString()}`, { scroll: false })
+  }, [router, searchParams, basePath, extraParams, onOpenToolProp])
 
   const closeTool = useCallback(() => {
+    if (onCloseToolProp) { onCloseToolProp(); return }
     const sp = new URLSearchParams(searchParams?.toString() ?? '')
     sp.delete('tool')
-    router.replace(`/tools${sp.toString() ? `?${sp.toString()}` : ''}`, { scroll: false })
-  }, [router, searchParams])
+    router.replace(`${basePath}${sp.toString() ? `?${sp.toString()}` : ''}`, { scroll: false })
+  }, [router, searchParams, basePath, onCloseToolProp])
 
   const counts = useMemo(() => {
     let available = 0, planned = 0

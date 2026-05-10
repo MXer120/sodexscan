@@ -3,12 +3,6 @@
 import { useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/app/components/ui/sheet";
-import {
   UploadIcon,
   WrenchIcon,
   LayoutDashboardIcon,
@@ -99,12 +93,6 @@ const waves: Wave[] = [
         description: "Main dashboard with customisable grid layout, portfolio overview, and live market widgets.",
         status: "done",
         group: "Platform",
-        details: [
-          "Customisable grid layout — drag and resize widgets",
-          "Portfolio overview with live token prices",
-          "Quick-access market widgets: trending, gainers, losers",
-          "Persistent layout saved per user",
-        ],
       },
       {
         icon: SearchIcon,
@@ -112,12 +100,6 @@ const waves: Wave[] = [
         description: "Wallet tracking and monitoring — search any address, view activity and asset history.",
         status: "done",
         group: "Platform",
-        details: [
-          "Search any EVM or SoDEX wallet address",
-          "View full asset history and recent activity",
-          "Token balance breakdown with USD values",
-          "Transaction timeline with type labels",
-        ],
       },
       {
         icon: TrophyIcon,
@@ -138,105 +120,79 @@ const waves: Wave[] = [
         description: "Save favourite wallets; configure price and event alerts with notification support.",
         status: "done",
         group: "Platform",
-        details: [
-          "Star any wallet to add to personal watchlist",
-          "Configure price threshold alerts per token",
-          "Event alerts: large transfer, new position, close",
-          "In-app and browser push notification delivery",
-        ],
       },
       {
         icon: CopyIcon,
         title: "Copy Trade",
-        description: "Follow top leaderboard wallets and mirror their positions automatically.",
+        description: "Early concept — mirror top leaderboard wallets automatically. May be scrapped or significantly reworked.",
         status: "done",
         group: "Platform",
-        details: [
-          "Select a wallet to follow from the leaderboard",
-          "Set max position size and risk parameters",
-          "Toggle copy-trade on/off per followed wallet",
-          "Activity log showing mirrored trades in real time",
-        ],
       },
       {
         icon: FileBarChart2Icon,
         title: "Reports",
-        description: "Tax report wizard: quarterly/yearly PnL export with fee deduction and CSV/PDF download.",
+        description: "Early concept — PnL export and tax report wizard. May be scrapped or significantly reworked.",
         status: "done",
         group: "Platform",
-        details: [
-          "Step-by-step tax report wizard",
-          "Select date range: quarterly or yearly",
-          "Automatically deducts trading fees from PnL",
-          "Export as CSV or PDF for accountants",
-        ],
       },
       {
         icon: ShieldAlertIcon,
-        title: "LARP Detector & Reverse Search",
-        description: "Verify trading screenshots for authenticity; discover wallet addresses from fragments.",
+        title: "Reversearch",
+        description: "Search by address fragments and referral code.",
         status: "done",
         group: "Platform",
-        details: [
-          "Upload a trading screenshot — AI checks for manipulation",
-          "Detects edited numbers, font inconsistencies, metadata mismatches",
-          "Reverse search: paste partial wallet or tx hash to find the full address",
-          "Result includes confidence score and evidence breakdown",
-        ],
       },
       {
         icon: MessageSquareIcon,
         title: "AI Chat UI",
-        description: "Full chat interface with welcome screen, conversation view, mode buttons, model selector, file upload, and typing indicator.",
+        description: "Chat interface with welcome screen, conversation view, model selector, and typing indicator. Mode buttons (Fast, In-depth, Magic AI, Holistic) and file upload are visual placeholders.",
         status: "done",
         group: "AI",
         details: [
-          "Welcome screen with suggested prompts",
-          "Persistent conversation view with history",
-          "Mode buttons: Normal, Deep Search, Think",
-          "Model selector per conversation",
-          "File upload for CSV, images, PDFs",
-          "Streaming typing indicator",
+          "Welcome screen and persistent conversation view",
+          "Model selector per conversation — functional, routes to selected provider",
+          "Conversation history saved and loadable from sidebar",
+          "Streaming typing indicator (bouncing dots while awaiting first token)",
+          "Mode buttons visible but not yet wired to different behaviour",
+          "File upload UI present — attachment processing not yet implemented",
         ],
       },
       {
         icon: SparklesIcon,
         title: "Multi-model selector",
-        description: "Switch between Google Gemini (2.0 Flash, 1.5 Pro, Flash Thinking) and Groq (Llama 3.3 70B, Mixtral, Gemma 2) per conversation.",
+        description: "Switch between CommunityScan default, Google Gemini (2.5 Flash, 2.5 Pro, 2.0 Flash, 2.0 Flash Lite) and Groq (Llama 3.3 70B, Llama 4 Scout, Qwen 3 32B, Llama 3.1 8B) per conversation.",
         status: "done",
         group: "AI",
         details: [
-          "Google Gemini: 2.0 Flash, 1.5 Pro, Flash Thinking",
-          "Groq: Llama 3.3 70B, Mixtral 8x7B, Gemma 2 9B",
-          "Model preference saved per conversation",
-          "Cost and speed indicator shown per model",
+          "CommunityScan: default model with internal routing",
+          "Google Gemini: 2.5 Flash, 2.5 Pro, 2.0 Flash, 2.0 Flash Lite",
+          "Groq: Llama 3.3 70B Versatile, Llama 4 Scout 17B, Qwen 3 32B, GPT OSS 20B, Llama 3.1 8B",
+          "Selected model sent to API on every request",
         ],
       },
       {
         icon: DatabaseIcon,
         title: "Knowledge base & system prompt",
-        description: "Token-efficient system prompt embedding Sodex platform knowledge, deposit/withdrawal flows, crypto concepts, and tool routing rules.",
+        description: "System prompt and knowledge base populated with quickly generated demo data for demonstration purposes.",
         status: "done",
         group: "AI",
         details: [
-          "Structured system prompt with Sodex platform context",
-          "Covers: deposit/withdrawal flows, bridge steps, error codes",
-          "Crypto fundamentals: wallets, perps, funding rates, liquidation",
-          "Tool routing rules — AI knows when to call which tool",
-          "Token-efficient format to minimise context cost",
+          "System prompt viewable and editable by admins",
+          "Knowledge base entries seeded as demo data — not production-accurate",
+          "Top 4 KB chunks injected per request via semantic search",
+          "Personal overrides: users can customise their own KB version",
         ],
       },
       {
         icon: ZapIcon,
         title: "Streaming AI responses",
-        description: "Token-by-token streaming via Vercel AI SDK. Response appears as it's generated, not as one block.",
-        status: "in-progress",
+        description: "Token-by-token streaming via Vercel AI SDK useChat hook. Response renders progressively as it arrives.",
+        status: "done",
         group: "AI",
         details: [
           "Vercel AI SDK useChat hook driving the stream",
-          "Token-by-token rendering in the message bubble",
-          "Partial markdown rendered live as it arrives",
-          "Abort button stops generation mid-stream",
+          "Message bubble updates token by token as they arrive",
+          "Typing indicator shown while waiting for the first token",
         ],
       },
       {
@@ -246,10 +202,10 @@ const waves: Wave[] = [
         status: "in-progress",
         group: "AI",
         details: [
-          "Registered tools: balance, open positions, trade history, token price, leaderboard",
+          "Registered tools: balance, open positions, trade history, token price, leaderboard rank",
           "AI decides which tool to call based on user intent",
           "Tool result injected back into context before final answer",
-          "No hallucinated numbers — every figure comes from a live API call",
+          "Tool registry browsable at /tools",
         ],
       },
     ],
@@ -258,7 +214,7 @@ const waves: Wave[] = [
     wave: 2,
     label: "Build Phase I",
     title: "Core Features",
-    subtitle: "SoSoValue API integration, workflow builder, AI configuration, rich AI output, specialised agents",
+    subtitle: "User-side page completion, SoSoValue API integration, workflow builder, AI configuration, rich AI output, specialised agents",
     color: "text-blue-500",
     bgColor: "bg-blue-500/5",
     borderColor: "border-blue-500/20",
@@ -395,7 +351,7 @@ const waves: Wave[] = [
         status: "planned",
         group: "Workflow",
         details: [
-          "Live crypto news feed from aggregated sources",
+          "Live crypto news feed from SoSoValue",
           "AI summarises each article in 2-3 sentences",
           "Sentiment score: bullish / neutral / bearish with confidence",
           "Filter by keyword, token, or source in workflow",
@@ -460,22 +416,117 @@ const waves: Wave[] = [
       {
         icon: UsersIcon,
         title: "Specialised AI Agents",
-        description: "A roster of 12 domain-expert agents — each pre-loaded with the right knowledge base, system prompt, and tool set for its task.",
+        description: "Domain-expert agents, each pre-loaded with the right knowledge base, system prompt, and tool set. Examples include:",
         status: "planned",
         group: "Agents",
         details: [
-          "Knowledge Base Agent — manages, searches, and expands the AI knowledge base",
-          "System Prompt Agent — crafts and iterates on system prompts for optimal AI behaviour",
-          "Tool Routing Agent — decides which tools to call and in what order for complex queries",
-          "Perps Trading Agent — deep expertise in perpetuals: funding, liquidation, position sizing",
           "Portfolio Agent — full wallet analysis: PnL attribution, drawdown, win-rate breakdown",
           "Market Intelligence Agent — real-time market data, trend detection, and opportunity surfacing",
           "Risk Management Agent — position risk scoring, margin health, exposure across all open trades",
           "On-chain Explorer Agent — EVM transactions, token transfers, contract interaction decoding",
-          "Copy Trading Agent — identifies top performers, evaluates strategy fit, manages follow list",
-          "Alert Automation Agent — configures and refines smart price and event-based alerts",
-          "Tax & Reporting Agent — PnL export, fee deduction, tax-lot calculations, CSV/PDF output",
-          "Tutorial Agent — step-by-step onboarding to any tool; explains outputs in plain language",
+          "SoSo Support Agent — platform support and guidance across SoSoValue, SoDEX, and SSI (possibly split into separate agents per product)",
+        ],
+      },
+      {
+        icon: LayoutDashboardIcon,
+        title: "Personal Trading Dashboard",
+        description: "User-facing dashboard with live equity stats, PnL chart with timeframe switching, calendar heatmap, and tabbed activity table.",
+        status: "in-progress",
+        group: "User Pages",
+        details: [
+          "Three live stat cards: total equity, all-time PnL with leaderboard rank, open position count with uPnL",
+          "PnL chart defaulting to 1M with 1W / 1M / 3M / 1Y / ALL timeframe chips",
+          "Calendar heatmap view — each day cell coloured green/red by daily PnL",
+          "Custom date range picker for arbitrary chart filtering",
+          "Activity table tabs: Open Positions, Withdrawals, Transfers, Closed Orders",
+          "All data sourced from the connected profile wallet — no manual address entry needed",
+          "Skeleton loading states and graceful empty states throughout",
+        ],
+      },
+      {
+        icon: SearchIcon,
+        title: "Scanner & Wallet Tracker",
+        description: "Fully user-facing wallet scanner: search any address, browse positions, PnL history, transfers, and leaderboard rank — no AI required.",
+        status: "in-progress",
+        group: "User Pages",
+        details: [
+          "Search by wallet address or saved tag name",
+          "Overview tabs: Summary, Open Positions, PnL Chart, Trade History, Transfers",
+          "Spot and futures balance breakdown with USD values",
+          "Leaderboard rank badge: PnL rank + volume rank",
+          "Bookmark wallet to watchlist directly from the scanner header",
+          "Copy-trade shortcut and shareable wallet view link",
+        ],
+      },
+      {
+        icon: WalletIcon,
+        title: "Profile & Wallet Connection",
+        description: "User profile page: connect own wallet, manage display preferences, tag wallets, and configure notification settings.",
+        status: "done",
+        group: "User Pages",
+        details: [
+          "Connect own wallet address — propagates to dashboard, AI tools, and leaderboard rank",
+          "Tag any wallet with a custom label for easier identification across the platform",
+          "Dark / light mode toggle and layout density setting",
+          "Notification preferences: in-app, browser push, Telegram",
+          "SoPoints balance display and redemption history",
+        ],
+      },
+      {
+        icon: WalletIcon,
+        title: "Watchlist Management",
+        description: "Full watchlist UI: save favourite wallets with tags, view quick-stats per entry, and manage the list from a dedicated page.",
+        status: "done",
+        group: "User Pages",
+        details: [
+          "Star any wallet from the scanner or leaderboard to add it instantly",
+          "Tag saved wallets with custom labels for grouping",
+          "Quick-stats row per entry: 24h PnL, open positions, last active",
+          "Sort and filter by tag, performance, or last activity",
+          "Bulk remove or archive entries",
+        ],
+      },
+      {
+        icon: BellIcon,
+        title: "Alerts Center",
+        description: "User-facing alerts hub: create and manage price, wallet-event, and leaderboard alerts with a full trigger history.",
+        status: "in-progress",
+        group: "User Pages",
+        details: [
+          "Active alerts list: price threshold, wallet event, leaderboard move, new listing",
+          "Trigger history log with timestamp and event payload",
+          "Inline threshold editing without reopening a create form",
+          "Per-alert notification channel: in-app, push, Telegram",
+          "Snooze alerts temporarily without deleting them",
+        ],
+      },
+      {
+        icon: CopyIcon,
+        title: "Copy Trade Interface",
+        description: "User copy-trade dashboard: manage followed wallets, review mirrored trades, set risk limits, and track copy-trade PnL.",
+        status: "in-progress",
+        group: "User Pages",
+        details: [
+          "List of followed wallets with per-wallet on/off toggle",
+          "Set max position size and per-trade risk percentage per wallet",
+          "Live copied trades log with entry price and current PnL",
+          "Performance summary: copy-trade PnL vs own-trade PnL",
+          "Stop-loss and take-profit override configurable per followed wallet",
+        ],
+      },
+      {
+        icon: FileBarChart2Icon,
+        title: "Reports & PnL Export",
+        description: "User-facing reports page: generate PnL summaries, apply date filters, and download CSV or PDF for tax or review purposes.",
+        status: "in-progress",
+        group: "User Pages",
+        details: [
+          "Date range selector: custom, quarterly, or yearly",
+          "PnL summary: realised, unrealised, fees paid, net result",
+          "Trade-by-trade breakdown table with sortable columns",
+          "Fee deduction applied automatically to net PnL figure",
+          "Export as CSV (accountant-friendly) or formatted PDF",
+          "Supports exports from SoDEX account history",
         ],
       },
     ],
@@ -484,7 +535,7 @@ const waves: Wave[] = [
     wave: 3,
     label: "Build Phase II",
     title: "Product Completion",
-    subtitle: "UX refinement, rich chart blocks, risk controls, manual power UI, language support, final demo",
+    subtitle: "Security hardening, performance optimisation, UX & final UI adjustments, rich chart blocks, manual power UI, language support, final demo",
     color: "text-orange-500",
     bgColor: "bg-orange-500/5",
     borderColor: "border-orange-500/20",
@@ -617,6 +668,56 @@ const waves: Wave[] = [
         ],
       },
       {
+        icon: ShieldCheckIcon,
+        title: "Security Updates",
+        description: "Platform-wide security hardening: auth strengthening, endpoint protection, input validation, rate limiting, and audit logging.",
+        status: "planned",
+        group: "Security",
+        details: [
+          "JWT / session hardening — short-lived tokens, secure refresh flow, revocation on logout",
+          "Per-endpoint rate limiting with Upstash Redis sliding window (distinct limits per tier)",
+          "Input sanitization and schema validation at every API boundary",
+          "CORS policy locked to allowed origins — no wildcard in production",
+          "API responses scrubbed of internal stack traces, keys, and raw DB errors",
+          "Audit log: record auth events, tool calls, and admin actions with user ID and timestamp",
+          "Dependency audit pass — upgrade packages with known CVEs",
+        ],
+      },
+      {
+        icon: ZapIcon,
+        title: "Performance Optimisation",
+        description: "Bundle splitting, API response caching, lazy loading, query optimisation, and CDN configuration for fast load times.",
+        status: "planned",
+        group: "Performance",
+        details: [
+          "Route-level code splitting — only load JS for the current page",
+          "Lazy-load heavy components (charts, aggregator canvas) below the fold",
+          "Redis caching layer for leaderboard, token price, and wallet data endpoints",
+          "Supabase query optimisation: indexes, select projection, avoid N+1 patterns",
+          "Image optimisation: WebP conversion, responsive srcset, next/image throughout",
+          "CDN static asset caching with long max-age and cache-busting hashes",
+          "Lighthouse target: Performance ≥ 85, CLS < 0.1, LCP < 2.5 s on desktop",
+        ],
+      },
+      {
+        icon: SlidersIcon,
+        title: "UX & Final UI Adjustments",
+        description: "Responsive polish, dark/light mode consistency, skeleton coverage, error boundary design, animation refinements, and accessibility pass.",
+        status: "planned",
+        group: "UX",
+        details: [
+          "Mobile and tablet responsive audit — fix layout breaks below 768 px",
+          "Dark and light mode consistency check across every page and component",
+          "Skeleton loading screens on all data-fetching surfaces — no layout shift",
+          "Graceful error boundaries with retry actions and user-friendly copy",
+          "Micro-animation refinements: transitions, hover states, sheet open/close",
+          "Empty state illustrations and copy for zero-data scenarios",
+          "Keyboard navigation and focus-ring audit (WCAG AA target)",
+          "Toast and alert copy review — consistent tone and actionable messages",
+          "Final design QA pass: spacing, font sizes, icon alignment across breakpoints",
+        ],
+      },
+      {
         icon: FileTextIcon,
         title: "Final demo",
         description: "End-to-end demo: live wallet lookup, AI tool calls, rich output, workflow execution, deposit guidance — submission-ready.",
@@ -694,16 +795,24 @@ function RoadmapCard({
 }: {
   item: RoadmapItem;
   waveMeta: Wave;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
+  const clickable = !!onClick && !!(item.details?.length);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full text-left flex gap-3 p-4 rounded-xl border border-border bg-card hover:bg-accent/30 hover:border-border/80 transition-all cursor-pointer"
+    <div
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? onClick : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") onClick?.(); } : undefined}
+      className={cn(
+        "group w-full text-left flex gap-3 p-4 rounded-xl border border-border bg-card transition-all",
+        clickable
+          ? "hover:bg-accent/30 hover:border-border/80 cursor-pointer"
+          : "cursor-default"
+      )}
     >
       <div className="shrink-0 mt-0.5">
-        <div className="size-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-accent transition-colors">
+        <div className={cn("size-8 rounded-lg bg-muted flex items-center justify-center transition-colors", clickable && "group-hover:bg-accent")}>
           <item.icon className="size-4 text-muted-foreground" />
         </div>
       </div>
@@ -721,83 +830,13 @@ function RoadmapCard({
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{item.description}</p>
       </div>
-      <ChevronRightIcon className="shrink-0 size-3.5 mt-1 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors self-start" />
-    </button>
+      {clickable && (
+        <ChevronRightIcon className="shrink-0 size-3.5 mt-1 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors self-start" />
+      )}
+    </div>
   );
 }
 
-function DetailSidebar({
-  selected,
-  onClose,
-}: {
-  selected: SelectedItem;
-  onClose: () => void;
-}) {
-  return (
-    <Sheet open={!!selected} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-        {selected && (
-          <>
-            <SheetHeader className="pb-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                  <selected.item.icon className="size-5 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className={cn(
-                        "text-[10px] font-medium px-2 py-0.5 rounded-full border",
-                        STATUS_CLASS[selected.item.status]
-                      )}
-                    >
-                      {STATUS_LABEL[selected.item.status]}
-                    </span>
-                    <span className={cn("text-xs font-semibold", selected.waveMeta.color)}>
-                      W{selected.waveMeta.wave} — {selected.waveMeta.title}
-                    </span>
-                  </div>
-                  <SheetTitle className="text-base font-semibold mt-0.5 text-left">
-                    {selected.item.title}
-                  </SheetTitle>
-                </div>
-              </div>
-            </SheetHeader>
-
-            <div className="space-y-5 px-4 pb-6">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {selected.item.description}
-              </p>
-
-              {selected.item.details && selected.item.details.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                    What's included
-                  </p>
-                  <ul className="space-y-2">
-                    {selected.item.details.map((detail, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm">
-                        <span className={cn("mt-1.5 size-1.5 rounded-full shrink-0", selected.waveMeta.dotColor)} />
-                        <span className="leading-relaxed">{detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className={cn("rounded-lg border p-3", selected.waveMeta.bgColor, selected.waveMeta.borderColor)}>
-                <p className={cn("text-xs font-medium", selected.waveMeta.color)}>
-                  W{selected.waveMeta.wave} · {selected.waveMeta.label}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{selected.waveMeta.subtitle}</p>
-              </div>
-            </div>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 export default function RoadmapPage() {
   const [selected, setSelected] = useState<SelectedItem>(null);
@@ -807,7 +846,11 @@ export default function RoadmapPage() {
   const inProgressCount = allItems.filter((i) => i.status === "in-progress").length;
 
   return (
-    <>
+    <div className="flex h-full overflow-hidden">
+      {/* Main scrollable content */}
+      <div className={cn(
+        "flex-1 overflow-y-auto transition-all duration-200 min-w-0",
+      )}>
       <div className="px-4 md:px-8 py-8 max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-12">
@@ -856,7 +899,7 @@ export default function RoadmapPage() {
                   key={item.title}
                   item={item}
                   waveMeta={wave}
-                  onClick={() => setSelected({ item, waveMeta: wave })}
+                  onClick={item.details?.length ? () => setSelected({ item, waveMeta: wave }) : undefined}
                 />
               );
             });
@@ -899,8 +942,69 @@ export default function RoadmapPage() {
           })}
         </div>
       </div>
+      </div>
 
-      <DetailSidebar selected={selected} onClose={() => setSelected(null)} />
-    </>
+      {/* Inline detail panel — inside the content area, not overlaying */}
+      {selected && (
+        <div className="w-[340px] shrink-0 border-l border-border overflow-y-auto bg-background/80 backdrop-blur-sm">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 border-b border-border bg-background/90 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <selected.item.icon className="size-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium truncate">{selected.item.title}</span>
+            </div>
+            <button
+              onClick={() => setSelected(null)}
+              className="size-7 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div className="px-5 pt-4 pb-8 space-y-5">
+            {/* Status + wave */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={cn(
+                "text-[10px] font-medium px-2 py-0.5 rounded-full border",
+                STATUS_CLASS[selected.item.status]
+              )}>
+                {STATUS_LABEL[selected.item.status]}
+              </span>
+              <span className={cn("text-xs font-semibold", selected.waveMeta.color)}>
+                W{selected.waveMeta.wave} — {selected.waveMeta.title}
+              </span>
+            </div>
+
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {selected.item.description}
+            </p>
+
+            {selected.item.details && selected.item.details.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                  What&apos;s included
+                </p>
+                <ul className="space-y-2">
+                  {selected.item.details.map((detail, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm">
+                      <span className={cn("mt-1.5 size-1.5 rounded-full shrink-0", selected.waveMeta.dotColor)} />
+                      <span className="leading-relaxed">{detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className={cn("rounded-lg border p-3", selected.waveMeta.bgColor, selected.waveMeta.borderColor)}>
+              <p className={cn("text-xs font-medium", selected.waveMeta.color)}>
+                W{selected.waveMeta.wave} · {selected.waveMeta.label}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{selected.waveMeta.subtitle}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

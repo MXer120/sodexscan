@@ -123,16 +123,9 @@
   margin: 2px 0 16px;
 }
 
-/* ── Layout (TOC + grid) ──────────────────────────────────── */
+/* ── Layout ───────────────────────────────────────────────── */
 .tp-layout {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 28px;
-  align-items: start;
-}
-@media (max-width: 880px) {
-  .tp-layout { grid-template-columns: 1fr; }
-  .tp-toc { display: none; }
+  display: block;
 }
 
 .tp-toc {
@@ -467,6 +460,10 @@
   background: var(--ds-bg-3);
   color: var(--ds-text-primary);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  gap: 6px;
 }
 .tm-btn:hover { background: var(--ds-bg-4); }
 .tm-btn--primary { background: var(--ds-accent); border-color: var(--ds-accent); color: #fff; }

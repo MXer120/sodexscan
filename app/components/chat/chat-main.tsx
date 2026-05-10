@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "ai/react";
 import { ChatWelcomeScreen } from "./chat-welcome-screen";
 import { ChatConversationView } from "./chat-conversation-view";
@@ -43,12 +43,29 @@ export function ChatMain() {
   const selectChat = useChatStore((s) => s.selectChat);
   const selectedChatId = useChatStore((s) => s.selectedChatId);
 
+  const pendingHistoryRef = useRef<{ messages: ReturnType<typeof useChat>["messages"]; model?: string } | null>(null);
+
+  const storedKeyHeaders = useMemo(() => {
+    try {
+      const store: Record<string, Array<{ key: string }>> = JSON.parse(
+        localStorage.getItem("provider_api_keys") ?? "{}"
+      );
+      const h: Record<string, string> = {};
+      if (store.groq?.[0]?.key)   h["X-User-Groq-Key"]   = store.groq[0].key;
+      if (store.google?.[0]?.key) h["X-User-Google-Key"] = store.google[0].key;
+      return h;
+    } catch { return {}; }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [messageQueue, setMessageQueue] = useState<string[]>([]);
+
   const { messages, input, setInput, setMessages, append, isLoading, error } = useChat({
     api: "/api/chat",
     id: chatId,
-    headers: session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : {},
+    headers: {
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      ...storedKeyHeaders,
+    },
     body: { modelId: selectedModel, includeFullHistory, usePersonalKB },
   });
 
@@ -79,21 +96,29 @@ export function ChatMain() {
   // ── Load messages when a past chat is selected from the sidebar ───────────
   useEffect(() => {
     if (!selectedChatId || !session?.access_token) return;
-    if (selectedChatId === chatId) return; // already viewing this chat
-
+    if (selectedChatId === chatId) return;
     fetch(`/api/chat/history?id=${selectedChatId}`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { messages?: ReturnType<typeof useChat>["messages"]; model?: string } | null) => {
         if (!data?.messages?.length) return;
+        // Store before changing chatId so the next effect can restore them
+        pendingHistoryRef.current = { messages: data.messages, model: data.model };
         setChatId(selectedChatId);
-        setMessages(data.messages);
-        if (data.model) setSelectedModel(data.model);
-        setIncludeFullHistory(false);
       })
       .catch(() => {});
   }, [selectedChatId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── After chatId flip, restore the pending history messages ──────────────
+  useEffect(() => {
+    if (!pendingHistoryRef.current) return;
+    const { messages: hist, model } = pendingHistoryRef.current;
+    pendingHistoryRef.current = null;
+    setMessages(hist);
+    if (model) setSelectedModel(model);
+    setIncludeFullHistory(false);
+  }, [chatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save conversation after each AI response ──────────────────────────────
   const saveConversation = useDebounce(
@@ -120,6 +145,14 @@ export function ChatMain() {
     }
   }, [messages, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Drain message queue when AI finishes ────────────────────────────────
+  useEffect(() => {
+    if (isLoading || messageQueue.length === 0) return;
+    const [next, ...rest] = messageQueue;
+    setMessageQueue(rest);
+    append({ role: "user", content: next });
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const isConversationStarted = messages.length > 0;
   const displayMessages = toDisplay(messages);
   const contextLimitActive = messages.length > MAX_CONTEXT && !includeFullHistory;
@@ -128,16 +161,21 @@ export function ChatMain() {
   const awaitingFirstToken = isLoading && lastMessage?.role === "user";
 
   const handleSend = () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim()) return;
+    if (isLoading) { setMessageQueue(q => [...q, input.trim()]); setInput(""); return; }
     append({ role: "user", content: input });
     setInput("");
   };
 
   const handleSendMessage = (content: string) => {
-    if (!content.trim() || isLoading) return;
+    if (!content.trim()) return;
+    if (isLoading) { setMessageQueue(q => [...q, content.trim()]); setInput(""); return; }
     append({ role: "user", content });
     setInput("");
   };
+
+  const handleQueueRemove = (index: number) =>
+    setMessageQueue(q => q.filter((_, i) => i !== index));
 
   const handleReset = () => {
     const newId = generateChatId();
@@ -165,6 +203,8 @@ export function ChatMain() {
         error={error?.message}
         contextLimitActive={contextLimitActive}
         onExpandContext={() => setIncludeFullHistory(true)}
+        queue={messageQueue}
+        onQueueRemove={handleQueueRemove}
       />
     );
   }
