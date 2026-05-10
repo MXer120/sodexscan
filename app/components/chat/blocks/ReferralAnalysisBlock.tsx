@@ -221,6 +221,18 @@ export function ReferralAnalysisBlock() {
           ))}
         </div>
       </div>
+
+      {/* Footer */}
+      <div className="px-5 py-2.5 border-t bg-muted/20 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground truncate">Sample data · enter a code above to analyse</p>
+        <button
+          onClick={() => setInput("")}
+          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0 border rounded px-2 py-0.5 hover:bg-muted/50"
+          title="Reset to default view"
+        >
+          Full controls
+        </button>
+      </div>
     </div>
   );
 }

@@ -2,20 +2,25 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, LineChart, Line, ReferenceLine, Legend,
+  ComposedChart, BarChart, Bar, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, ReferenceLine, Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, Info, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, Loader2, LayoutGrid } from "lucide-react";
 import { cn } from "@/app/lib/utils";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface EtfBlockProps {
-  tickers?:  string[];
-  selected?: string;
-  tf?:       "1W" | "1M" | "3M";
-  view?:     "bar" | "cumulative";
-  overlay?:  boolean;
+  tickers?:           string[];
+  selected?:          string;
+  tf?:                "1W" | "1M" | "3M";
+  view?:              "bar" | "cumulative";
+  overlay?:           boolean;
+  showCumulativeLine?: boolean; // overlay cumulative line on top of daily bars
 }
 
 const TIMEFRAMES = ["1W", "1M", "3M"] as const;
@@ -31,8 +36,10 @@ const STATIC: Record<string, { name: string; issuer: string; color: string }> = 
   GBTC: { name: "Grayscale Bitcoin Trust",       issuer: "Grayscale", color: "#ef4444" },
 };
 
-// "combined" is the special aggregate-of-all-BTC-ETFs view
 const COMBINED = "combined";
+const INFLOW_COLOR  = "#10b981"; // green for positive flows
+const OUTFLOW_COLOR = "#ef4444"; // red for negative flows
+const MAX_VISIBLE_TABS = 4;
 
 interface EtfEntry { date: string; flow: number }
 interface EtfLive  { aum: string | null; entries: EtfEntry[] }
@@ -59,10 +66,10 @@ function parseCombined(raw: Array<{ date: string; total_net_inflow: number; tota
   return { entries, aum };
 }
 
-// Build period-relative cumulative: running sum of flow[] within the slice, starting at 0
-function periodCumulative(slice: EtfEntry[]): Array<EtfEntry & { periodCum: number }> {
+// Period-relative cumulative: running sum starting at 0 for the slice
+function withPeriodCum(slice: EtfEntry[]): Array<EtfEntry & { periodCum: number }> {
   let running = 0;
-  return slice.map(e => { running += e.flow; return { ...e, periodCum: +running.toFixed(2) }; });
+  return slice.map(e => { running = +(running + e.flow).toFixed(2); return { ...e, periodCum: running }; });
 }
 
 function fmtMil(n: number, sign = false): string {
@@ -75,17 +82,43 @@ function fmtMil(n: number, sign = false): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
-  const initTickers: string[] = useMemo(() => {
-    const t = props.tickers?.filter(x => x in STATIC);
-    return t && t.length > 0 ? t : [...ALL_TICKERS];
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasAiConfig = Object.keys(props).some(k => (props as Record<string, unknown>)[k] !== undefined);
 
-  // Default: combined aggregate view, 1M daily
-  const [selected, setSelected] = useState<string>(props.selected ?? COMBINED);
-  const [tf,       setTf]       = useState<TF>((props.tf as TF) ?? "1M");
-  const [view,     setView]     = useState<"bar" | "cumulative">(props.view ?? "bar");
-  const [overlay,  setOverlay]  = useState<boolean>(props.overlay ?? false);
-  const [enabled,  setEnabled]  = useState<Set<string>>(new Set(initTickers));
+  const resolveInitTickers = (p: EtfBlockProps) => {
+    const t = p.tickers?.filter(x => x in STATIC);
+    return t && t.length > 0 ? t : [...ALL_TICKERS];
+  };
+
+  const [isFullMode,        setIsFullMode]        = useState(false);
+  const [selected,          setSelected]          = useState<string>(props.selected ?? COMBINED);
+  const [tf,                setTf]                = useState<TF>((props.tf as TF) ?? "1M");
+  const [view,              setView]              = useState<"bar" | "cumulative">(props.view ?? "bar");
+  const [overlay,           setOverlay]           = useState<boolean>(props.overlay ?? false);
+  const [showCumLine,       setShowCumLine]       = useState<boolean>(props.showCumulativeLine ?? false);
+  const [initTickers,       setInitTickers]       = useState<string[]>(() => resolveInitTickers(props));
+  const [enabled,           setEnabled]           = useState<Set<string>>(new Set(resolveInitTickers(props)));
+
+  // Reset to full defaults when toggling full mode
+  useEffect(() => {
+    if (isFullMode) {
+      setSelected(COMBINED);
+      setTf("1M");
+      setView("bar");
+      setOverlay(false);
+      setShowCumLine(false);
+      setInitTickers([...ALL_TICKERS]);
+      setEnabled(new Set([...ALL_TICKERS]));
+    } else if (hasAiConfig) {
+      setSelected(props.selected ?? COMBINED);
+      setTf((props.tf as TF) ?? "1M");
+      setView(props.view ?? "bar");
+      setOverlay(props.overlay ?? false);
+      setShowCumLine(props.showCumulativeLine ?? false);
+      const t = resolveInitTickers(props);
+      setInitTickers(t);
+      setEnabled(new Set(t));
+    }
+  }, [isFullMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [liveData,     setLiveData]     = useState<Record<string, EtfLive | null>>({});
   const [combinedLive, setCombinedLive] = useState<EtfLive | null>(null);
@@ -93,37 +126,28 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
 
   useEffect(() => {
     let alive = true;
+    const allT = [...ALL_TICKERS];
     Promise.all([
-      // Aggregate BTC ETF flows (all providers combined)
       fetch(`/api/sosovalue?module=etf&key=btc_flows`).then(r => r.ok ? r.json() : null).catch(() => null),
-      // Individual ETF data
-      ...initTickers.flatMap(t => [
+      ...allT.flatMap(t => [
         fetch(`/api/sosovalue?module=etf&key=${t.toLowerCase()}_history`).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch(`/api/sosovalue?module=etf&key=${t.toLowerCase()}_snapshot`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]),
     ]).then(results => {
       if (!alive) return;
-
-      // Parse combined
       const combinedRes = results[0];
       if (Array.isArray(combinedRes?.data) && combinedRes.data.length > 0) {
         const { entries, aum } = parseCombined(combinedRes.data);
         setCombinedLive({ entries, aum });
       }
-
-      // Parse individual ETFs (results[1..] in pairs)
       const next: Record<string, EtfLive | null> = {};
-      initTickers.forEach((t, i) => {
+      allT.forEach((t, i) => {
         const hist = results[1 + i * 2];
         const snap = results[1 + i * 2 + 1];
-        const entries = Array.isArray(hist?.data) && hist.data.length > 0
-          ? parseHistory(hist.data) : null;
+        const entries = Array.isArray(hist?.data) && hist.data.length > 0 ? parseHistory(hist.data) : null;
         if (!entries) { next[t] = null; return; }
         const s = snap?.data;
-        next[t] = {
-          entries,
-          aum: s?.net_assets != null ? fmtMil(s.net_assets) : null,
-        };
+        next[t] = { entries, aum: s?.net_assets != null ? fmtMil(s.net_assets) : null };
       });
       setLiveData(next);
       setLoading(false);
@@ -135,12 +159,10 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
   const isCombined = selected === COMBINED;
   const activeLive = isCombined ? combinedLive : liveData[selected];
   const rawSlice   = (activeLive?.entries ?? []).slice(-SLICE[tf]);
-
-  // Period-relative cumulative for single/combined mode
-  const singleSlice = periodCumulative(rawSlice);
+  const singleSlice = withPeriodCum(rawSlice);
   const totalFlow   = rawSlice.reduce((s, d) => s + d.flow, 0);
   const positive    = totalFlow >= 0;
-  const tickInterval = singleSlice.length > 14 ? Math.floor(singleSlice.length / 7) : 1;
+  const tickInterval = rawSlice.length > 21 ? Math.floor(rawSlice.length / 7) : rawSlice.length > 10 ? 2 : 1;
 
   // ── Overlay data (period-relative cumulative per ticker) ──────────────────
   const overlayData = useMemo(() => {
@@ -150,20 +172,16 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
     return backbone.map((entry, idx) => {
       const point: Record<string, string | number | null> = { date: entry.date };
       for (const t of active) {
-        const slice = (liveData[t]?.entries ?? []).slice(-SLICE[tf]);
-        // Period-relative cumulative for each ticker
-        point[t] = +slice.slice(0, idx + 1).reduce((s, e) => s + e.flow, 0).toFixed(2);
+        const sl = (liveData[t]?.entries ?? []).slice(-SLICE[tf]);
+        point[t] = +sl.slice(0, idx + 1).reduce((s, e) => s + e.flow, 0).toFixed(2);
       }
       return point;
     });
   }, [liveData, enabled, tf, initTickers]);
 
   const activeTickers = initTickers.filter(t => enabled.has(t));
-  const anyData = !loading && (
-    overlay ? overlayData.length > 0 :
-    activeLive != null && singleSlice.length > 0
-  );
-  const isLive = anyData;
+  const anyData = !loading && (overlay ? overlayData.length > 0 : activeLive != null && singleSlice.length > 0);
+  const isLive  = anyData;
 
   const toggleTicker = (t: string) =>
     setEnabled(prev => {
@@ -172,8 +190,18 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
       return next;
     });
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Ticker tab overflow
+  const visibleTickers  = initTickers.slice(0, MAX_VISIBLE_TABS);
+  const overflowTickers = initTickers.slice(MAX_VISIBLE_TABS);
 
+  // ── Shared axis formatter ─────────────────────────────────────────────────
+  const fmtAxis = (v: number) => {
+    const abs = Math.abs(v);
+    if (abs >= 1000) return `${v < 0 ? "-" : ""}$${(abs / 1000).toFixed(0)}B`;
+    return `${v < 0 ? "-" : ""}$${abs.toFixed(0)}M`;
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
 
@@ -187,9 +215,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
             {isCombined && !overlay
               ? <>
                   <p className="text-sm font-semibold">All BTC ETFs — Market Total</p>
-                  <p className="text-xs text-muted-foreground">
-                    All providers{combinedLive?.aum ? ` · Total AUM ${combinedLive.aum}` : ""}
-                  </p>
+                  <p className="text-xs text-muted-foreground">All providers{combinedLive?.aum ? ` · Total AUM ${combinedLive.aum}` : ""}</p>
                 </>
               : overlay
                 ? <p className="text-sm font-semibold">{activeTickers.join(" · ")}</p>
@@ -201,26 +227,21 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
                   </>
             }
           </div>
-
-          {/* Period total in header (always period-relative, never inception) */}
           {!overlay && (
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-0.5">{tf} Net Flow</p>
               {loading
                 ? <Loader2 className="size-4 animate-spin text-muted-foreground ml-auto" />
                 : anyData
-                  ? <p className={cn("text-lg font-bold", positive ? "text-emerald-500" : "text-red-500")}>
-                      {fmtMil(totalFlow, true)}
-                    </p>
+                  ? <p className={cn("text-lg font-bold", positive ? "text-emerald-500" : "text-red-500")}>{fmtMil(totalFlow, true)}</p>
                   : <p className="text-lg font-bold text-muted-foreground">—</p>
               }
             </div>
           )}
         </div>
 
-        {/* Tabs: "All ETFs" + individual tickers */}
+        {/* Tabs: All ETFs + individual + overflow */}
         <div className="flex items-center gap-1 flex-wrap">
-          {/* Combined tab */}
           {!overlay && (
             <button
               onClick={() => setSelected(COMBINED)}
@@ -234,8 +255,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
               All ETFs
             </button>
           )}
-          {/* Individual ETF tabs */}
-          {initTickers.map(ticker => {
+          {visibleTickers.map(ticker => {
             const isActive = overlay ? enabled.has(ticker) : selected === ticker;
             return (
               <button key={ticker}
@@ -244,12 +264,37 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
                   "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
                   isActive ? "text-white border-transparent" : "text-muted-foreground bg-muted border-transparent hover:border-border"
                 )}
-                style={isActive ? { background: STATIC[ticker].color } : {}}
+                style={isActive ? { background: STATIC[ticker]?.color ?? "#6366f1" } : {}}
               >
                 {ticker}
               </button>
             );
           })}
+          {overflowTickers.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-3 py-1 rounded-full text-xs font-medium border text-muted-foreground bg-muted hover:border-border transition-colors">
+                  +{overflowTickers.length} ···
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {overflowTickers.map(ticker => {
+                  const isActive = overlay ? enabled.has(ticker) : selected === ticker;
+                  return (
+                    <DropdownMenuItem key={ticker}
+                      onSelect={() => overlay ? toggleTicker(ticker) : setSelected(ticker)}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <span className="size-2 rounded-full shrink-0" style={{ background: STATIC[ticker]?.color ?? "#6366f1" }} />
+                      <span className="flex-1">{ticker}</span>
+                      {STATIC[ticker] && <span className="text-xs text-muted-foreground">{STATIC[ticker].issuer}</span>}
+                      {isActive && <span className="text-xs text-primary">✓</span>}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -264,7 +309,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           {!overlay && (
             <>
               <button onClick={() => setView("bar")}
@@ -277,10 +322,17 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
                   view === "cumulative" ? "bg-background border shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
                 Cumulative
               </button>
-              <div className="w-px h-3.5 bg-border mx-1" />
+              {view === "bar" && (
+                <button onClick={() => setShowCumLine(v => !v)}
+                  className={cn("px-2.5 py-1 rounded text-xs font-medium transition-colors border",
+                    showCumLine ? "bg-background border-border shadow-sm text-foreground" : "text-muted-foreground border-transparent hover:text-foreground")}
+                  title="Overlay cumulative line on daily bars">
+                  + Cum. line
+                </button>
+              )}
+              <div className="w-px h-3.5 bg-border mx-0.5" />
             </>
           )}
-          {/* Overlay only makes sense for individual ETFs, hide when All ETFs is selected */}
           {!isCombined && (
             <button onClick={() => setOverlay(v => !v)}
               className={cn("px-2.5 py-1 rounded text-xs font-medium transition-colors border",
@@ -299,6 +351,14 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
           <span className={cn("text-sm font-semibold", positive ? "text-emerald-500" : "text-red-500")}>
             {loading ? "—" : anyData ? fmtMil(totalFlow, true) : "—"}
           </span>
+          {!loading && anyData && showCumLine && view === "bar" && (
+            <>
+              <span className="text-xs text-muted-foreground ml-2">cumulative:</span>
+              <span className="text-sm font-semibold text-muted-foreground">
+                {fmtMil(singleSlice[singleSlice.length - 1]?.periodCum ?? 0, true)}
+              </span>
+            </>
+          )}
         </div>
       )}
 
@@ -313,7 +373,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
             <p className="text-xs text-muted-foreground">No data — set SOSOVALUE_API_KEY to enable live feeds</p>
           </div>
         ) : overlay ? (
-          // Overlay: period-relative cumulative lines per ticker
+          /* Overlay: period-relative cumulative lines per ticker */
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={overlayData}>
               <CartesianGrid strokeDasharray="0" stroke="#27272a" vertical={false} />
@@ -321,7 +381,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
                 tick={{ fontSize: 10, fill: "#71717a" }}
                 interval={overlayData.length > 14 ? Math.floor(overlayData.length / 7) : 1} dy={6} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }}
-                tickFormatter={v => `$${Math.abs(v / 1000).toFixed(0)}B`} width={44} />
+                tickFormatter={fmtAxis} width={44} />
               <ReferenceLine y={0} stroke="#3f3f46" strokeWidth={1} />
               <Tooltip content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
@@ -339,51 +399,61 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
               {activeTickers.map(t => (
                 <Line key={t} type="monotone" dataKey={t} name={t}
-                  stroke={STATIC[t].color} strokeWidth={2} dot={false} connectNulls />
+                  stroke={STATIC[t]?.color ?? "#6366f1"} strokeWidth={2} dot={false} connectNulls />
               ))}
             </LineChart>
           </ResponsiveContainer>
         ) : view === "bar" ? (
-          // Daily bar chart (combined or single ETF)
+          /* Daily bar chart, optionally with cumulative line overlay */
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={singleSlice} barGap={2}>
+            <ComposedChart data={singleSlice} barGap={2}>
               <CartesianGrid strokeDasharray="0" stroke="#27272a" vertical={false} />
               <XAxis dataKey="date" axisLine={false} tickLine={false}
                 tick={{ fontSize: 10, fill: "#71717a" }} interval={tickInterval} dy={6} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }}
-                tickFormatter={v => `$${Math.abs(v / 1000).toFixed(0)}B`} width={40} />
-              <ReferenceLine y={0} stroke="#3f3f46" strokeWidth={1} />
+              <YAxis yAxisId="left" axisLine={false} tickLine={false}
+                tick={{ fontSize: 10, fill: "#71717a" }} tickFormatter={fmtAxis} width={40} />
+              {showCumLine && (
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false}
+                  tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={fmtAxis} width={44} />
+              )}
+              <ReferenceLine yAxisId="left" y={0} stroke="#3f3f46" strokeWidth={1} />
               <Tooltip content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
-                const val = Number(payload[0]?.value ?? 0);
+                const flowVal  = Number(payload.find(p => p.dataKey === "flow")?.value ?? 0);
+                const cumVal   = Number(payload.find(p => p.dataKey === "periodCum")?.value ?? 0);
                 return (
-                  <div className="bg-popover border border-border rounded-lg p-3 shadow-lg text-xs">
+                  <div className="bg-popover border border-border rounded-lg p-3 shadow-lg text-xs space-y-1">
                     <p className="font-medium mb-1">{label}</p>
-                    <p className={val >= 0 ? "text-emerald-500" : "text-red-500"}>
-                      Net Flow: {fmtMil(val, true)}
+                    <p className={flowVal >= 0 ? "text-emerald-500" : "text-red-500"}>
+                      Daily: {fmtMil(flowVal, true)}
                     </p>
+                    {showCumLine && (
+                      <p className="text-slate-400">Cumulative: {fmtMil(cumVal, true)}</p>
+                    )}
                   </div>
                 );
               }} />
-              <Bar dataKey="flow" radius={[2, 2, 0, 0]} maxBarSize={14}>
+              <Bar yAxisId="left" dataKey="flow" radius={[2, 2, 0, 0]}>
                 {singleSlice.map((entry, i) => (
-                  <Cell key={i} fill={entry.flow >= 0
-                    ? (isCombined ? "#6366f1" : (STATIC[selected]?.color ?? "#6366f1"))
-                    : "#ef4444"
-                  } />
+                  <Cell key={i} fill={entry.flow >= 0 ? INFLOW_COLOR : OUTFLOW_COLOR} />
                 ))}
               </Bar>
-            </BarChart>
+              {showCumLine && (
+                <Line yAxisId="right" type="monotone" dataKey="periodCum"
+                  stroke="#94a3b8" strokeWidth={1.5} dot={false}
+                  strokeDasharray="4 2" name="Cumulative" />
+              )}
+            </ComposedChart>
           </ResponsiveContainer>
         ) : (
-          // Cumulative line chart — period-relative (running sum of flows within the slice)
+          /* Cumulative line chart — period-relative */
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={singleSlice}>
               <CartesianGrid strokeDasharray="0" stroke="#27272a" vertical={false} />
               <XAxis dataKey="date" axisLine={false} tickLine={false}
                 tick={{ fontSize: 10, fill: "#71717a" }} interval={tickInterval} dy={6} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }}
-                tickFormatter={v => `$${(v / 1000).toFixed(1)}B`} width={44} />
+                tickFormatter={fmtAxis} width={44} />
               <ReferenceLine y={0} stroke="#3f3f46" strokeWidth={1} />
               <Tooltip content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
@@ -406,14 +476,26 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-1.5 px-5 py-2.5 border-t bg-muted/20">
-        {isLive
-          ? <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          : <Info className="size-3 text-muted-foreground shrink-0" />
-        }
-        <p className="text-[11px] text-muted-foreground">
-          {isLive ? "Live via SoSoValue · refreshed every 3 min" : "Set SOSOVALUE_API_KEY in .env.local to enable live feeds"}
-        </p>
+      <div className="flex items-center justify-between gap-2 px-5 py-2.5 border-t bg-muted/20">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {isLive
+            ? <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            : <Info className="size-3 text-muted-foreground shrink-0" />
+          }
+          <p className="text-[11px] text-muted-foreground truncate">
+            {isLive ? "Live via SoSoValue · refreshed every 3 min" : "Set SOSOVALUE_API_KEY in .env.local to enable live feeds"}
+          </p>
+        </div>
+        {hasAiConfig && (
+          <button
+            onClick={() => setIsFullMode(v => !v)}
+            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0 border rounded px-2 py-0.5 hover:bg-muted/50"
+            title={isFullMode ? "Switch back to AI-configured view" : "Open full controls"}
+          >
+            <LayoutGrid className="size-3" />
+            {isFullMode ? "AI view" : "Full controls"}
+          </button>
+        )}
       </div>
     </div>
   );

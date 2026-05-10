@@ -252,9 +252,19 @@ export function TopTradersBlock() {
         })}
       </div>
 
-      <div className="px-5 py-2.5 border-t">
-        <a href="/mainnet" className="text-xs text-primary hover:underline flex items-center gap-1">
-          {liveTraders ? "Live 7D data · View full leaderboard" : "View full leaderboard"} <ExternalLink className="size-3" />
+      <div className="px-5 py-2.5 border-t flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {liveTraders
+            ? <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            : null
+          }
+          <a href="/mainnet" className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+            {liveTraders ? "Live 7D · View full leaderboard" : "View full leaderboard"} <ExternalLink className="size-3 shrink-0" />
+          </a>
+        </div>
+        <a href="/mainnet" className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0 border rounded px-2 py-0.5 hover:bg-muted/50">
+          <ExternalLink className="size-3" />
+          Full view
         </a>
       </div>
     </div>
