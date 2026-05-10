@@ -62,6 +62,7 @@ interface ChatInputBoxProps {
   showTools?: boolean;
   placeholder?: string;
   disabled?: boolean;
+  compact?: boolean;
   onFileSelect?: (file: File, type: "image" | "file") => void;
   queue?: string[];
   onQueueRemove?: (index: number) => void;
@@ -70,7 +71,7 @@ interface ChatInputBoxProps {
 export function ChatInputBox({
   message, onMessageChange, onSend, onStop, selectedModel, onModelChange,
   usePersonalKB = false, onPersonalKBChange,
-  showTools = true, placeholder = "Ask anything...", disabled = false, onFileSelect,
+  showTools = true, placeholder = "Ask anything...", disabled = false, compact = false, onFileSelect,
   queue, onQueueRemove,
 }: ChatInputBoxProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -99,8 +100,10 @@ export function ChatInputBox({
           placeholder={placeholder}
           value={message}
           onChange={(e) => onMessageChange(e.target.value)}
-          disabled={disabled}
-          className="min-h-[120px] resize-none border-0 bg-transparent px-4 py-3 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+          className={cn(
+            compact ? "min-h-[72px]" : "min-h-[120px]",
+            "resize-none border-0 bg-transparent px-4 py-3 text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+          )}
           onKeyDown={(e) => {
             if (e.key === "Escape" && queue && queue.length > 0) {
               e.preventDefault();
@@ -115,7 +118,7 @@ export function ChatInputBox({
             }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (message.trim() && !disabled) onSend();
+              if (message.trim()) onSend(); // always call — handleSendMessage decides queue vs send
             }
           }}
         />

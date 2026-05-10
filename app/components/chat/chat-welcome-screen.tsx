@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { AiLogo } from "@/app/components/ui/ai-logo";
 import { cn } from "@/app/lib/utils";
@@ -12,19 +11,14 @@ import {
   TrendingUpIcon,
   UsersIcon,
   BarChart3Icon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
 } from "lucide-react";
 import { ChatInputBox } from "./chat-input-box";
-import { EtfInflowsBlock } from "./blocks/EtfInflowsBlock";
-import { ReferralAnalysisBlock } from "./blocks/ReferralAnalysisBlock";
-import { TopTradersBlock } from "./blocks/TopTradersBlock";
 
 const chatModes = [
-  { id: "fast", label: "Fast", icon: ZapIcon },
-  { id: "in-depth", label: "In-depth", icon: MessageCircleDashedIcon },
-  { id: "magic", label: "Hive Mind", icon: WandSparklesIcon },
-  { id: "holistic", label: "Holistic", icon: BoxIcon },
+  { id: "fast",     label: "Fast",      icon: ZapIcon },
+  { id: "in-depth", label: "In-depth",  icon: MessageCircleDashedIcon },
+  { id: "magic",    label: "Hive Mind", icon: WandSparklesIcon },
+  { id: "holistic", label: "Holistic",  icon: BoxIcon },
 ];
 
 const EXAMPLE_PROMPTS = [
@@ -32,8 +26,7 @@ const EXAMPLE_PROMPTS = [
     id: "etf",
     icon: TrendingUpIcon,
     label: "ETF Inflows",
-    title: "Bitcoin ETF inflow analysis",
-    description: "Compare IBIT vs FBTC daily flows and net positioning for the past month.",
+    description: "Compare IBIT vs FBTC flows",
     prompt: "Show me today's Bitcoin ETF inflows. Compare IBIT vs FBTC performance and net flows for the past month.",
     color: "#6366f1",
   },
@@ -41,8 +34,7 @@ const EXAMPLE_PROMPTS = [
     id: "referral",
     icon: UsersIcon,
     label: "Referral Analysis",
-    title: "Referral code deep-dive",
-    description: "Analyse a referral code's performance metrics, trader quality, and growth strategy.",
+    description: "Deep-dive a referral code",
     prompt: "Give me info about referral code ALPHA01 — how many referrals, what's their trading volume, and analyse the performance and strategy behind it.",
     color: "#10b981",
   },
@@ -50,20 +42,11 @@ const EXAMPLE_PROMPTS = [
     id: "traders",
     icon: BarChart3Icon,
     label: "Top Traders",
-    title: "Top wallets this week",
-    description: "See the top performing wallets on Sodex with PnL, strategy breakdown, and win rates.",
+    description: "Top wallets this week",
     prompt: "Who are the top 5 wallets on Sodex this week? Show me their PnL, volume, strategy type, and what's driving their performance.",
     color: "#f59e0b",
   },
 ] as const;
-
-type BlockId = "etf" | "referral" | "traders";
-
-const BLOCKS: Record<BlockId, React.ComponentType> = {
-  etf: EtfInflowsBlock,
-  referral: ReferralAnalysisBlock,
-  traders: TopTradersBlock,
-};
 
 interface ChatWelcomeScreenProps {
   message: string;
@@ -78,44 +61,48 @@ interface ChatWelcomeScreenProps {
 }
 
 export function ChatWelcomeScreen({
-  message, onMessageChange, onSend, selectedMode, onModeChange,
+  message, onMessageChange, onSend,
   selectedModel, onModelChange, usePersonalKB, onPersonalKBChange,
 }: ChatWelcomeScreenProps) {
-  const [activeBlock, setActiveBlock] = useState<BlockId | null>(null);
-
-  const handlePromptClick = (promptId: BlockId, prompt: string) => {
-    onMessageChange(prompt);
-    if (activeBlock === promptId) {
-      setActiveBlock(null);
-    } else {
-      setActiveBlock(promptId);
-    }
-  };
-
-  const ActiveBlockComponent = activeBlock ? BLOCKS[activeBlock] : null;
-
   return (
-    <div className="flex h-full flex-col items-center overflow-y-auto">
-      <div className="w-full max-w-[680px] px-4 md:px-6 pt-12 pb-8 space-y-8">
+    <div className="flex h-full items-center justify-center overflow-y-auto">
+      <div className="w-full max-w-[600px] px-4 md:px-6 py-8 flex flex-col gap-5">
+
         {/* Logo + greeting */}
-        <div className="space-y-4 text-center">
+        <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="flex items-center justify-center size-8 rounded-full">
-              <AiLogo className="size-20" />
-            </div>
+            <AiLogo className="size-16" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Hey! I&apos;m CommunityScan AI
-            </h1>
-            <p className="text-2xl text-foreground mt-1">
-              Tell me everything you need
+            <h1 className="text-2xl font-semibold tracking-tight">CommunityScan AI</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Ask anything about Sodex DEX, ETF flows, top traders, and more.
             </p>
           </div>
         </div>
 
-        {/* Chat input */}
+        {/* Example prompts — compact chips above input */}
+        <div className="flex flex-wrap gap-2 justify-center">
+          {EXAMPLE_PROMPTS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => onMessageChange(p.prompt)}
+              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border bg-card/60 hover:bg-card hover:shadow-sm text-left transition-all"
+            >
+              <div
+                className="size-5 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: `${p.color}20` }}
+              >
+                <p.icon className="size-3" style={{ color: p.color }} />
+              </div>
+              <span className="text-xs font-medium">{p.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Input — compact */}
         <ChatInputBox
+          compact
           message={message}
           onMessageChange={onMessageChange}
           onSend={onSend}
@@ -138,80 +125,18 @@ export function ChatWelcomeScreen({
             >
               <mode.icon className="size-4" />
               <span>{mode.label}</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">soon</span>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                soon
+              </span>
             </Button>
           ))}
         </div>
 
-        {/* Example prompts */}
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 text-center">
-            Try an example
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {EXAMPLE_PROMPTS.map((p) => {
-              const isActive = activeBlock === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => handlePromptClick(p.id, p.prompt)}
-                  className={cn(
-                    "group relative flex flex-col items-start gap-2 p-4 rounded-xl border text-left transition-all",
-                    isActive
-                      ? "bg-card border-transparent shadow-md ring-1"
-                      : "bg-card/50 hover:bg-card hover:shadow-sm"
-                  )}
-                  style={isActive ? { borderColor: `${p.color}40` } : {}}
-                >
-                  <div
-                    className="size-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: `${p.color}18` }}
-                  >
-                    <p.icon className="size-4" style={{ color: p.color }} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-xs font-semibold" style={{ color: p.color }}>{p.label}</span>
-                    </div>
-                    <p className="text-sm font-medium leading-tight">{p.title}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{p.description}</p>
-                  </div>
-                  {isActive && (
-                    <span
-                      className="absolute top-3 right-3 text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
-                      style={{ background: p.color }}
-                    >
-                      Active
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Active building block */}
-        {ActiveBlockComponent && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Interactive Preview
-              </p>
-              <button
-                onClick={() => setActiveBlock(null)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Close ×
-              </button>
-            </div>
-            <ActiveBlockComponent />
-          </div>
-        )}
-
         {/* Disclaimer */}
-        <p className="text-sm text-muted-foreground text-center pb-4">
+        <p className="text-xs text-muted-foreground text-center">
           CommunityScan AI can make mistakes. Check important info.
         </p>
+
       </div>
     </div>
   );
