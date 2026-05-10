@@ -32,6 +32,7 @@ interface ChatConversationViewProps {
   onExpandContext?: () => void;
   queue?: string[];
   onQueueRemove?: (index: number) => void;
+  onStop?: () => void;
 }
 
 export function ChatConversationView({
@@ -39,7 +40,7 @@ export function ChatConversationView({
   isLoading = false, selectedModel, onModelChange,
   usePersonalKB = false, onPersonalKBChange,
   error, contextLimitActive = false, onExpandContext,
-  queue, onQueueRemove,
+  queue, onQueueRemove, onStop,
 }: ChatConversationViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -129,29 +130,31 @@ export function ChatConversationView({
         </div>
       </div>
 
-      {/* Message queue */}
+      {/* Message queue — faded bubbles above input */}
       {queue && queue.length > 0 && (
-        <div className="px-4 md:px-8 pb-2">
-          <div className="max-w-[640px] mx-auto space-y-1.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="size-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
-                Queued · {queue.length}
-              </span>
-            </div>
+        <div className="px-4 md:px-8 pb-0">
+          <div className="max-w-[640px] mx-auto space-y-1.5 pb-3">
             {queue.map((msg, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/50">
-                <span className="text-[11px] text-muted-foreground w-3.5 shrink-0 text-center">{i + 1}</span>
-                <span className="text-sm flex-1 truncate text-muted-foreground">{msg}</span>
+              <div key={i} className="flex items-end justify-end gap-2 group">
                 <button
                   onClick={() => onQueueRemove?.(i)}
-                  className="shrink-0 p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors"
-                  title="Remove"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity mb-1 shrink-0 p-1 rounded text-muted-foreground/50 hover:text-muted-foreground"
+                  title="Remove from queue (or press Esc)"
                 >
-                  <XIcon className="size-3.5" />
+                  <XIcon className="size-3" />
                 </button>
+                <div className="rounded-2xl px-4 py-2.5 bg-primary/20 max-w-[80%]">
+                  <p className="text-sm text-foreground/40 leading-relaxed">{msg}</p>
+                </div>
               </div>
             ))}
+            {/* "waiting" indicator */}
+            <div className="flex items-center justify-end gap-1 pr-1">
+              <span className="text-[10px] text-muted-foreground/40 mr-0.5">queued</span>
+              <span className="size-1 rounded-full bg-muted-foreground/25 animate-bounce [animation-delay:0ms]" />
+              <span className="size-1 rounded-full bg-muted-foreground/25 animate-bounce [animation-delay:150ms]" />
+              <span className="size-1 rounded-full bg-muted-foreground/25 animate-bounce [animation-delay:300ms]" />
+            </div>
           </div>
         </div>
       )}
@@ -162,6 +165,7 @@ export function ChatConversationView({
             message={message}
             onMessageChange={onMessageChange}
             onSend={() => { if (message.trim()) onSend(message); }}
+            onStop={onStop}
             selectedModel={selectedModel}
             onModelChange={onModelChange}
             usePersonalKB={usePersonalKB}

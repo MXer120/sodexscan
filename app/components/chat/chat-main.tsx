@@ -59,7 +59,7 @@ export function ChatMain() {
 
   const [messageQueue, setMessageQueue] = useState<string[]>([]);
 
-  const { messages, input, setInput, setMessages, append, isLoading, error } = useChat({
+  const { messages, input, setInput, setMessages, append, isLoading, error, stop } = useChat({
     api: "/api/chat",
     id: chatId,
     headers: {
@@ -205,6 +205,7 @@ export function ChatMain() {
         onExpandContext={() => setIncludeFullHistory(true)}
         queue={messageQueue}
         onQueueRemove={handleQueueRemove}
+        onStop={stop}
       />
     );
   }

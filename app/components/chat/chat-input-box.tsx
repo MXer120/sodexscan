@@ -11,6 +11,8 @@ import {
   ArrowUpIcon,
   ImageIcon,
   FileTextIcon,
+  MoreHorizontalIcon,
+  SquareIcon,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -52,6 +54,7 @@ interface ChatInputBoxProps {
   message: string;
   onMessageChange: (value: string) => void;
   onSend: () => void;
+  onStop?: () => void;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
   usePersonalKB?: boolean;
@@ -65,7 +68,7 @@ interface ChatInputBoxProps {
 }
 
 export function ChatInputBox({
-  message, onMessageChange, onSend, selectedModel, onModelChange,
+  message, onMessageChange, onSend, onStop, selectedModel, onModelChange,
   usePersonalKB = false, onPersonalKBChange,
   showTools = true, placeholder = "Ask anything...", disabled = false, onFileSelect,
   queue, onQueueRemove,
@@ -165,49 +168,41 @@ export function ChatInputBox({
             />
 
             {showTools && (
-              <>
-                {/* Deep Search — coming soon */}
-                <button
-                  type="button"
-                  disabled
-                  title="Coming soon"
-                  className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground/50 cursor-not-allowed"
-                >
-                  <CircleDashedIcon className="size-3.5" />
-                  <span className="hidden sm:inline whitespace-nowrap">Deep Search</span>
-                  <span className="hidden sm:inline text-[10px] opacity-60">soon</span>
-                </button>
-
-                {/* My KB toggle */}
-                {onPersonalKBChange && (
-                  <button
-                    type="button"
-                    onClick={() => onPersonalKBChange(!usePersonalKB)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border transition-colors",
-                      usePersonalKB
-                        ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/15"
-                        : "border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent"
-                    )}
-                    title={usePersonalKB ? "Using your personal KB" : "Using shared KB"}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-7 rounded-full border border-border dark:border-input text-muted-foreground hover:text-foreground hover:bg-accent"
+                    title="More tools"
                   >
-                    <BookOpenIcon className="size-3.5" />
-                    <span className="hidden sm:inline">{usePersonalKB ? "My KB" : "Shared KB"}</span>
-                  </button>
-                )}
-
-                {/* Think — coming soon */}
-                <button
-                  type="button"
-                  disabled
-                  title="Coming soon"
-                  className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-sm font-medium border border-border dark:border-input bg-card dark:bg-secondary text-muted-foreground/50 cursor-not-allowed"
-                >
-                  <BrainIcon className="size-3.5" />
-                  <span className="hidden sm:inline whitespace-nowrap">Think</span>
-                  <span className="hidden sm:inline text-[10px] opacity-60">soon</span>
-                </button>
-              </>
+                    <MoreHorizontalIcon className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top" className="w-52">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal pb-1">Tools</DropdownMenuLabel>
+                  {/* Deep Search */}
+                  <DropdownMenuItem disabled className="gap-2 opacity-50 cursor-not-allowed">
+                    <CircleDashedIcon className="size-4" />
+                    <span className="flex-1">Deep Search</span>
+                    <span className="text-[10px] text-muted-foreground">soon</span>
+                  </DropdownMenuItem>
+                  {/* KB toggle */}
+                  {onPersonalKBChange && (
+                    <DropdownMenuItem onSelect={() => onPersonalKBChange(!usePersonalKB)} className="gap-2 cursor-pointer">
+                      <BookOpenIcon className={cn("size-4", usePersonalKB && "text-emerald-500")} />
+                      <span className="flex-1">{usePersonalKB ? "My KB" : "Shared KB"}</span>
+                      {usePersonalKB && <CheckIcon className="size-3.5 text-emerald-500" />}
+                    </DropdownMenuItem>
+                  )}
+                  {/* Think */}
+                  <DropdownMenuItem disabled className="gap-2 opacity-50 cursor-not-allowed">
+                    <BrainIcon className="size-4" />
+                    <span className="flex-1">Think</span>
+                    <span className="text-[10px] text-muted-foreground">soon</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
@@ -273,14 +268,25 @@ export function ChatInputBox({
               </DropdownMenu>
             )}
 
-            <Button
-              size="icon-sm"
-              onClick={onSend}
-              disabled={!message.trim() || disabled}
-              className="size-7 rounded-full"
-            >
-              <ArrowUpIcon className="size-4" />
-            </Button>
+            {disabled ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="h-7 px-3 min-w-[44px] rounded-lg bg-foreground text-background flex items-center justify-center hover:bg-foreground/80 transition-colors shrink-0"
+                title="Stop generation"
+              >
+                <SquareIcon className="size-3 fill-current" />
+              </button>
+            ) : (
+              <Button
+                size="icon-sm"
+                onClick={onSend}
+                disabled={!message.trim()}
+                className="size-7 rounded-full shrink-0"
+              >
+                <ArrowUpIcon className="size-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
