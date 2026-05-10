@@ -94,7 +94,10 @@ export function ChatInputBox({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-secondary dark:bg-card p-1">
+    <div className={cn(
+      "rounded-2xl border p-1 bg-secondary dark:bg-card transition-colors",
+      usePersonalKB ? "border-emerald-500/60" : "border-border"
+    )}>
       <div className="rounded-xl border border-border dark:border-transparent bg-card dark:bg-secondary">
         <Textarea
           placeholder={placeholder}

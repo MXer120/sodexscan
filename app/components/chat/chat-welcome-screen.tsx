@@ -35,7 +35,7 @@ const EXAMPLE_PROMPTS = [
     icon: UsersIcon,
     label: "Referral Lookup",
     description: "Wallet & strategy behind a code",
-    prompt: "Look up referral code ALPHA01 — what wallet address is behind it? Then pull their PnL history and explain their trading strategy.",
+    prompt: "Look up referral code SOSO — what wallet address is behind it? Then pull their PnL history and explain their trading strategy.",
     color: "#10b981",
   },
   {

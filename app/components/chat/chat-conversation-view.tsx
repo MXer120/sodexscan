@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { XIcon, AlertCircleIcon, HistoryIcon } from "lucide-react";
 import { ChatMessage } from "./chat-message";
@@ -13,6 +13,38 @@ interface Message {
   content: string;
   sender: "user" | "ai";
   timestamp: Date;
+}
+
+interface PlanStep { text: string; status: "done" | "active" | "pending" }
+interface ParsedPlan { steps: PlanStep[]; doneCount: number; totalCount: number }
+
+function extractPlanFromContent(content: string): ParsedPlan | null {
+  const start = content.indexOf("[PLAN:");
+  if (start === -1) return null;
+  const jsonStart = start + 6;
+  if (content[jsonStart] !== "{") return null;
+  let depth = 0, end = -1;
+  for (let i = jsonStart; i < content.length; i++) {
+    if (content[i] === "{") depth++;
+    else if (content[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end === -1) return null;
+  try {
+    const parsed = JSON.parse(content.slice(jsonStart, end + 1)) as {
+      steps?: string[]; done?: number[]; active?: number;
+    };
+    const steps = parsed.steps ?? [];
+    const done = new Set(parsed.done ?? []);
+    const active = parsed.active ?? -1;
+    return {
+      steps: steps.map((text, i) => ({
+        text,
+        status: done.has(i) ? "done" : i === active ? "active" : "pending",
+      })),
+      doneCount: done.size,
+      totalCount: steps.length,
+    };
+  } catch { return null; }
 }
 
 interface ChatConversationViewProps {
@@ -43,21 +75,42 @@ export function ChatConversationView({
   queue, onQueueRemove, onStop,
 }: ChatConversationViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [planOpen, setPlanOpen] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  const currentPlan = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].sender !== "ai") continue;
+      const p = extractPlanFromContent(messages[i].content);
+      if (p && p.totalCount > 0) return p;
+    }
+    return null;
+  }, [messages]);
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col relative">
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
         <div className="max-w-[640px] mx-auto space-y-6">
 
           {/* Header row */}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {totalMessages} message{totalMessages !== 1 ? "s" : ""}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {totalMessages} message{totalMessages !== 1 ? "s" : ""}
+              </span>
+              {currentPlan && (
+                <button
+                  onClick={() => setPlanOpen(v => !v)}
+                  className="flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-1 transition-colors hover:bg-accent"
+                >
+                  <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                  {currentPlan.doneCount}/{currentPlan.totalCount} steps
+                </button>
+              )}
+            </div>
             <Button
               variant="secondary"
               size="icon-sm"
@@ -93,7 +146,7 @@ export function ChatConversationView({
           )}
 
           {messages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} />
+            <ChatMessage key={msg.id} message={msg} usingKB={usePersonalKB && msg.sender === "ai"} />
           ))}
 
           {/* Typing indicator — waiting for first token */}
@@ -129,6 +182,54 @@ export function ChatConversationView({
           <div ref={bottomRef} />
         </div>
       </div>
+
+      {/* Floating AI plan panel */}
+      {planOpen && currentPlan && (
+        <div className="absolute bottom-[76px] right-4 w-80 rounded-xl border bg-popover shadow-2xl z-30 overflow-hidden"
+          style={{ minHeight: "30%" }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">AI Plan</span>
+              <span className="text-[11px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                {currentPlan.doneCount}/{currentPlan.totalCount}
+              </span>
+            </div>
+            <button onClick={() => setPlanOpen(false)}
+              className="size-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground text-sm">
+              ×
+            </button>
+          </div>
+          <div className="px-4 py-3 space-y-3">
+            {currentPlan.steps.map((step, i) => (
+              <div key={i} className="flex items-start gap-3">
+                {step.status === "done" && (
+                  <div className="size-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <path d="M1.5 4l1.5 1.5 3-3" stroke="#10b981" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )}
+                {step.status === "active" && (
+                  <div className="size-4 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  </div>
+                )}
+                {step.status === "pending" && (
+                  <div className="size-4 rounded-full border border-border flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="size-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                )}
+                <span className={cn(
+                  "text-sm leading-tight",
+                  step.status === "done" ? "line-through text-muted-foreground/60" : "text-foreground"
+                )}>
+                  {step.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Message queue — faded bubbles above input */}
       {queue && queue.length > 0 && (
