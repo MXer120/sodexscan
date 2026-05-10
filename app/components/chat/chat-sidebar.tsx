@@ -31,6 +31,7 @@ export type AIView = "chat" | "kb" | "tools" | "schedule";
 interface Props {
   currentView: AIView;
   onViewChange: (view: AIView) => void;
+  onNewChat?: () => void;
   toolCategory?: string;
   onToolCategoryChange?: (cat: string) => void;
   toolCategories?: { name: string; count: number }[];
@@ -346,12 +347,13 @@ function ApiKeyManager({ onClose }: { onClose: () => void }) {
 // ─── Main sidebar ─────────────────────────────────────────────────────────────
 
 export function ChatSidebar({
-  currentView, onViewChange,
+  currentView, onViewChange, onNewChat,
   toolCategory = "all", onToolCategoryChange, toolCategories = [],
 }: Props) {
   const [selectedTeam, setSelectedTeam] = useState("personal");
   const { chats, selectedChatId, selectChat, archiveChat, unarchiveChat, deleteChat } = useChatStore();
   const [keyManagerOpen, setKeyManagerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const recentChats   = chats.filter(c => !c.isArchived);
   const archivedChats = chats.filter(c => c.isArchived);
@@ -375,6 +377,22 @@ export function ChatSidebar({
     };
     update();
   }, [keyManagerOpen]);
+
+  const q = searchQuery.trim().toLowerCase();
+
+  const chatResults = q
+    ? [...recentChats, ...archivedChats].filter(c =>
+        c.title.toLowerCase().includes(q)
+      ).slice(0, 5)
+    : [];
+
+  const toolResults = q
+    ? (toolCategories ?? []).filter(c =>
+        c.name.toLowerCase().includes(q)
+      ).slice(0, 4)
+    : [];
+
+  const isSearching = q.length > 0;
 
   return (
     <div className="flex h-full w-full flex-col bg-sidebar border-r border-sidebar-border">
@@ -411,8 +429,20 @@ export function ChatSidebar({
             stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <Input placeholder="Search anything" className="pl-9 pr-10 h-[34px] bg-muted/50" />
-          <div className="absolute right-2 flex items-center justify-center size-5 rounded bg-muted text-xs text-muted-foreground">/</div>
+          <Input
+            placeholder="Search anything"
+            className="pl-9 pr-10 h-[34px] bg-muted/50"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery ? (
+            <button onClick={() => setSearchQuery("")}
+              className="absolute right-2 flex items-center justify-center size-5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+              <X className="size-3.5" />
+            </button>
+          ) : (
+            <div className="absolute right-2 flex items-center justify-center size-5 rounded bg-muted text-xs text-muted-foreground">/</div>
+          )}
         </div>
       </div>
 
@@ -423,7 +453,13 @@ export function ChatSidebar({
             key={id}
             variant={currentView === id ? "secondary" : "ghost"}
             className={cn("w-full justify-start gap-2 px-2", currentView === id && "bg-accent")}
-            onClick={() => onViewChange(id)}
+            onClick={() => {
+              if (id === "chat" && onNewChat) {
+                onNewChat();
+              } else {
+                onViewChange(id);
+              }
+            }}
           >
             <Icon className="size-4" />
             <span className="text-sm">{label}</span>
@@ -435,7 +471,51 @@ export function ChatSidebar({
 
       {/* Context list */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        {currentView === "tools" ? (
+        {isSearching ? (
+          <div className="p-3 space-y-4">
+            {chatResults.length === 0 && toolResults.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-6">No results for &quot;{searchQuery}&quot;</p>
+            )}
+            {chatResults.length > 0 && (
+              <div className="space-y-1">
+                <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Chats</p>
+                {chatResults.map(chat => (
+                  <button key={chat.id}
+                    onClick={() => { setSearchQuery(""); selectChat(chat.id); onViewChange("chat"); }}
+                    className="w-full text-left rounded-lg px-3 py-2 hover:bg-accent transition-colors flex items-center gap-2">
+                    <MessageCircleDashedIcon className="size-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate">{chat.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {toolResults.length > 0 && (
+              <div className="space-y-1">
+                <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Tools</p>
+                {toolResults.map(cat => (
+                  <button key={cat.name}
+                    onClick={() => { setSearchQuery(""); onToolCategoryChange?.(cat.name); onViewChange("tools"); }}
+                    className="w-full text-left rounded-lg px-3 py-2 hover:bg-accent transition-colors flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <WrenchIcon className="size-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-sm">{cat.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{cat.count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {chatResults.length === 0 && toolResults.length > 0 || chatResults.length > 0 && (
+              <div>
+                <button onClick={() => { setSearchQuery(""); onViewChange("kb"); }}
+                  className="w-full text-left rounded-lg px-3 py-2 hover:bg-accent transition-colors flex items-center gap-2 text-muted-foreground/60">
+                  <BookOpenIcon className="size-3.5 shrink-0" />
+                  <span className="text-xs">Search &quot;{searchQuery}&quot; in Knowledge Base →</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : currentView === "tools" ? (
           <div className="p-3 space-y-0.5">
             <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Categories</p>
             <button

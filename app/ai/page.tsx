@@ -68,14 +68,19 @@ export default function AIPage() {
           <ChatSidebar
             currentView={view}
             onViewChange={(v) => {
-              if (v === "chat") {
-                selectChat(""); // clear stored selectedChatId so history effect doesn't reload old chat
-                setChatKey(k => k + 1);
-              }
               setView(v);
               if (v !== "tools") setToolCategory("all");
               const sp = new URLSearchParams(searchParams.toString());
               sp.set("view", v);
+              sp.delete("tool");
+              router.replace(`/ai?${sp.toString()}`, { scroll: false });
+            }}
+            onNewChat={() => {
+              selectChat("");       // clear any previously selected history chat
+              setChatKey(k => k + 1); // remount ChatMain fresh
+              setView("chat");
+              const sp = new URLSearchParams(searchParams.toString());
+              sp.set("view", "chat");
               sp.delete("tool");
               router.replace(`/ai?${sp.toString()}`, { scroll: false });
             }}
