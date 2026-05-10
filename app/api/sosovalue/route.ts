@@ -75,12 +75,12 @@ export async function GET(request: Request) {
     const payload = await fetcher()
     const now = new Date().toISOString()
 
-    // Store in cache (non-blocking)
-    supabaseAdmin
-      .from('sosovalue_cache')
-      .upsert({ module, key, payload, fetched_at: now })
-      .then(() => {})
-      .catch(() => {})
+    // Store in cache (non-blocking, PromiseLike-compatible)
+    void Promise.resolve(
+      supabaseAdmin
+        .from('sosovalue_cache')
+        .upsert({ module, key, payload, fetched_at: now })
+    ).catch(() => {})
 
     return Response.json(
       { data: payload, fetched_at: now },

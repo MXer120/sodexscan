@@ -17,13 +17,28 @@ interface Message {
   timestamp: Date;
 }
 
-interface PlanStep { text: string; status: "done" | "active" | "pending" }
-interface ParsedPlan { steps: PlanStep[]; doneCount: number; totalCount: number }
+type PlanStatus = "done" | "active" | "failed" | "warning" | "pending";
+interface PlanStep { text: string; status: PlanStatus }
+interface ParsedPlan {
+  steps: PlanStep[];
+  doneCount: number;
+  failedCount: number;
+  warningCount: number;
+  totalCount: number;
+}
 
+// Finds the LAST [PLAN:...] tag in the content — so streaming updates are reflected
 function extractPlanFromContent(content: string): ParsedPlan | null {
-  const start = content.indexOf("[PLAN:");
-  if (start === -1) return null;
-  const jsonStart = start + 6;
+  let lastStart = -1;
+  let search = 0;
+  while (true) {
+    const pos = content.indexOf("[PLAN:", search);
+    if (pos === -1) break;
+    lastStart = pos;
+    search = pos + 1;
+  }
+  if (lastStart === -1) return null;
+  const jsonStart = lastStart + 6;
   if (content[jsonStart] !== "{") return null;
   let depth = 0, end = -1;
   for (let i = jsonStart; i < content.length; i++) {
@@ -33,18 +48,32 @@ function extractPlanFromContent(content: string): ParsedPlan | null {
   if (end === -1) return null;
   try {
     const parsed = JSON.parse(content.slice(jsonStart, end + 1)) as {
-      steps?: string[]; done?: number[]; active?: number;
+      steps?: string[];
+      done?:    number[];
+      active?:  number;
+      failed?:  number[];
+      warning?: number[];
     };
-    const steps = parsed.steps ?? [];
-    const done = new Set(parsed.done ?? []);
-    const active = parsed.active ?? -1;
+    const steps   = parsed.steps   ?? [];
+    const done    = new Set(parsed.done    ?? []);
+    const failed  = new Set(parsed.failed  ?? []);
+    const warning = new Set(parsed.warning ?? []);
+    const active  = parsed.active ?? -1;
     return {
       steps: steps.map((text, i) => ({
         text,
-        status: done.has(i) ? "done" : i === active ? "active" : "pending",
+        status: (
+          failed.has(i)  ? "failed"  :
+          warning.has(i) ? "warning" :
+          done.has(i)    ? "done"    :
+          i === active   ? "active"  :
+                           "pending"
+        ) as PlanStatus,
       })),
-      doneCount: done.size,
-      totalCount: steps.length,
+      doneCount:    done.size,
+      failedCount:  failed.size,
+      warningCount: warning.size,
+      totalCount:   steps.length,
     };
   } catch { return null; }
 }
@@ -101,8 +130,14 @@ export function ChatConversationView({
           onClick={() => setPlanOpen(v => !v)}
           className="absolute top-3 right-4 z-20 flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-1 transition-colors hover:bg-accent bg-background/80 backdrop-blur-sm shadow-sm"
         >
-          <span className="size-1.5 rounded-full bg-primary shrink-0" />
-          {currentPlan.doneCount}/{currentPlan.totalCount} steps
+          <span className={cn(
+            "size-1.5 rounded-full shrink-0",
+            currentPlan.failedCount  > 0 ? "bg-red-500" :
+            currentPlan.warningCount > 0 ? "bg-yellow-500" :
+            currentPlan.doneCount === currentPlan.totalCount ? "bg-emerald-500" :
+            "bg-primary animate-pulse"
+          )} />
+          {currentPlan.doneCount + currentPlan.failedCount + currentPlan.warningCount}/{currentPlan.totalCount} steps
         </button>
       )}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
@@ -209,8 +244,14 @@ export function ChatConversationView({
           <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold">AI Plan</span>
-              <span className="text-[11px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium">
-                {currentPlan.doneCount}/{currentPlan.totalCount}
+              <span className={cn(
+                "text-[11px] px-1.5 py-0.5 rounded-full font-medium",
+                currentPlan.failedCount  > 0 ? "bg-red-500/15 text-red-500" :
+                currentPlan.warningCount > 0 ? "bg-yellow-500/15 text-yellow-500" :
+                currentPlan.doneCount === currentPlan.totalCount ? "bg-emerald-500/15 text-emerald-500" :
+                "bg-primary/15 text-primary"
+              )}>
+                {currentPlan.doneCount + currentPlan.failedCount + currentPlan.warningCount}/{currentPlan.totalCount}
               </span>
             </div>
             <button onClick={() => setPlanOpen(false)}
@@ -221,6 +262,7 @@ export function ChatConversationView({
           <div className="px-4 py-3 space-y-3">
             {currentPlan.steps.map((step, i) => (
               <div key={i} className="flex items-start gap-3">
+                {/* Done — green checkmark */}
                 {step.status === "done" && (
                   <div className="size-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -228,11 +270,27 @@ export function ChatConversationView({
                     </svg>
                   </div>
                 )}
+                {/* Active — pulsing blue dot */}
                 {step.status === "active" && (
                   <div className="size-4 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                   </div>
                 )}
+                {/* Failed — red X */}
+                {step.status === "failed" && (
+                  <div className="size-4 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg width="7" height="7" viewBox="0 0 7 7" fill="none">
+                      <path d="M1.5 1.5l4 4M5.5 1.5l-4 4" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                )}
+                {/* Warning — yellow exclamation */}
+                {step.status === "warning" && (
+                  <div className="size-4 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[8px] font-bold text-yellow-500 leading-none">!</span>
+                  </div>
+                )}
+                {/* Pending — empty ring */}
                 {step.status === "pending" && (
                   <div className="size-4 rounded-full border border-border flex items-center justify-center shrink-0 mt-0.5">
                     <span className="size-1 rounded-full bg-muted-foreground/30" />
@@ -240,7 +298,10 @@ export function ChatConversationView({
                 )}
                 <span className={cn(
                   "text-sm leading-tight",
-                  step.status === "done" ? "line-through text-muted-foreground/60" : "text-foreground"
+                  step.status === "done"    ? "line-through text-muted-foreground/50" :
+                  step.status === "failed"  ? "text-red-400" :
+                  step.status === "warning" ? "text-yellow-400" :
+                  "text-foreground"
                 )}>
                   {step.text}
                 </span>
