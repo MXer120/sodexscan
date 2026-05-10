@@ -8,7 +8,8 @@ import { SidebarKB } from "@/app/components/chat/sidebar-kb";
 import { GridPattern } from "@/app/components/ui/grid-pattern";
 import ToolsPage from "@/app/components/tools/ToolsPage";
 import Link from "next/link";
-import { PanelLeftIcon, PlusIcon, ZapIcon, CalendarClockIcon } from "lucide-react";
+import { PanelLeftIcon, PlusIcon, ZapIcon, CalendarClockIcon, FlaskConicalIcon, CheckIcon } from "lucide-react";
+import { AI_MODELS } from "@/app/components/chat/chat-input-box";
 import { toast } from "sonner";
 import { Button } from "@/app/components/ui/button";
 import { cn } from "@/app/lib/utils";
@@ -106,13 +107,33 @@ export default function AIPage() {
   );
 }
 
+// ── Inline brand icons (lucide has no Telegram/Discord) ──────────────────────
+function TelegramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.67l-2.965-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.983.889z"/>
+    </svg>
+  );
+}
+
+function DiscordIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+    </svg>
+  );
+}
+
 function ScheduleMainView() {
   const [showForm, setShowForm] = useState(false);
-  const [prompt, setPrompt] = useState("");
-  const [date, setDate]       = useState("");
-  const [time, setTime]       = useState("");
-  const [repeat, setRepeat]   = useState("none");
-  const [days, setDays]       = useState<string[]>([]);
+  const [prompt,   setPrompt]  = useState("");
+  const [date,     setDate]    = useState("");
+  const [time,     setTime]    = useState("");
+  const [repeat,   setRepeat]  = useState("none");
+  const [days,     setDays]    = useState<string[]>([]);
+  const [model,    setModel]   = useState("communityscan");
+  const [telegram, setTelegram] = useState(false);
+  const [discord,  setDiscord]  = useState(false);
 
   const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   const REPEAT_OPTS = [
@@ -133,6 +154,17 @@ function ScheduleMainView() {
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto px-4 md:px-6 py-8 space-y-6">
 
+        {/* Preview banner */}
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3.5">
+          <FlaskConicalIcon className="size-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-xs font-semibold text-amber-500">Preview — Scheduled prompts are not yet active</p>
+            <p className="text-xs text-muted-foreground">
+              You can configure schedules now, but they will not run until this feature officially launches.
+            </p>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -149,9 +181,10 @@ function ScheduleMainView() {
 
         {/* Create form */}
         {showForm && (
-          <div className="rounded-xl border bg-card p-5 space-y-4 shadow-sm">
+          <div className="rounded-xl border bg-card p-5 space-y-5 shadow-sm">
             <h2 className="text-sm font-semibold">New Scheduled Prompt</h2>
 
+            {/* Prompt */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Prompt</label>
               <textarea
@@ -162,6 +195,7 @@ function ScheduleMainView() {
               />
             </div>
 
+            {/* Date + Time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</label>
@@ -177,6 +211,7 @@ function ScheduleMainView() {
               </div>
             </div>
 
+            {/* Repeat */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Repeat</label>
               <div className="flex gap-2 flex-wrap">
@@ -214,6 +249,63 @@ function ScheduleMainView() {
               </div>
             )}
 
+            {/* Model */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Model</label>
+              <select
+                className="w-full h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                value={model} onChange={e => setModel(e.target.value)}
+              >
+                {AI_MODELS.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}{m.description ? ` — ${m.description}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Delivery */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Deliver response to
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setTelegram(v => !v)}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-colors",
+                    telegram
+                      ? "border-[#229ED9]/60 bg-[#229ED9]/10 text-[#229ED9]"
+                      : "border-transparent bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                >
+                  <TelegramIcon />
+                  Send to Telegram
+                  {telegram && <CheckIcon className="size-3 ml-0.5" />}
+                </button>
+                <button
+                  onClick={() => setDiscord(v => !v)}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-colors",
+                    discord
+                      ? "border-[#5865F2]/60 bg-[#5865F2]/10 text-[#5865F2]"
+                      : "border-transparent bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                >
+                  <DiscordIcon />
+                  Send to Discord
+                  {discord && <CheckIcon className="size-3 ml-0.5" />}
+                </button>
+              </div>
+              {(telegram || discord) && (
+                <p className="text-[11px] text-muted-foreground px-0.5">
+                  Connect your {[telegram && "Telegram", discord && "Discord"].filter(Boolean).join(" and ")} in{" "}
+                  <Link href="/profile" className="text-primary hover:underline">Profile → Alerts</Link> to receive responses.
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
             <div className="flex gap-2 pt-1">
               <Button onClick={handleSave} className="flex-1">Schedule</Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
