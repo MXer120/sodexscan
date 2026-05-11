@@ -370,9 +370,8 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
       <div className="h-[220px] px-3 pb-4">
         {loading ? (
           <div className="h-full flex flex-col justify-end gap-1 px-1 pb-1">
-            {[...Array(8)].map((_, i) => (
-              <Sk key={i} className="w-full shrink-0"
-                style={{ height: `${12 + Math.sin(i * 1.3) * 8 + Math.random() * 20}%` }} />
+            {[28,45,62,38,71,52,35,58].map((h, i) => (
+              <Sk key={i} className="w-full shrink-0" style={{ height: `${h}%` }} />
             ))}
           </div>
         ) : !anyData ? (
@@ -440,7 +439,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
                   </div>
                 );
               }} />
-              <Bar yAxisId="left" dataKey="flow" radius={[2, 2, 0, 0]}>
+              <Bar yAxisId="left" dataKey="flow" radius={[2, 2, 0, 0]} maxBarSize={12}>
                 {singleSlice.map((entry, i) => (
                   <Cell key={i} fill={entry.flow >= 0 ? INFLOW_COLOR : OUTFLOW_COLOR} />
                 ))}
