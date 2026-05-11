@@ -6,8 +6,10 @@ import { cn } from "@/app/lib/utils";
 import {
   ZapIcon, MessageCircleDashedIcon, WandSparklesIcon, BoxIcon,
   TrendingUpIcon, UsersIcon, BarChart3Icon,
+  AlertCircleIcon, ReceiptIcon,
 } from "lucide-react";
 import { ChatInputBox } from "./chat-input-box";
+import type { PreviewId } from "./preview-conversations";
 
 const chatModes = [
   { id: "fast",     label: "Fast",      icon: ZapIcon },
@@ -16,20 +18,19 @@ const chatModes = [
   { id: "holistic", label: "Holistic",  icon: BoxIcon },
 ];
 
-const EXAMPLES = [
+// Live examples — send to AI
+const LIVE_EXAMPLES = [
   {
     id:    "etf"      as const,
     icon:  TrendingUpIcon,
     label: "ETF Inflows",
-    desc:  "Live BTC ETF flows — all providers",
-    prompt: "Show me today's Bitcoin ETF inflows. Compare IBIT vs FBTC performance and net flows for the past month.",
+    prompt: "Show me last month's Bitcoin ETF inflows. Compare IBIT vs FBTC performance and net flows.",
     color: "#6366f1",
   },
   {
     id:    "traders"  as const,
     icon:  BarChart3Icon,
     label: "Top Traders",
-    desc:  "Live leaderboard with real data",
     prompt: "Show me the current top traders on Sodex with their live PnL and volume.",
     color: "#f59e0b",
   },
@@ -37,11 +38,16 @@ const EXAMPLES = [
     id:    "referral" as const,
     icon:  UsersIcon,
     label: "Referral Lookup",
-    desc:  "Wallet & PnL behind a code",
-    prompt: "Look up referral code SOSO — what wallet address is behind it? Then pull their PnL history and explain their trading strategy.",
+    prompt: "Look up referral code SOSO — what wallet address is behind it and show their PnL history.",
     color: "#10b981",
   },
-] as const;
+];
+
+// Preview-only — hardcoded, open in full chat view
+const PREVIEW_EXAMPLES: { id: PreviewId; icon: React.ElementType; label: string; color: string }[] = [
+  { id: "deposit", icon: AlertCircleIcon, label: "Deposit Issue", color: "#ef4444" },
+  { id: "fees",    icon: ReceiptIcon,     label: "My Fees",       color: "#8b5cf6" },
+];
 
 interface ChatWelcomeScreenProps {
   message: string;
@@ -53,11 +59,13 @@ interface ChatWelcomeScreenProps {
   onModelChange: (modelId: string) => void;
   usePersonalKB?: boolean;
   onPersonalKBChange?: (v: boolean) => void;
+  onPreview?: (id: PreviewId) => void;
 }
 
 export function ChatWelcomeScreen({
   message, onMessageChange, onSend,
   selectedModel, onModelChange, usePersonalKB, onPersonalKBChange,
+  onPreview,
 }: ChatWelcomeScreenProps) {
   return (
     <div className="flex h-full items-center justify-center overflow-y-auto">
@@ -76,9 +84,9 @@ export function ChatWelcomeScreen({
           </div>
         </div>
 
-        {/* Example pills */}
+        {/* Live examples */}
         <div className="flex flex-wrap gap-2 justify-center">
-          {EXAMPLES.map((ex) => (
+          {LIVE_EXAMPLES.map((ex) => (
             <button
               key={ex.id}
               onClick={() => onMessageChange(ex.prompt)}
@@ -105,6 +113,30 @@ export function ChatWelcomeScreen({
           onPersonalKBChange={onPersonalKBChange}
           showTools={true}
         />
+
+        {/* Preview examples — coming soon, open in full chat view */}
+        <div className="flex flex-col gap-2">
+          <p className="text-[11px] text-muted-foreground text-center uppercase tracking-wide">Coming soon — preview</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {PREVIEW_EXAMPLES.map((ex) => (
+              <button
+                key={ex.id}
+                onClick={() => onPreview?.(ex.id)}
+                className={cn(
+                  "flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-dashed border-border/60",
+                  "bg-card/40 hover:bg-card/80 hover:shadow-sm transition-all opacity-75 hover:opacity-100"
+                )}
+              >
+                <div className="size-5 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: `${ex.color}15` }}>
+                  <ex.icon className="size-3" style={{ color: ex.color }} />
+                </div>
+                <span className="text-xs font-medium">{ex.label}</span>
+                <span className="text-[9px] font-medium text-muted-foreground bg-muted rounded px-1 py-0.5 leading-none">preview</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Mode buttons */}
         <div className="flex flex-wrap items-center justify-center gap-2">

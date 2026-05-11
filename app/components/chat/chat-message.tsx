@@ -7,6 +7,8 @@ import { EtfInflowsBlock } from "./blocks/EtfInflowsBlock";
 import { TopTradersBlock } from "./blocks/TopTradersBlock";
 import { ReferralAnalysisBlock } from "./blocks/ReferralAnalysisBlock";
 import { PnlChartBlock } from "./blocks/PnlChartBlock";
+import { FeeTiersBlock } from "./blocks/FeeTiersBlock";
+import { TransactionBlock } from "./blocks/TransactionBlock";
 import { toast } from "sonner";
 
 interface Message {
@@ -93,19 +95,27 @@ function parseSegments(content: string): Segment[] {
   return segments;
 }
 
-const HEX_RE = /\b(0x[0-9a-fA-F]{40,64})\b/g;
+// Combined token regex: **bold**, *italic*, hex addresses
+const INLINE_RE = /(\*\*(.+?)\*\*|\*(.+?)\*|\b(0x[0-9a-fA-F]{40,64})\b)/g;
 
-function renderWithCopyables(text: string): React.ReactNode {
+function renderInline(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
+  let last = 0;
   let match: RegExpExecArray | null;
-  const re = new RegExp(HEX_RE.source, "g");
+  const re = new RegExp(INLINE_RE.source, "g");
+  let key = 0;
   while ((match = re.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    parts.push(<CopyableChip key={match.index} value={match[1]} />);
-    lastIndex = re.lastIndex;
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    if (match[2]) {
+      parts.push(<strong key={key++} className="font-semibold text-foreground">{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(<em key={key++}>{match[3]}</em>);
+    } else if (match[4]) {
+      parts.push(<CopyableChip key={key++} value={match[4]} />);
+    }
+    last = re.lastIndex;
   }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  if (last < text.length) parts.push(text.slice(last));
   return parts.length === 1 && typeof parts[0] === "string" ? parts[0] as React.ReactNode : <>{parts}</>;
 }
 
@@ -139,9 +149,11 @@ function CopyableChip({ value }: { value: string }) {
 
 function BlockRenderer({ name, props }: { name: string; props: Record<string, unknown> }) {
   if (name === "etf_inflows")       return <EtfInflowsBlock props={props} />;
-  if (name === "top_traders")       return <TopTradersBlock />;
-  if (name === "referral_analysis") return <ReferralAnalysisBlock />;
+  if (name === "top_traders")       return <TopTradersBlock props={props as { period?: "ALL" | "1W" | "1M" }} />;
+  if (name === "referral_analysis") return <ReferralAnalysisBlock props={props as { address?: string; code?: string }} />;
   if (name === "pnl_chart")         return <PnlChartBlock props={props as { address?: string; days?: number; view?: "daily" | "cumulative" }} />;
+  if (name === "fee_tiers")         return <FeeTiersBlock props={props as { highlightTier?: string; tab?: "perps" | "spot" | "staking" }} />;
+  if (name === "transaction")       return <TransactionBlock props={props as Parameters<typeof TransactionBlock>[0]["props"]} />;
   return null;
 }
 
@@ -178,7 +190,7 @@ export function ChatMessage({ message, usingKB = false }: { message: Message; us
         {segments.map((seg, i) => {
           if (seg.type === "text") return (
             <div key={i} className="rounded-2xl px-4 py-3 bg-secondary self-start max-w-[80%]">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderWithCopyables(seg.content)}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderInline(seg.content)}</p>
             </div>
           );
           if (seg.type === "block") return (

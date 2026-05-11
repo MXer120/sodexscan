@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/app/components/ui/button";
-import { XIcon, AlertCircleIcon, HistoryIcon, KeyIcon } from "lucide-react";
+import { XIcon, AlertCircleIcon, HistoryIcon, KeyIcon, ListChecksIcon } from "lucide-react";
 import { ChatMessage } from "./chat-message";
 import { ChatInputBox } from "./chat-input-box";
 import { AI_MODELS } from "./chat-input-box";
@@ -99,6 +99,7 @@ interface ChatConversationViewProps {
   queue?: string[];
   onQueueRemove?: (index: number) => void;
   onStop?: () => void;
+  previewLabel?: string;
 }
 
 export function ChatConversationView({
@@ -107,6 +108,7 @@ export function ChatConversationView({
   usePersonalKB = false, onPersonalKBChange,
   error, contextLimitActive = false, onExpandContext,
   queue, onQueueRemove, onStop,
+  previewLabel,
 }: ChatConversationViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [planOpen,     setPlanOpen]     = useState(false);
@@ -128,12 +130,21 @@ export function ChatConversationView({
   return (
     <div className="flex h-full flex-col relative">
 
-      {/* Plan indicator — absolute top-right */}
+      {/* Plan icon — small button top-right, always on top */}
       {currentPlan && (
         <button
           onClick={() => setPlanOpen(v => !v)}
-          className="absolute top-3 right-4 z-20 flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-1 transition-colors hover:bg-accent bg-background/80 backdrop-blur-sm shadow-sm"
+          title="AI Plan"
+          className={cn(
+            "absolute top-3 right-3 z-30 flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-medium shadow-sm transition-colors",
+            "bg-background/90 backdrop-blur-sm hover:bg-accent",
+            planOpen && "bg-accent"
+          )}
         >
+          <ListChecksIcon className="size-3.5 shrink-0" />
+          <span className="tabular-nums">
+            {currentPlan.doneCount + currentPlan.failedCount + currentPlan.warningCount}/{currentPlan.totalCount}
+          </span>
           <span className={cn(
             "size-1.5 rounded-full shrink-0",
             currentPlan.failedCount  > 0 ? "bg-red-500" :
@@ -141,9 +152,92 @@ export function ChatConversationView({
             currentPlan.doneCount === currentPlan.totalCount ? "bg-emerald-500" :
             "bg-primary animate-pulse"
           )} />
-          {currentPlan.doneCount + currentPlan.failedCount + currentPlan.warningCount}/{currentPlan.totalCount} steps
         </button>
       )}
+
+      {/* Plan floating sidebar — appears below the icon */}
+      {planOpen && currentPlan && (
+        <div
+          className="absolute top-12 right-3 z-30 w-72 rounded-xl border bg-popover shadow-2xl overflow-hidden"
+          style={{ minHeight: "20vh" }}
+        >
+          <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <ListChecksIcon className="size-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold">AI Plan</span>
+              <span className={cn(
+                "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                currentPlan.failedCount  > 0 ? "bg-red-500/15 text-red-500" :
+                currentPlan.warningCount > 0 ? "bg-yellow-500/15 text-yellow-500" :
+                currentPlan.doneCount === currentPlan.totalCount ? "bg-emerald-500/15 text-emerald-500" :
+                "bg-primary/15 text-primary"
+              )}>
+                {currentPlan.doneCount + currentPlan.failedCount + currentPlan.warningCount}/{currentPlan.totalCount}
+              </span>
+            </div>
+            <button onClick={() => setPlanOpen(false)}
+              className="size-5 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground text-xs">
+              ×
+            </button>
+          </div>
+          <div className="px-4 py-3 space-y-3">
+            {currentPlan.steps.map((step, i) => (
+              <div key={i} className="flex items-start gap-3">
+                {step.status === "done" && (
+                  <div className="size-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.5 1.5 3-3" stroke="#10b981" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                )}
+                {step.status === "active" && (
+                  <div className="size-4 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  </div>
+                )}
+                {step.status === "failed" && (
+                  <div className="size-4 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg width="7" height="7" viewBox="0 0 7 7" fill="none"><path d="M1.5 1.5l4 4M5.5 1.5l-4 4" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                  </div>
+                )}
+                {step.status === "warning" && (
+                  <div className="size-4 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[8px] font-bold text-yellow-500 leading-none">!</span>
+                  </div>
+                )}
+                {step.status === "pending" && (
+                  <div className="size-4 rounded-full border border-border flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="size-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                )}
+                <span className={cn(
+                  "text-sm leading-tight",
+                  step.status === "done"    ? "line-through text-muted-foreground/50" :
+                  step.status === "failed"  ? "text-red-400" :
+                  step.status === "warning" ? "text-yellow-400" :
+                  "text-foreground"
+                )}>
+                  {step.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Preview mode banner */}
+      {previewLabel && (
+        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-4 py-2 border-b bg-amber-500/5 border-amber-500/20">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="text-[11px] font-medium text-amber-500">Preview · {previewLabel} · Coming soon</span>
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">— shows what the AI will be able to do</span>
+          </div>
+          <button onClick={onReset}
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
+            ← Back
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8">
         <div className="max-w-[640px] mx-auto space-y-6">
 
@@ -286,80 +380,6 @@ export function ChatConversationView({
           <div ref={bottomRef} />
         </div>
       </div>
-
-      {/* Floating AI plan panel */}
-      {planOpen && currentPlan && (
-        <div className="absolute bottom-[76px] right-4 w-80 rounded-xl border bg-popover shadow-2xl z-30 overflow-hidden"
-          style={{ minHeight: "30%" }}>
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">AI Plan</span>
-              <span className={cn(
-                "text-[11px] px-1.5 py-0.5 rounded-full font-medium",
-                currentPlan.failedCount  > 0 ? "bg-red-500/15 text-red-500" :
-                currentPlan.warningCount > 0 ? "bg-yellow-500/15 text-yellow-500" :
-                currentPlan.doneCount === currentPlan.totalCount ? "bg-emerald-500/15 text-emerald-500" :
-                "bg-primary/15 text-primary"
-              )}>
-                {currentPlan.doneCount + currentPlan.failedCount + currentPlan.warningCount}/{currentPlan.totalCount}
-              </span>
-            </div>
-            <button onClick={() => setPlanOpen(false)}
-              className="size-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground text-sm">
-              ×
-            </button>
-          </div>
-          <div className="px-4 py-3 space-y-3">
-            {currentPlan.steps.map((step, i) => (
-              <div key={i} className="flex items-start gap-3">
-                {/* Done — green checkmark */}
-                {step.status === "done" && (
-                  <div className="size-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                      <path d="M1.5 4l1.5 1.5 3-3" stroke="#10b981" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                )}
-                {/* Active — pulsing blue dot */}
-                {step.status === "active" && (
-                  <div className="size-4 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-                  </div>
-                )}
-                {/* Failed — red X */}
-                {step.status === "failed" && (
-                  <div className="size-4 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0 mt-0.5">
-                    <svg width="7" height="7" viewBox="0 0 7 7" fill="none">
-                      <path d="M1.5 1.5l4 4M5.5 1.5l-4 4" stroke="#ef4444" strokeWidth="1.4" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                )}
-                {/* Warning — yellow exclamation */}
-                {step.status === "warning" && (
-                  <div className="size-4 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-[8px] font-bold text-yellow-500 leading-none">!</span>
-                  </div>
-                )}
-                {/* Pending — empty ring */}
-                {step.status === "pending" && (
-                  <div className="size-4 rounded-full border border-border flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="size-1 rounded-full bg-muted-foreground/30" />
-                  </div>
-                )}
-                <span className={cn(
-                  "text-sm leading-tight",
-                  step.status === "done"    ? "line-through text-muted-foreground/50" :
-                  step.status === "failed"  ? "text-red-400" :
-                  step.status === "warning" ? "text-yellow-400" :
-                  "text-foreground"
-                )}>
-                  {step.text}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Message queue — faded bubbles above input */}
       {queue && queue.length > 0 && (

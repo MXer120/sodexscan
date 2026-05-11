@@ -6,6 +6,7 @@ import { ChatWelcomeScreen } from "./chat-welcome-screen";
 import { ChatConversationView } from "./chat-conversation-view";
 import { useSessionContext } from "@/app/lib/SessionContext";
 import { useChatStore } from "@/app/store/chat-store";
+import { type PreviewId, PREVIEW_CONVERSATIONS, PREVIEW_META } from "./preview-conversations";
 
 const MAX_CONTEXT = 10;
 
@@ -34,6 +35,7 @@ function useDebounce<T extends unknown[]>(fn: (...args: T) => void, ms: number) 
 
 export function ChatMain() {
   const { user, session } = useSessionContext();
+  const [previewId, setPreviewId] = useState<PreviewId | null>(null);
   const [selectedModel, setSelectedModel] = useState("communityscan");
   const [includeFullHistory, setIncludeFullHistory] = useState(false);
   const [usePersonalKB, setUsePersonalKB] = useState(false);
@@ -186,6 +188,26 @@ export function ChatMain() {
     selectChat("");
   };
 
+  // Preview mode — hardcoded example conversation, no AI involved
+  if (previewId) {
+    const previewMessages = PREVIEW_CONVERSATIONS[previewId];
+    const meta = PREVIEW_META[previewId];
+    return (
+      <ChatConversationView
+        messages={previewMessages}
+        totalMessages={previewMessages.length}
+        message=""
+        onMessageChange={() => {}}
+        onSend={() => {}}
+        onReset={() => setPreviewId(null)}
+        isLoading={false}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        previewLabel={meta.label}
+      />
+    );
+  }
+
   if (isConversationStarted) {
     return (
       <ChatConversationView
@@ -221,6 +243,7 @@ export function ChatMain() {
       onModelChange={setSelectedModel}
       usePersonalKB={usePersonalKB}
       onPersonalKBChange={setUsePersonalKB}
+      onPreview={setPreviewId}
     />
   );
 }
