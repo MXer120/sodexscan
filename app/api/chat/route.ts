@@ -404,7 +404,7 @@ export async function POST(req: NextRequest) {
     if (isQuotaError(e)) {
       // Use retryAfter attached by exhaustedError(), or fall back to slotRetryAfter()
       const attached = (e as { retryAfter?: number }).retryAfter;
-      const retryAfter = attached ?? slotRetryAfter(e) || 60;
+      const retryAfter = attached ?? (slotRetryAfter(e) || 60);
       return new Response(`Quota exceeded for "${requestedId}". Retry in ${retryAfter}s.`,{status:429,headers:{"Retry-After":String(retryAfter)}});
     }
     return new Response(msg||"AI error. Please try again.",{status:502});
