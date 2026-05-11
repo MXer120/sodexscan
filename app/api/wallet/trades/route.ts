@@ -15,7 +15,7 @@ function daysToWindow(days: number): string {
 }
 
 async function fetchMarket(addr: string, market: "perps" | "spot", cap: number, window: string): Promise<Trade[]> {
-  const res = (await get_trades({ address: addr, market, window, max_items: cap })) as TradesResult;
+  const res = (await get_trades({ address: addr, market, symbol: undefined, window, from: undefined, to: undefined, max_items: cap })) as TradesResult;
   return Array.isArray(res?.trades) ? res.trades : [];
 }
 
