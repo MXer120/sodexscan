@@ -291,7 +291,19 @@ function InlineApiKeyManager() {
                     </button>
                   ))}
                 </div>
-                {activeProv && <p className="text-xs text-muted-foreground px-1">{activeProv.hint}</p>}
+                {activeProv && (
+                  <p className="text-xs text-muted-foreground px-1">
+                    {activeProv.hint}{" "}
+                    <a
+                      href={activeProv.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-foreground transition-colors"
+                    >
+                      {activeProv.urlLabel}
+                    </a>
+                  </p>
+                )}
               </div>
             )}
             {view === "edit" && (

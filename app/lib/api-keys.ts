@@ -16,7 +16,9 @@ export const PROVIDERS = [
     color: "#f59e0b",
     desc: "LLaMA 3, Qwen, Gemma models",
     placeholder: "gsk_...",
-    hint: "From console.groq.com → API Keys",
+    hint: "Get your free API key at",
+    url: "https://console.groq.com/keys",
+    urlLabel: "console.groq.com → API Keys",
   },
   {
     id: "google",
@@ -24,7 +26,9 @@ export const PROVIDERS = [
     color: "#4285f4",
     desc: "Gemini 2.5 Flash & Pro",
     placeholder: "AIza...",
-    hint: "From aistudio.google.com → Get API Key",
+    hint: "Get your free API key at",
+    url: "https://aistudio.google.com/app/apikey",
+    urlLabel: "aistudio.google.com → Get API Key",
   },
 ];
 
