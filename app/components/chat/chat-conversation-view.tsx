@@ -109,8 +109,8 @@ export function ChatConversationView({
   queue, onQueueRemove, onStop,
 }: ChatConversationViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [planOpen,    setPlanOpen]    = useState(false);
-  const [livePreview, setLivePreview] = useState<"etf" | "traders" | "referral" | null>(null);
+  const [planOpen,     setPlanOpen]     = useState(false);
+  const [showExample,  setShowExample]  = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -191,49 +191,9 @@ export function ChatConversationView({
           ))}
 
           {/* Typing indicator — waiting for first token */}
-          {isLoading && (() => {
-            // Detect if the last user message matches a known example type
-            const lastUser = [...messages].reverse().find(m => m.sender === "user");
-            const c = lastUser?.content?.toLowerCase() ?? "";
-            const isEtf      = c.includes("etf") || c.includes("inflow");
-            const isTraders  = c.includes("trader") || c.includes("leaderboard") || (c.includes("top") && c.includes("wallet"));
-            const isReferral = c.includes("referral");
-            const hasMatch   = isEtf || isTraders || isReferral;
-            return (
-              <>
-                {hasMatch && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] text-muted-foreground">See live data while AI thinks:</span>
-                      {isEtf && (
-                        <button onClick={() => setLivePreview(p => p === "etf" ? null : "etf")}
-                          className={cn("text-[11px] border rounded-full px-2.5 py-1 transition-colors font-medium",
-                            livePreview === "etf" ? "bg-[#6366f1]/10 border-[#6366f1]/40 text-[#6366f1]" : "hover:bg-accent text-muted-foreground")}>
-                          ETF Flows ↓
-                        </button>
-                      )}
-                      {isTraders && (
-                        <button onClick={() => setLivePreview(p => p === "traders" ? null : "traders")}
-                          className={cn("text-[11px] border rounded-full px-2.5 py-1 transition-colors font-medium",
-                            livePreview === "traders" ? "bg-[#f59e0b]/10 border-[#f59e0b]/40 text-[#f59e0b]" : "hover:bg-accent text-muted-foreground")}>
-                          Top Traders ↓
-                        </button>
-                      )}
-                      {isReferral && (
-                        <button onClick={() => setLivePreview(p => p === "referral" ? null : "referral")}
-                          className={cn("text-[11px] border rounded-full px-2.5 py-1 transition-colors font-medium",
-                            livePreview === "referral" ? "bg-[#10b981]/10 border-[#10b981]/40 text-[#10b981]" : "hover:bg-accent text-muted-foreground")}>
-                          Referral Data ↓
-                        </button>
-                      )}
-                    </div>
-                    {livePreview === "etf"      && <EtfInflowsBlock />}
-                    {livePreview === "traders"  && <TopTradersBlock />}
-                    {livePreview === "referral" && <ReferralAnalysisBlock />}
-                  </div>
-                )}
-                <div className="flex gap-4 justify-start">
-                  <div className="shrink-0">
+          {isLoading && (
+            <div className="flex gap-4 justify-start">
+              <div className="shrink-0">
                 <div className="size-8 rounded-full bg-secondary flex items-center justify-center">
                   <AiLogo className="size-6 mt-0" />
                 </div>
@@ -244,42 +204,81 @@ export function ChatConversationView({
                 <span className="size-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
-              </>
-            );
-          })()}
+          )}
 
           {/* Error state */}
           {error && (() => {
             const isLimit = error.includes("Rate limit exceeded") || error.includes("Quota exceeded");
-            if (!isLimit) {
-              return (
-                <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-                  <AlertCircleIcon className="size-4 text-destructive shrink-0" />
-                  <p className="text-sm text-destructive">AI unavailable</p>
-                </div>
-              );
-            }
             const retryMatch = error.match(/Retry in (\d+)s/i);
             const retrySecs  = retryMatch ? parseInt(retryMatch[1]) : 60;
-            // Round to nearest 5s; show minutes if ≥ 60s
-            const rounded = Math.ceil(retrySecs / 5) * 5;
-            const retryLabel = rounded >= 120 ? `~${Math.round(rounded / 60)} min`
-                             : rounded >= 60  ? "~1 min"
-                             : `~${rounded}s`;
+            const rounded    = Math.ceil(retrySecs / 5) * 5;
+            const retryLabel = rounded >= 120 ? `~${Math.round(rounded / 60)} min` : rounded >= 60 ? "~1 min" : `~${rounded}s`;
             const modelLabel = AI_MODELS.find(m => m.id === selectedModel)?.label ?? selectedModel;
+
+            // Build a hardcoded example AI message based on what the user asked
+            const lastUser = [...messages].reverse().find(m => m.sender === "user");
+            const c = lastUser?.content?.toLowerCase() ?? "";
+            const exampleContent =
+              c.includes("etf") || c.includes("inflow")
+                ? `Here's the current Bitcoin ETF flow data — live from SoSoValue:\n\n[BLOCK:etf_inflows]\n\nThe **All ETFs** tab shows the aggregate daily net inflow/outflow across all BTC spot ETFs. Switch to individual tickers (IBIT, FBTC, ARKB, GBTC) or enable Overlay to compare cumulative flows side by side.\n\nNot financial advice.`
+              : c.includes("trader") || c.includes("leaderboard") || (c.includes("top") && c.includes("wallet"))
+                ? `Here are the current top performers on Sodex Mainnet — live leaderboard data:\n\n[BLOCK:top_traders]\n\nRanked by 7-day realised PnL. Click any row to expand volume, trade count, and win rate. Data pulled directly from the Sodex API.\n\nNot financial advice.`
+              : c.includes("referral")
+                ? `The referral code **SOSO** resolves to wallet:\n\n0x96c475f6dBfD140DD21365FD2c7d143a47cD5476\n\nHere's their 30-day PnL history — live from the Sodex API:\n\n[BLOCK:pnl_chart:{"address":"0x96c475f6dBfD140DD21365FD2c7d143a47cD5476","days":30}]\n\nThe wallet trades actively with perpetuals. Not financial advice.`
+              : `Here's the current Sodex leaderboard while the AI is unavailable:\n\n[BLOCK:top_traders]\n\nNot financial advice.`;
+
+            const exampleMsg = { id: "example-response", content: exampleContent, sender: "ai" as const, timestamp: new Date() };
+
             return (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-amber-500 truncate">{modelLabel} — limit reached</p>
-                  <p className="text-xs text-muted-foreground">Resets in {retryLabel}</p>
-                </div>
-                <Link
-                  href="/settings?section=api-keys"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-3 py-1.5 hover:bg-accent transition-colors shrink-0"
-                >
-                  <KeyIcon className="size-3" />
-                  Add API key
-                </Link>
+              <div className="space-y-3">
+                {/* Error pill */}
+                {isLimit ? (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-amber-500 truncate">{modelLabel} — limit reached</p>
+                      <p className="text-xs text-muted-foreground">Resets in {retryLabel}</p>
+                    </div>
+                    <Link href="/settings?section=api-keys"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-3 py-1.5 hover:bg-accent transition-colors shrink-0">
+                      <KeyIcon className="size-3" />Add API key
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+                    <AlertCircleIcon className="size-4 text-destructive shrink-0" />
+                    <p className="text-sm text-destructive">AI unavailable</p>
+                  </div>
+                )}
+
+                {/* Example response toggle */}
+                {!showExample && (
+                  <button
+                    onClick={() => setShowExample(true)}
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border rounded-lg px-3 py-2 hover:bg-accent w-full justify-center"
+                  >
+                    <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    View full example response with live data
+                  </button>
+                )}
+
+                {/* Full example chat with live blocks */}
+                {showExample && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                          Example response · live data · no AI
+                        </span>
+                      </div>
+                      <button onClick={() => setShowExample(false)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                        Hide ×
+                      </button>
+                    </div>
+                    <ChatMessage message={exampleMsg} usingKB={false} />
+                  </div>
+                )}
               </div>
             );
           })()}
