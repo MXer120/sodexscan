@@ -298,9 +298,9 @@ function InlineApiKeyManager() {
                       href={activeProv.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline hover:text-foreground transition-colors"
+                      className="underline underline-offset-2 text-foreground hover:opacity-70 transition-opacity"
                     >
-                      {activeProv.urlLabel}
+                      here
                     </a>
                   </p>
                 )}
