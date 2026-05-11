@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ComposedChart, BarChart, Bar, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -8,8 +8,8 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Info, LayoutGrid } from "lucide-react";
 
-function Sk({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded bg-muted/50", className)} />;
+function Sk({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={cn("animate-pulse rounded bg-muted/50", className)} style={style} />;
 }
 import { cn } from "@/app/lib/utils";
 import {
