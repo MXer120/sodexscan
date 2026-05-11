@@ -40,11 +40,18 @@ const GROQ_MODELS = new Set([
 const DEFAULT_MODEL = "communityscan";
 const MAX_HISTORY   = 30;
 
-// ── Groq key pool ──────────────────────────────────────────────────────────────
+// ── Key pools ─────────────────────────────────────────────────────────────────
 function getGroqKeys(): string[] {
   const keys: string[] = [];
   if (process.env.GROQ_API_KEY) keys.push(process.env.GROQ_API_KEY);
   for (let i = 2; i <= 10; i++) { const k = process.env[`GROQ_API_KEY_${i}`]; if (k) keys.push(k); }
+  return keys;
+}
+
+function getGoogleKeys(): string[] {
+  const keys: string[] = [];
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) keys.push(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  for (let i = 2; i <= 10; i++) { const k = process.env[`GOOGLE_GENERATIVE_AI_API_KEY_${i}`]; if (k) keys.push(k); }
   return keys;
 }
 
@@ -69,12 +76,12 @@ function buildCSSlots(userGroqKey?: string, userGoogleKey?: string): CSSlot[] {
     slots.push({ label: "user-google/gemini-2.0-flash", model: g("gemini-2.0-flash") });
   }
 
-  // Platform Google key
-  const gKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (gKey) {
+  // Platform Google keys (rotated — each key gets both models)
+  for (const gKey of getGoogleKeys()) {
     const g = createGoogleGenerativeAI({ apiKey: gKey });
-    slots.push({ label: "gemini-2.5-flash", model: g("gemini-2.5-flash") });
-    slots.push({ label: "gemini-2.0-flash", model: g("gemini-2.0-flash") });
+    const suffix = gKey.slice(-4);
+    slots.push({ label: `gemini-2.5-flash/…${suffix}`, model: g("gemini-2.5-flash") });
+    slots.push({ label: `gemini-2.0-flash/…${suffix}`, model: g("gemini-2.0-flash") });
   }
 
   // User-provided Groq key
@@ -187,9 +194,9 @@ async function communityScanStream(
 function resolveModel(id: string) {
   const modelId = GOOGLE_MODELS.has(id) || GROQ_MODELS.has(id) ? id : "llama-3.3-70b-versatile";
   if (GOOGLE_MODELS.has(modelId)) {
-    const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!key) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY not configured");
-    return createGoogleGenerativeAI({ apiKey: key })(modelId);
+    const keys = getGoogleKeys();
+    if (!keys.length) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY not configured");
+    return createGoogleGenerativeAI({ apiKey: keys[0] })(modelId);
   }
   const keys = getGroqKeys();
   if (!keys.length) throw new Error("GROQ_API_KEY not configured");
