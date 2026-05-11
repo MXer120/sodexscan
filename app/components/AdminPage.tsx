@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useModGuard } from '../hooks/useModGuard'
 import { useSessionContext } from '../lib/SessionContext'
 import AdminPages from './admin/AdminPages'
 import AdminNavbar from './admin/AdminNavbar'
@@ -23,8 +22,7 @@ const BASE_TABS = [
 ]
 
 export default function AdminPage() {
-  const { isAllowed, loading } = useModGuard()
-  const { isOwner } = useSessionContext()
+  const { user, loading, isOwner } = useSessionContext()
   const [activeTab, setActiveTab] = useState('pages')
 
   const tabs = isOwner ? [...BASE_TABS, { id: 'settings', label: 'Settings' }] : BASE_TABS
@@ -37,7 +35,7 @@ export default function AdminPage() {
     )
   }
 
-  if (!isAllowed) return null
+  if (!user) return null
 
   return (
     <div className="admin-page">

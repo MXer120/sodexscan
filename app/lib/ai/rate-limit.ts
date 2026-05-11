@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/app/lib/supabaseServer";
 
-export type UserRole = "owner" | "mod" | "user" | "anon";
+export type UserRole = "owner" | "mod" | "buildathon" | "user" | "anon";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -11,6 +11,7 @@ export interface RateLimitResult {
 export function resolveRole(profileRole: string | null, isAuthenticated: boolean): UserRole {
   if (profileRole === "owner") return "owner";
   if (profileRole === "mod") return "mod";
+  if (profileRole === "buildathon") return "buildathon";
   if (isAuthenticated) return "user";
   return "anon";
 }
@@ -21,9 +22,10 @@ export function resolveRole(profileRole: string | null, isAuthenticated: boolean
  * Everyone else is checked against per-minute + per-day counters via RPC.
  *
  * Limits:
- *   mod  → 100 / min, 2 000 / day
- *   user → 20  / min,   200 / day
- *   anon → 5   / min,    20 / day
+ *   mod        → 100 / min, 2 000 / day
+ *   buildathon →  60 / min,   600 / day  (3× user)
+ *   user       →  20 / min,   200 / day
+ *   anon       →   5 / min,    20 / day
  */
 export async function checkRateLimit(
   identifier: string,

@@ -234,13 +234,16 @@ export async function POST(req: NextRequest) {
   ]);
   const role = resolveRole(profileRole, true);
 
-  // ── Rate limit (owners are unlimited and bypass this check entirely) ───────
+  // ── Rate limit — skip entirely when the user supplies their own API key ────
   const identifier = resolveIdentifier(user.id, req);
-  const { allowed, retryAfter } = await checkRateLimit(identifier, role);
-  if (!allowed) {
-    const limits: Record<string,string> = { mod:"100/min·2000/day", user:"20/min·200/day" };
-    return new Response(`Rate limit exceeded (${limits[role]??"unknown"}). Retry in ${retryAfter}s.`,
-      { status:429, headers:{"Retry-After":String(retryAfter)} });
+  const usingOwnKey = !!(userGroqKey || userGoogleKey);
+  if (!usingOwnKey) {
+    const { allowed, retryAfter } = await checkRateLimit(identifier, role);
+    if (!allowed) {
+      const limits: Record<string,string> = { mod:"100/min·2000/day", buildathon:"60/min·600/day", user:"20/min·200/day" };
+      return new Response(`Rate limit exceeded (${limits[role]??"unknown"}). Retry in ${retryAfter}s.`,
+        { status:429, headers:{"Retry-After":String(retryAfter)} });
+    }
   }
 
   // ── Parse + validate ───────────────────────────────────────────────────────
