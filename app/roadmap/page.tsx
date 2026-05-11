@@ -222,8 +222,8 @@ const waves: Wave[] = [
     items: [
       {
         icon: LineChartIcon,
-        title: "SoSoValue API integration",
-        description: "Live market data: prices, symbols, incoming listings, and leaderboard data pulled from SoSoValue APIs.",
+        title: "Further SoSoValue Integration",
+        description: "Deeper SoSoValue API coverage: extended market data, symbols, incoming listings, and leaderboard enrichment building on the existing integration.",
         status: "planned",
         group: "API Integration",
         details: [
@@ -431,7 +431,7 @@ const waves: Wave[] = [
         icon: LayoutDashboardIcon,
         title: "Personal Trading Dashboard",
         description: "User-facing dashboard with live equity stats, PnL chart with timeframe switching, calendar heatmap, and tabbed activity table.",
-        status: "in-progress",
+        status: "planned",
         group: "User Pages",
         details: [
           "Three live stat cards: total equity, all-time PnL with leaderboard rank, open position count with uPnL",
@@ -446,8 +446,8 @@ const waves: Wave[] = [
       {
         icon: SearchIcon,
         title: "Scanner & Wallet Tracker",
-        description: "Fully user-facing wallet scanner: search any address, browse positions, PnL history, transfers, and leaderboard rank — no AI required.",
-        status: "in-progress",
+        description: "Fully user-facing wallet scanner: search any address, browse positions, PnL history, transfers, and leaderboard rank — no AI required. No sidebar.",
+        status: "done",
         group: "User Pages",
         details: [
           "Search by wallet address or saved tag name",
@@ -465,7 +465,6 @@ const waves: Wave[] = [
         status: "done",
         group: "User Pages",
         details: [
-          "Connect own wallet address — propagates to dashboard, AI tools, and leaderboard rank",
           "Tag any wallet with a custom label for easier identification across the platform",
           "Dark / light mode toggle and layout density setting",
           "Notification preferences: in-app, browser push, Telegram",
