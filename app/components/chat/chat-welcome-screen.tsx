@@ -1,18 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { AiLogo } from "@/app/components/ui/ai-logo";
 import { cn } from "@/app/lib/utils";
 import {
-  ZapIcon,
-  MessageCircleDashedIcon,
-  WandSparklesIcon,
-  BoxIcon,
-  TrendingUpIcon,
-  UsersIcon,
-  BarChart3Icon,
+  ZapIcon, MessageCircleDashedIcon, WandSparklesIcon, BoxIcon,
+  TrendingUpIcon, UsersIcon, BarChart3Icon, Sparkles,
 } from "lucide-react";
 import { ChatInputBox } from "./chat-input-box";
+import { EtfInflowsBlock } from "./blocks/EtfInflowsBlock";
+import { TopTradersBlock } from "./blocks/TopTradersBlock";
+import { ReferralAnalysisBlock } from "./blocks/ReferralAnalysisBlock";
 
 const chatModes = [
   { id: "fast",     label: "Fast",      icon: ZapIcon },
@@ -21,32 +20,34 @@ const chatModes = [
   { id: "holistic", label: "Holistic",  icon: BoxIcon },
 ];
 
-const EXAMPLE_PROMPTS = [
+const EXAMPLES = [
   {
-    id: "etf",
-    icon: TrendingUpIcon,
+    id:    "etf"      as const,
+    icon:  TrendingUpIcon,
     label: "ETF Inflows",
-    description: "Compare IBIT vs FBTC flows",
+    desc:  "Live BTC ETF flows — all providers",
     prompt: "Show me today's Bitcoin ETF inflows. Compare IBIT vs FBTC performance and net flows for the past month.",
     color: "#6366f1",
   },
   {
-    id: "referral",
-    icon: UsersIcon,
-    label: "Referral Lookup",
-    description: "Wallet & strategy behind a code",
-    prompt: "Look up referral code SOSO — what wallet address is behind it? Then pull their PnL history and explain their trading strategy.",
-    color: "#10b981",
-  },
-  {
-    id: "traders",
-    icon: BarChart3Icon,
+    id:    "traders"  as const,
+    icon:  BarChart3Icon,
     label: "Top Traders",
-    description: "Live leaderboard — real data",
+    desc:  "Live leaderboard with real data",
     prompt: "Show me the current top traders on Sodex with their live PnL and volume.",
     color: "#f59e0b",
   },
+  {
+    id:    "referral" as const,
+    icon:  UsersIcon,
+    label: "Referral Lookup",
+    desc:  "Wallet & PnL behind a code",
+    prompt: "Look up referral code SOSO — what wallet address is behind it? Then pull their PnL history and explain their trading strategy.",
+    color: "#10b981",
+  },
 ] as const;
+
+type ExampleId = typeof EXAMPLES[number]["id"];
 
 interface ChatWelcomeScreenProps {
   message: string;
@@ -64,14 +65,24 @@ export function ChatWelcomeScreen({
   message, onMessageChange, onSend,
   selectedModel, onModelChange, usePersonalKB, onPersonalKBChange,
 }: ChatWelcomeScreenProps) {
+  const [activeBlock, setActiveBlock] = useState<ExampleId | null>(null);
+
+  const handlePill = (id: ExampleId, prompt: string) => {
+    onMessageChange(prompt);
+    setActiveBlock(prev => prev === id ? null : id);
+  };
+
   return (
-    <div className="flex h-full items-center justify-center overflow-y-auto">
-      <div className="w-full max-w-[600px] px-4 md:px-6 py-8 flex flex-col gap-5">
+    <div className={cn(
+      "flex h-full overflow-y-auto",
+      activeBlock ? "items-start justify-center pt-8" : "items-center justify-center"
+    )}>
+      <div className="w-full max-w-[640px] px-4 md:px-6 py-6 flex flex-col gap-5">
 
         {/* Logo + greeting */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <AiLogo className="size-16" />
+            <AiLogo className="size-14" />
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">CommunityScan AI</h1>
@@ -81,26 +92,59 @@ export function ChatWelcomeScreen({
           </div>
         </div>
 
-        {/* Example prompts — compact chips above input */}
+        {/* Example chips */}
         <div className="flex flex-wrap gap-2 justify-center">
-          {EXAMPLE_PROMPTS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onMessageChange(p.prompt)}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border bg-card/60 hover:bg-card hover:shadow-sm text-left transition-all"
-            >
-              <div
-                className="size-5 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: `${p.color}20` }}
+          {EXAMPLES.map((ex) => {
+            const isActive = activeBlock === ex.id;
+            return (
+              <button
+                key={ex.id}
+                onClick={() => handlePill(ex.id, ex.prompt)}
+                className={cn(
+                  "flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border text-left transition-all",
+                  isActive
+                    ? "bg-card shadow-sm text-foreground"
+                    : "bg-card/60 hover:bg-card border-transparent hover:shadow-sm"
+                )}
+                style={isActive ? { borderColor: `${ex.color}50`, boxShadow: `0 0 0 1px ${ex.color}25` } : {}}
               >
-                <p.icon className="size-3" style={{ color: p.color }} />
-              </div>
-              <span className="text-xs font-medium">{p.label}</span>
-            </button>
-          ))}
+                <div className="size-5 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: `${ex.color}20` }}>
+                  <ex.icon className="size-3" style={{ color: ex.color }} />
+                </div>
+                <span className="text-xs font-medium">{ex.label}</span>
+                {isActive && (
+                  <span className="size-1.5 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Input — compact */}
+        {/* Live block preview — no AI needed */}
+        {activeBlock && (
+          <div className="space-y-2 w-full">
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="size-3 text-emerald-500" />
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Live preview · no AI required
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveBlock(null)}
+                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Close ×
+              </button>
+            </div>
+            {activeBlock === "etf"      && <EtfInflowsBlock />}
+            {activeBlock === "traders"  && <TopTradersBlock />}
+            {activeBlock === "referral" && <ReferralAnalysisBlock />}
+          </div>
+        )}
+
+        {/* Input */}
         <ChatInputBox
           compact
           message={message}
@@ -116,23 +160,15 @@ export function ChatWelcomeScreen({
         {/* Mode buttons */}
         <div className="flex flex-wrap items-center justify-center gap-2">
           {chatModes.map((mode) => (
-            <Button
-              key={mode.id}
-              variant="ghost"
-              disabled
-              className="gap-2 opacity-50 cursor-not-allowed"
-              title="Coming soon"
-            >
+            <Button key={mode.id} variant="ghost" disabled
+              className="gap-2 opacity-50 cursor-not-allowed" title="Coming soon">
               <mode.icon className="size-4" />
               <span>{mode.label}</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                soon
-              </span>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">soon</span>
             </Button>
           ))}
         </div>
 
-        {/* Disclaimer */}
         <p className="text-xs text-muted-foreground text-center">
           CommunityScan AI can make mistakes. Check important info.
         </p>

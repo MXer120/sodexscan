@@ -6,6 +6,9 @@ import { XIcon, AlertCircleIcon, HistoryIcon, KeyIcon } from "lucide-react";
 import { ChatMessage } from "./chat-message";
 import { ChatInputBox } from "./chat-input-box";
 import { AI_MODELS } from "./chat-input-box";
+import { EtfInflowsBlock } from "./blocks/EtfInflowsBlock";
+import { TopTradersBlock } from "./blocks/TopTradersBlock";
+import { ReferralAnalysisBlock } from "./blocks/ReferralAnalysisBlock";
 import { AiLogo } from "@/app/components/ui/ai-logo";
 import { cn } from "@/app/lib/utils";
 import Link from "next/link";
@@ -106,7 +109,8 @@ export function ChatConversationView({
   queue, onQueueRemove, onStop,
 }: ChatConversationViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [planOpen, setPlanOpen] = useState(false);
+  const [planOpen,    setPlanOpen]    = useState(false);
+  const [livePreview, setLivePreview] = useState<"etf" | "traders" | "referral" | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -187,9 +191,49 @@ export function ChatConversationView({
           ))}
 
           {/* Typing indicator — waiting for first token */}
-          {isLoading && (
-            <div className="flex gap-4 justify-start">
-              <div className="shrink-0">
+          {isLoading && (() => {
+            // Detect if the last user message matches a known example type
+            const lastUser = [...messages].reverse().find(m => m.sender === "user");
+            const c = lastUser?.content?.toLowerCase() ?? "";
+            const isEtf      = c.includes("etf") || c.includes("inflow");
+            const isTraders  = c.includes("trader") || c.includes("leaderboard") || (c.includes("top") && c.includes("wallet"));
+            const isReferral = c.includes("referral");
+            const hasMatch   = isEtf || isTraders || isReferral;
+            return (
+              <>
+                {hasMatch && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] text-muted-foreground">See live data while AI thinks:</span>
+                      {isEtf && (
+                        <button onClick={() => setLivePreview(p => p === "etf" ? null : "etf")}
+                          className={cn("text-[11px] border rounded-full px-2.5 py-1 transition-colors font-medium",
+                            livePreview === "etf" ? "bg-[#6366f1]/10 border-[#6366f1]/40 text-[#6366f1]" : "hover:bg-accent text-muted-foreground")}>
+                          ETF Flows ↓
+                        </button>
+                      )}
+                      {isTraders && (
+                        <button onClick={() => setLivePreview(p => p === "traders" ? null : "traders")}
+                          className={cn("text-[11px] border rounded-full px-2.5 py-1 transition-colors font-medium",
+                            livePreview === "traders" ? "bg-[#f59e0b]/10 border-[#f59e0b]/40 text-[#f59e0b]" : "hover:bg-accent text-muted-foreground")}>
+                          Top Traders ↓
+                        </button>
+                      )}
+                      {isReferral && (
+                        <button onClick={() => setLivePreview(p => p === "referral" ? null : "referral")}
+                          className={cn("text-[11px] border rounded-full px-2.5 py-1 transition-colors font-medium",
+                            livePreview === "referral" ? "bg-[#10b981]/10 border-[#10b981]/40 text-[#10b981]" : "hover:bg-accent text-muted-foreground")}>
+                          Referral Data ↓
+                        </button>
+                      )}
+                    </div>
+                    {livePreview === "etf"      && <EtfInflowsBlock />}
+                    {livePreview === "traders"  && <TopTradersBlock />}
+                    {livePreview === "referral" && <ReferralAnalysisBlock />}
+                  </div>
+                )}
+                <div className="flex gap-4 justify-start">
+                  <div className="shrink-0">
                 <div className="size-8 rounded-full bg-secondary flex items-center justify-center">
                   <AiLogo className="size-6 mt-0" />
                 </div>
@@ -200,7 +244,9 @@ export function ChatConversationView({
                 <span className="size-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
-          )}
+              </>
+            );
+          })()}
 
           {/* Error state */}
           {error && (() => {
