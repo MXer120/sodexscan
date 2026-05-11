@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { Users, ArrowRight, ExternalLink, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/app/lib/utils";
 
-function Sk({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded bg-muted/50", className)} />;
+function Sk({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={cn("animate-pulse rounded bg-muted/50", className)} style={style} />;
 }
 
 function shortAddr(a: string) {
