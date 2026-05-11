@@ -220,7 +220,7 @@ export function ChatConversationView({
             const c = lastUser?.content?.toLowerCase() ?? "";
             const exampleContent =
               c.includes("etf") || c.includes("inflow")
-                ? `Here's the current Bitcoin ETF flow data — live from SoSoValue:\n\n[BLOCK:etf_inflows]\n\nThe **All ETFs** tab shows the aggregate daily net inflow/outflow across all BTC spot ETFs. Switch to individual tickers (IBIT, FBTC, ARKB, GBTC) or enable Overlay to compare cumulative flows side by side.\n\nNot financial advice.`
+                ? `Here are the Bitcoin ETF inflows including today's data, and a comparison of IBIT vs FBTC for the past month.\n\nFirst, the combined daily net flows for all BTC ETFs over the last month:\n\n[BLOCK:etf_inflows]\n\nNow, comparing IBIT and FBTC cumulative net flows side by side:\n\n[BLOCK:etf_inflows:{"tickers":["IBIT","FBTC"],"overlay":true,"tf":"1M"}]\n\nThe overlay shows how both ETFs have performed in attracting capital. IBIT (BlackRock) consistently leads in absolute inflows, while FBTC (Fidelity) tracks closely. Not financial advice.`
               : c.includes("trader") || c.includes("leaderboard") || (c.includes("top") && c.includes("wallet"))
                 ? `Here are the current top performers on Sodex Mainnet — live leaderboard data:\n\n[BLOCK:top_traders]\n\nRanked by 7-day realised PnL. Click any row to expand volume, trade count, and win rate. Data pulled directly from the Sodex API.\n\nNot financial advice.`
               : c.includes("referral")

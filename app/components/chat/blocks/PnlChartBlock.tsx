@@ -5,7 +5,11 @@ import {
   ComposedChart, Bar, Cell, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts";
-import { TrendingUp, TrendingDown, Loader2, Info, ExternalLink } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, ExternalLink } from "lucide-react";
+
+function Sk({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={cn("animate-pulse rounded bg-muted/50", className)} style={style} />;
+}
 import { cn } from "@/app/lib/utils";
 
 export interface PnlBlockProps {
@@ -90,7 +94,7 @@ export function PnlChartBlock({ props = {} }: { props?: PnlBlockProps }) {
         <div className="text-right">
           <p className="text-xs text-muted-foreground mb-0.5">{days}D Net PnL</p>
           {loading
-            ? <Loader2 className="size-4 animate-spin text-muted-foreground ml-auto" />
+            ? <Sk className="h-7 w-20 ml-auto" />
             : <p className={cn("text-lg font-bold", positive ? "text-emerald-500" : "text-red-500")}>
                 {fmtUsd(totalPnl, true)}
               </p>
@@ -137,8 +141,11 @@ export function PnlChartBlock({ props = {} }: { props?: PnlBlockProps }) {
       {/* Chart */}
       <div className="h-[200px] px-3 pb-4">
         {loading ? (
-          <div className="h-full flex items-center justify-center">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          <div className="h-full flex flex-col justify-end gap-1 px-1 pb-1">
+            {[...Array(8)].map((_, i) => (
+              <Sk key={i} className="w-full shrink-0"
+                style={{ height: `${10 + Math.abs(Math.sin(i * 0.9) * 30 + Math.cos(i * 1.5) * 15)}%` }} />
+            ))}
           </div>
         ) : error ? (
           <div className="h-full flex items-center justify-center">

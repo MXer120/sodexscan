@@ -6,7 +6,11 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   LineChart, Line, ReferenceLine, Legend,
 } from "recharts";
-import { TrendingUp, TrendingDown, Info, Loader2, LayoutGrid } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, LayoutGrid } from "lucide-react";
+
+function Sk({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded bg-muted/50", className)} />;
+}
 import { cn } from "@/app/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -231,7 +235,7 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-0.5">{tf} Net Flow</p>
               {loading
-                ? <Loader2 className="size-4 animate-spin text-muted-foreground ml-auto" />
+                ? <Sk className="h-7 w-20 ml-auto" />
                 : anyData
                   ? <p className={cn("text-lg font-bold", positive ? "text-emerald-500" : "text-red-500")}>{fmtMil(totalFlow, true)}</p>
                   : <p className="text-lg font-bold text-muted-foreground">—</p>
@@ -365,8 +369,11 @@ export function EtfInflowsBlock({ props = {} }: { props?: EtfBlockProps }) {
       {/* Chart */}
       <div className="h-[220px] px-3 pb-4">
         {loading ? (
-          <div className="h-full flex items-center justify-center">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          <div className="h-full flex flex-col justify-end gap-1 px-1 pb-1">
+            {[...Array(8)].map((_, i) => (
+              <Sk key={i} className="w-full shrink-0"
+                style={{ height: `${12 + Math.sin(i * 1.3) * 8 + Math.random() * 20}%` }} />
+            ))}
           </div>
         ) : !anyData ? (
           <div className="h-full flex items-center justify-center">
