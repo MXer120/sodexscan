@@ -104,6 +104,28 @@ function buildCSSlots(userGroqKey?: string, userGoogleKey?: string): CSSlot[] {
 // Cursor advances across requests so load is spread
 let _csIdx = 0;
 
+// Extract the actual retry-after seconds from a quota error, trying multiple SDK paths
+function slotRetryAfter(e: unknown): number {
+  const err = e as Record<string, unknown>;
+  const h = (err?.responseHeaders ?? err?.headers) as Record<string,string> | undefined;
+  if (h?.["retry-after"]) { const n = parseFloat(h["retry-after"]); if (!isNaN(n) && n > 0) return Math.ceil(n); }
+  if (typeof err?.responseBody === "string") {
+    try {
+      const b = JSON.parse(err.responseBody as string);
+      const ra = b?.error?.retry_after ?? b?.retry_after;
+      if (ra) { const n = parseFloat(String(ra)); if (!isNaN(n) && n > 0) return Math.ceil(n); }
+    } catch {}
+  }
+  return 0; // unknown
+}
+
+function exhaustedError(minRetry: number) {
+  return Object.assign(
+    new Error("All CommunityScan slots exhausted — quota reached"),
+    { retryAfter: minRetry > 0 ? minRetry : 60 }
+  );
+}
+
 async function communityScanGenerate(
   opts: Omit<Parameters<typeof generateText>[0], "model">,
   userGroqKey?: string,
@@ -112,6 +134,7 @@ async function communityScanGenerate(
   const slots = buildCSSlots(userGroqKey, userGoogleKey);
   if (!slots.length) throw new Error("No API keys configured");
   const start = _csIdx;
+  let minRetry = 0;
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[(start + i) % slots.length];
     try {
@@ -120,11 +143,16 @@ async function communityScanGenerate(
       console.log(`[cs:gen] ${slot.label}`);
       return result;
     } catch (e) {
-      if (isQuotaError(e)) { console.log(`[cs:gen] quota on ${slot.label}, next`); continue; }
+      if (isQuotaError(e)) {
+        const ra = slotRetryAfter(e);
+        if (ra > 0 && (minRetry === 0 || ra < minRetry)) minRetry = ra;
+        console.log(`[cs:gen] quota on ${slot.label}${ra ? ` (retry ${ra}s)` : ""}, next`);
+        continue;
+      }
       throw e;
     }
   }
-  throw new Error("All CommunityScan slots exhausted — add more keys or wait for quota reset");
+  throw exhaustedError(minRetry);
 }
 
 async function communityScanStream(
@@ -135,6 +163,7 @@ async function communityScanStream(
   const slots = buildCSSlots(userGroqKey, userGoogleKey);
   if (!slots.length) throw new Error("No API keys configured");
   const start = _csIdx;
+  let minRetry = 0;
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[(start + i) % slots.length];
     try {
@@ -143,11 +172,16 @@ async function communityScanStream(
       console.log(`[cs:stream] ${slot.label}`);
       return result;
     } catch (e) {
-      if (isQuotaError(e)) { console.log(`[cs:stream] quota on ${slot.label}, next`); continue; }
+      if (isQuotaError(e)) {
+        const ra = slotRetryAfter(e);
+        if (ra > 0 && (minRetry === 0 || ra < minRetry)) minRetry = ra;
+        console.log(`[cs:stream] quota on ${slot.label}${ra ? ` (retry ${ra}s)` : ""}, next`);
+        continue;
+      }
       throw e;
     }
   }
-  throw new Error("All CommunityScan slots exhausted — add more keys or wait for quota reset");
+  throw exhaustedError(minRetry);
 }
 
 function resolveModel(id: string) {
@@ -361,12 +395,9 @@ export async function POST(req: NextRequest) {
     const status = ((e as Record<string,unknown>)?.statusCode as number) ?? 0;
     if (status===401||msg.includes("API key")) return new Response("Invalid API key.",{status:502});
     if (isQuotaError(e)) {
-      // Extract actual retry-after from upstream provider error if available
-      const err = e as Record<string, unknown>;
-      let retryAfter = 60;
-      const ra = (err?.responseHeaders as Record<string,string>)?.["retry-after"]
-              ?? (err?.headers       as Record<string,string>)?.["retry-after"];
-      if (ra) { const n = parseInt(String(ra)); if (!isNaN(n) && n > 0) retryAfter = n; }
+      // Use retryAfter attached by exhaustedError(), or fall back to slotRetryAfter()
+      const attached = (e as { retryAfter?: number }).retryAfter;
+      const retryAfter = attached ?? slotRetryAfter(e) || 60;
       return new Response(`Quota exceeded for "${requestedId}". Retry in ${retryAfter}s.`,{status:429,headers:{"Retry-After":String(retryAfter)}});
     }
     return new Response(msg||"AI error. Please try again.",{status:502});
