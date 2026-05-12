@@ -312,14 +312,17 @@ export function ChatConversationView({
             // Build a hardcoded example AI message based on what the user asked
             const lastUser = [...messages].reverse().find(m => m.sender === "user");
             const c = lastUser?.content?.toLowerCase() ?? "";
-            const exampleContent =
-              c.includes("etf") || c.includes("inflow")
-                ? `Here are the Bitcoin ETF inflows, including today's data, and a comparison of IBIT vs. FBTC net flows for the past month.\n\nFirst, here's a look at the combined daily net flows for all Bitcoin ETFs over the last month:\n\n[BLOCK:etf_inflows]\n\nNow, let's compare the cumulative net flows for IBIT and FBTC specifically over the past month:\n\n[BLOCK:etf_inflows:{"tickers":["IBIT","FBTC"],"overlay":true,"tf":"1M"}]\n\nThis second chart shows how IBIT and FBTC have performed in attracting capital over the last month, with their cumulative inflows overlaid for easy comparison.`
-              : c.includes("trader") || c.includes("leaderboard") || (c.includes("top") && c.includes("wallet"))
+            const isEtf      = c.includes("etf") || c.includes("inflow");
+            const isTraders  = c.includes("trader") || c.includes("leaderboard") || (c.includes("top") && c.includes("wallet"));
+            const isReferral = c.includes("referral");
+            // Only show example block if the user's message was one of the known example prompts
+            const isExampleQuery = isEtf || isTraders || isReferral;
+
+            const exampleContent = isEtf
+              ? `Here are the Bitcoin ETF inflows, including today's data, and a comparison of IBIT vs. FBTC net flows for the past month.\n\nFirst, here's a look at the combined daily net flows for all Bitcoin ETFs over the last month:\n\n[BLOCK:etf_inflows]\n\nNow, let's compare the cumulative net flows for IBIT and FBTC specifically over the past month:\n\n[BLOCK:etf_inflows:{"tickers":["IBIT","FBTC"],"overlay":true,"tf":"1M"}]\n\nThis second chart shows how IBIT and FBTC have performed in attracting capital over the last month, with their cumulative inflows overlaid for easy comparison.`
+              : isTraders
                 ? `Here are the current top performers on Sodex Mainnet — live leaderboard data:\n\n[BLOCK:top_traders]\n\nRanked by 7-day realised PnL. Click any row to expand volume, trade count, and win rate. Data pulled directly from the Sodex API.\n\nNot financial advice.`
-              : c.includes("referral")
-                ? `The referral code **SOSO** resolves to wallet:\n\n0x96c475f6dBfD140DD21365FD2c7d143a47cD5476\n\nHere's their 30-day PnL history — live from the Sodex API:\n\n[BLOCK:pnl_chart:{"address":"0x96c475f6dBfD140DD21365FD2c7d143a47cD5476","days":30}]\n\nThe wallet trades actively with perpetuals. Not financial advice.`
-              : `Here's the current Sodex leaderboard while the AI is unavailable:\n\n[BLOCK:top_traders]\n\nNot financial advice.`;
+              : `The referral code **SOSO** resolves to wallet:\n\n0x96c475f6dBfD140DD21365FD2c7d143a47cD5476\n\nHere's their 30-day PnL history — live from the Sodex API:\n\n[BLOCK:pnl_chart:{"address":"0x96c475f6dBfD140DD21365FD2c7d143a47cD5476","days":30}]\n\nThe wallet trades actively with perpetuals. Not financial advice.`;
 
             const exampleMsg = { id: "example-response", content: exampleContent, sender: "ai" as const, timestamp: new Date() };
 
@@ -338,14 +341,20 @@ export function ChatConversationView({
                     </Link>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-                    <AlertCircleIcon className="size-4 text-destructive shrink-0" />
-                    <p className="text-sm text-destructive">AI unavailable</p>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertCircleIcon className="size-4 text-destructive shrink-0" />
+                      <p className="text-sm text-destructive">AI unavailable</p>
+                    </div>
+                    <Link href="/settings?section=api-keys"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium border rounded-lg px-3 py-1.5 hover:bg-accent transition-colors shrink-0">
+                      <KeyIcon className="size-3" />Add API key
+                    </Link>
                   </div>
                 )}
 
-                {/* Example response toggle */}
-                {!showExample && (
+                {/* Example response toggle — only shown when the user sent a known example prompt */}
+                {isExampleQuery && !showExample && (
                   <button
                     onClick={() => setShowExample(true)}
                     className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border rounded-lg px-3 py-2 hover:bg-accent w-full justify-center"
@@ -356,7 +365,7 @@ export function ChatConversationView({
                 )}
 
                 {/* Full example chat with live blocks */}
-                {showExample && (
+                {isExampleQuery && showExample && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-0.5">
                       <div className="flex items-center gap-1.5">

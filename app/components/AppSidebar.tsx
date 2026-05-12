@@ -46,9 +46,9 @@ const moreItems = [
 ];
 
 const favorites = [
-  { icon: Folder, label: "Reimbursements" },
-  { icon: Folder, label: "Timesheets"     },
-  { icon: Folder, label: "Overtime Logs"  },
+  { icon: Folder, label: "Folder 1" },
+  { icon: Folder, label: "Folder 2" },
+  { icon: Folder, label: "Folder 3" },
 ];
 
 

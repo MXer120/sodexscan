@@ -103,15 +103,15 @@ const waves: Wave[] = [
       },
       {
         icon: TrophyIcon,
-        title: "Leaderboard",
-        description: "Top traders ranked by cumulative PnL and volume across 24h / 7d / 30d / all-time windows.",
+        title: "Leaderboard data",
+        description: "Top trader rankings integrated via the Sodex API — accessible through the Scanner and AI tool calls. Dedicated leaderboard navigation page removed; data remains available to AI tools and the scanner.",
         status: "done",
         group: "Platform",
         details: [
-          "Ranked list of top performing wallets",
-          "Multiple time windows: 24h, 7d, 30d, all-time",
-          "Click any wallet to open in Scanner",
-          "Copy-trade shortcut from the leaderboard row",
+          "Sodex API integration: futures, spot, and total PnL rankings",
+          "AI can query leaderboard data directly via tool calls",
+          "Scanner links to leaderboard rank for any searched wallet",
+          "Dedicated /mainnet navigation page removed from sidebar",
         ],
       },
       {
@@ -160,14 +160,15 @@ const waves: Wave[] = [
       {
         icon: SparklesIcon,
         title: "Multi-model selector",
-        description: "Switch between CommunityScan default, Google Gemini (2.5 Flash, 2.5 Pro, 2.0 Flash, 2.0 Flash Lite) and Groq (Llama 3.3 70B, Llama 4 Scout, Qwen 3 32B, Llama 3.1 8B) per conversation.",
+        description: "Switch between CommunityScan default, Google Gemini (2.5 Flash, 2.5 Pro, 2.0 Flash, 2.0 Flash Lite) and Groq (Llama 3.3 70B, Llama 4 Scout 17B, Qwen 3 32B, GPT OSS 20B, Llama 3.1 8B) per conversation.",
         status: "done",
         group: "AI",
         details: [
           "CommunityScan: default model with internal routing",
           "Google Gemini: 2.5 Flash, 2.5 Pro, 2.0 Flash, 2.0 Flash Lite",
           "Groq: Llama 3.3 70B Versatile, Llama 4 Scout 17B, Qwen 3 32B, GPT OSS 20B, Llama 3.1 8B",
-          "Selected model sent to API on every request",
+          "Selected model persisted per conversation and sent to API on every request",
+          "Per-model rate limiting with Add API key shortcut when limit is reached",
         ],
       },
       {
@@ -467,8 +468,8 @@ const waves: Wave[] = [
         details: [
           "Tag any wallet with a custom label for easier identification across the platform",
           "Dark / light mode toggle and layout density setting",
-          "Notification preferences: in-app, browser push, Telegram",
-          "SoPoints balance display and redemption history",
+          "Telegram webhook configuration for alert delivery",
+          "Own wallet linked to profile for personalised scanner shortcuts",
         ],
       },
       {
@@ -640,13 +641,12 @@ const waves: Wave[] = [
       {
         icon: RepeatIcon,
         title: "Aggregator & platform polish",
-        description: "Aggregator page completion, platform overview refinement, incoming listings UX, and SoPoints reward integration.",
+        description: "Aggregator page completion, platform overview refinement, and incoming listings UX.",
         status: "planned",
         group: "Polish",
         details: [
           "Aggregator page: compare top wallets, tokens, and strategies side-by-side",
           "Incoming listings feed with countdown and market cap data",
-          "SoPoints: reward points for using AI features and workflows",
           "Platform overview page refresh with updated screenshots and copy",
           "General UX pass: loading states, empty states, error boundaries",
         ],
