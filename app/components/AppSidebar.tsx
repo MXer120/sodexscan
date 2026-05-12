@@ -15,6 +15,8 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/lib/utils";
 import { GradientAvatar } from "@/app/components/ui/gradient-avatar";
+import { useSessionContext } from "@/app/lib/SessionContext";
+import { supabase } from "@/app/lib/supabaseClient";
 import {
   LayoutDashboard, Search, Trophy, Star, BookmarkCheck, Bell, Repeat2,
   Folder, ChevronDown, ChevronRight, MessageSquare, Settings, HelpCircle,
@@ -122,6 +124,12 @@ function MoreMenu({ pathname }: { pathname: string }) {
 export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const [favoritesOpen, setFavoritesOpen] = React.useState(true);
+  const { user, openAuthModal } = useSessionContext();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
 
   const isActive = (href: string, exact = false) =>
     exact ? pathname === href : pathname.startsWith(href) && href !== "/";
@@ -157,7 +165,7 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
               <DropdownMenuSeparator />
               <DropdownMenuItem><Settings className="size-4 mr-2" />Workspace Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive"><LogOut className="size-4 mr-2" />Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive"><LogOut className="size-4 mr-2" />Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -245,51 +253,65 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
 
       {/* ── Footer ── */}
       <SidebarFooter className="px-5 pb-5">
-        {/* Profile row */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-accent transition-colors text-left outline-none cursor-pointer">
-              <GradientAvatar storageKey="sidebar-user-avatar" size={32} rounded="full" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate leading-none mb-0.5">My Account</p>
-                <p className="text-xs text-muted-foreground truncate">lutz@steinfartz.de</p>
-              </div>
-              <MoreHorizontal className="size-4 text-muted-foreground shrink-0" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
-            <DropdownMenuLabel className="font-normal pb-1">
-              <p className="text-sm font-medium">My Account</p>
-              <p className="text-xs text-muted-foreground font-normal">lutz@steinfartz.de</p>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/profile"><User className="size-4 mr-2" />Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings"><Settings className="size-4 mr-2" />Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings?section=api-keys"><Key className="size-4 mr-2" />API Keys</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
-              <Languages className="size-4 mr-2" />
-              Language
-              <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">Soon</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
-              <HelpCircle className="size-4 mr-2" />Help Center
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
-              <MessageSquare className="size-4 mr-2" />Feedback
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
-              <LogOut className="size-4 mr-2" />Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-accent transition-colors text-left outline-none cursor-pointer">
+                <GradientAvatar storageKey="sidebar-user-avatar" size={32} rounded="full" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate leading-none mb-0.5">My Account</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+                <MoreHorizontal className="size-4 text-muted-foreground shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
+              <DropdownMenuLabel className="font-normal pb-1">
+                <p className="text-sm font-medium">My Account</p>
+                <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile"><User className="size-4 mr-2" />Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings"><Settings className="size-4 mr-2" />Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings?section=api-keys"><Key className="size-4 mr-2" />API Keys</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                <Languages className="size-4 mr-2" />
+                Language
+                <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">Soon</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                <HelpCircle className="size-4 mr-2" />Help Center
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                <MessageSquare className="size-4 mr-2" />Feedback
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                <LogOut className="size-4 mr-2" />Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <button
+            onClick={openAuthModal}
+            className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-accent transition-colors text-left outline-none cursor-pointer"
+          >
+            <div className="size-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <User className="size-4 text-muted-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate leading-none mb-0.5">Sign In</p>
+              <p className="text-xs text-muted-foreground truncate">Log in to your account</p>
+            </div>
+          </button>
+        )}
       </SidebarFooter>
 
     </Sidebar>

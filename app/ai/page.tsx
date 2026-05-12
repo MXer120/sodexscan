@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSessionContext } from "@/app/lib/SessionContext";
 import { useChatStore } from "@/app/store/chat-store";
 import { ChatMain } from "@/app/components/chat/chat-main";
 import { ChatSidebar, type AIView } from "@/app/components/chat/chat-sidebar";
@@ -23,6 +24,7 @@ import { cn } from "@/app/lib/utils";
 export default function AIPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, loading: sessionLoading, openAuthModal } = useSessionContext();
 
   // Initialize view from URL param (supports /ai?view=tools redirect from /tools)
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -55,6 +57,27 @@ export default function AIPage() {
     sp.delete("tool");
     router.replace(`/ai?${sp.toString()}`, { scroll: false });
   }, [router, searchParams]);
+
+  if (sessionLoading) return (
+    <div className="flex h-full items-center justify-center">
+      <div className="size-8 rounded-full border-2 border-border border-t-primary animate-spin" />
+    </div>
+  );
+
+  if (!user) return (
+    <div className="flex h-full items-center justify-center bg-background">
+      <div className="text-center space-y-4 max-w-sm px-4">
+        <div className="size-16 rounded-2xl bg-gradient-to-br from-[#6e3ff3] to-[#df3674] mx-auto flex items-center justify-center">
+          <svg className="size-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold">Sign in to use CommunityScan AI</h2>
+        <p className="text-sm text-muted-foreground">Create a free account or sign in to access AI-powered analysis tools.</p>
+        <Button onClick={openAuthModal} size="lg" className="w-full">Sign In / Create Account</Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
