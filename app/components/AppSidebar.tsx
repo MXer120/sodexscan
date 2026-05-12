@@ -154,11 +154,11 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <div className="size-5 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 mr-2" />
-                Marketing Team
+                Workspace 2
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <div className="size-5 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 mr-2" />
-                Design Studio
+                Workspace 3
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem><Plus className="size-4 mr-2" />Create Workspace</DropdownMenuItem>

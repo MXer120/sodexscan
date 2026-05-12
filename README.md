@@ -1,6 +1,6 @@
 # CommunityScan Sodex
 
-Real-time data intelligence layer for Sodex Mainnet — wallet tracking, leaderboards, PnL analysis, AI-powered insights, and alert automation.
+Real-time data intelligence layer for Sodex Mainnet — wallet tracking, PnL analysis, AI-powered insights, and alert automation.
 
 ---
 
@@ -13,9 +13,9 @@ Real-time data intelligence layer for Sodex Mainnet — wallet tracking, leaderb
 | Styling | Tailwind CSS v4 + shadcn/ui + Radix UI |
 | Database | Supabase (PostgreSQL + RLS) |
 | Auth | Supabase Auth (email/password + Google OAuth) |
-| AI | Vercel AI SDK — CommunityScan model, Groq, Google Gemini |
-| Charts | Recharts, Lightweight Charts (TradingView) |
-| State | Zustand + TanStack Query |
+| AI | Vercel AI SDK (`ai` v4, `@ai-sdk/groq`, `@ai-sdk/google`) |
+| Charts | Recharts (data viz) + Lightweight Charts / TradingView (price charts) |
+| State | Zustand (client state) + TanStack Query v5 (server state / caching) |
 | Animations | Framer Motion |
 | Alerts | Telegram Bot API |
 | Analytics | Vercel Analytics + Speed Insights |
@@ -151,25 +151,22 @@ Or use the Supabase dashboard SQL editor.
 ## Key Features
 
 - **Scanner** — real-time wallet tracking, PnL, trade history, funding, positions
-- **Leaderboard** — weekly & all-time futures / spot / total rankings via Sodex API
-- **SoPoints** — community points system with weekly snapshots
-- **Watchlist** — save wallets for quick access
-- **Alerts** — price & volume alerts delivered via Telegram
-- **AI Chat** — multi-model AI assistant with live on-chain data blocks (ETF flows, top traders, referrals)
-- **Tools** — curated external scanner directory
-- **Roadmap** — public feature roadmap
-- **Copy Trade** — copy trade interface (WIP)
-- **Aggregator** — drag-and-drop multi-widget dashboard
-- **Reports** — trade export and analysis
 
----
+- **CommunityScan AI** — multi-model chat interface built on the Vercel AI SDK. Requires login.
+  - **Models** — CommunityScan (custom), Groq (Llama), Google Gemini; switchable per session with per-model rate limiting and key pool rotation
+  - **Live data blocks** — structured responses embed real on-chain data inline: ETF inflow charts, top trader tables with win rates and sparklines, referral stats, PnL charts, copyable wallet addresses
+  - **System prompt** — custom instructions per model that shape response style, tool availability, and data format; non-prescriptive to avoid hallucination
+  - **Knowledge Base** — shared platform KB plus personal notes; content is embedded with Google Gemini embeddings (`gemini-embedding-2`) and retrieved via vector similarity search; users can suggest edits (reviewed before going live)
+  - **Tools** — AI-accessible tool catalog integrated into the chat interface; tools can be invoked directly from the AI or browsed in the Tools view within `/ai`
+  - **Workflow** — scheduled prompts connect to the Workflow Builder for multi-step automations, conditional logic, and webhook integrations
+  - **Scheduled prompts** — configure one-off or recurring AI queries (daily/weekly/custom days) with results delivered to Telegram or Discord
+  - **Chat history** — searchable conversation history with omnisearch in the AI sidebar
+  - **Queue & streaming** — requests queue when a model is at capacity; responses stream token-by-token with a live plan tracker showing tool execution steps
 
-## Deployment
+- **Alerts** — price & volume alerts with 15 alert types across 5 categories, delivered via Telegram bot
 
-Deploy to [Vercel](https://vercel.com):
+- **Tools** — browsable catalog of on-chain and DeFi tools, accessible publicly at `/tools` and within the AI interface at `/ai?view=tools`
 
-1. Push to GitHub (MXer120/sodexscan)
-2. Import project in Vercel
-3. Add all environment variables in the Vercel dashboard
-4. Set up cron jobs in `vercel.json` or Vercel dashboard matching `/api/cron/*` routes
-5. Configure the Supabase `SITE_URL` and redirect URLs for OAuth
+- **Aggregator** — drag-and-drop multi-widget dashboard with custom layouts
+
+- **Copy Trade** — copy trade interface (prototype)
