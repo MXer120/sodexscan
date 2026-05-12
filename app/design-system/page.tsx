@@ -1,7 +1,5 @@
-'use client'
-
-import DesignSystemPage from '../components/DesignSystemPage'
+import { redirect } from 'next/navigation'
 
 export default function DesignSystem() {
-  return <DesignSystemPage />
+  redirect('/')
 }

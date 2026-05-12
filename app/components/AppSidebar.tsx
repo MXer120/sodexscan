@@ -18,18 +18,16 @@ import { GradientAvatar } from "@/app/components/ui/gradient-avatar";
 import { useSessionContext } from "@/app/lib/SessionContext";
 import { supabase } from "@/app/lib/supabaseClient";
 import {
-  LayoutDashboard, Search, Trophy, Star, BookmarkCheck, Bell, Repeat2,
+  LayoutDashboard, Search, BookmarkCheck, Bell, Repeat2,
   Folder, ChevronDown, ChevronRight, MessageSquare, Settings, HelpCircle,
   Plus, Check, User, LogOut, Sparkles, GitMerge, BarChart3,
-  Wrench, FileBarChart, FolderSearch, ShieldAlert, FlaskConical, Globe,
-  Palette, MoreHorizontal, Map, Languages, Key,
+  Wrench, FileBarChart, FolderSearch, ShieldAlert, FlaskConical,
+  MoreHorizontal, Map, Languages, Key,
 } from "lucide-react";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard",  href: "/",          exact: true  },
   { icon: Search,          label: "Scanner",     href: "/tracker",   exact: false },
-  { icon: Trophy,          label: "Leaderboard", href: "/mainnet",   exact: false },
-  { icon: Star,            label: "SoPoints",    href: "/sopoints",  exact: false },
   { icon: BookmarkCheck,   label: "Watchlist",   href: "/watchlist", exact: false },
   { icon: Bell,            label: "Alerts",      href: "/alerts",    exact: false },
   { icon: Repeat2,         label: "Copy Trade",  href: "/copy",      exact: false },
@@ -41,11 +39,9 @@ const moreItems = [
   { icon: BarChart3,    label: "Aggregator",     href: "/aggregator"     },
   { icon: FileBarChart, label: "Reports",        href: "/reports"        },
   { icon: Wrench,       label: "Tools",          href: "/tools"          },
-  { icon: Globe,        label: "Platform",       href: "/platform"       },
   { icon: ShieldAlert,  label: "LARP Detector",  href: "/larp-detector"  },
   { icon: FolderSearch, label: "Reverse Search", href: "/reverse-search" },
   { icon: FlaskConical, label: "Incoming",       href: "/incoming"       },
-  { icon: Palette,      label: "Design System",  href: "/design-system"  },
   { icon: Map,          label: "Roadmap",        href: "/roadmap"        },
 ];
 

@@ -1,7 +1,5 @@
-'use client'
-
-import PlatformPage from '../components/PlatformPage'
+import { redirect } from 'next/navigation'
 
 export default function Platform() {
-  return <PlatformPage />
+  redirect('/')
 }

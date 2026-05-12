@@ -159,6 +159,13 @@ function getRange(year, mode, quarter, country = 'Germany') {
     : { startMs: parseInTz(`${year}-01-01`, tz),   endMs: parseInTz(`${year}-12-31T23:59:59`, tz) }
 }
 
+const PrototypeBanner = () => (
+  <div className="mx-4 mt-4 sm:mx-6 sm:mt-6 flex items-center gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+    <svg className="size-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+    <p className="text-xs font-medium text-amber-500">Prototype — this feature is under active development and may be incomplete.</p>
+  </div>
+)
+
 // ── Component ──────────────────────────────────────────────────
 export default function ReportsPage() {
   const { user } = useSessionContext()
@@ -206,17 +213,22 @@ export default function ReportsPage() {
 
   if (report) {
     return (
-      <ReportDashboard
-        trades={report.trades}
-        meta={{ wallet, label: periodLabel, year, mode, quarter, cached, ...tax }}
-        onNewReport={resetWizard}
-        onRefresh={() => { try { localStorage.removeItem(report.key) } catch {} resetWizard() }}
-      />
+      <>
+        <PrototypeBanner />
+        <ReportDashboard
+          trades={report.trades}
+          meta={{ wallet, label: periodLabel, year, mode, quarter, cached, ...tax }}
+          onNewReport={resetWizard}
+          onRefresh={() => { try { localStorage.removeItem(report.key) } catch {} resetWizard() }}
+        />
+      </>
     )
   }
 
   return (
-    <div className="rp-page">
+    <>
+      <PrototypeBanner />
+      <div className="rp-page">
       <div className="rp-page-header">
         <div>
           <h1 className="rp-title">Reports &amp; Analytics</h1>
@@ -411,5 +423,6 @@ export default function ReportsPage() {
         </div>
       )}
     </div>
+    </>
   )
 }
